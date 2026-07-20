@@ -45,8 +45,8 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
           </span>
           <span className="text-xs text-teal-600/60">{formatDateTime(record.timestamp)}</span>
         </div>
-        <div className="mt-0.5 flex items-center gap-2 text-xs text-teal-600/70">
-          <span className="font-medium">
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-teal-600/70">
+          <span className="whitespace-nowrap font-medium">
             {record.type === 'water'
               ? `${record.amount} ml`
               : record.type === 'ultrafiltration'
@@ -56,11 +56,11 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
           {record.type === 'fruit' && (
             <>
               <span className="text-cream-400">·</span>
-              <span>钾 {(record as any).potassium}</span>
+              <span className="whitespace-nowrap">钾 {(record as any).potassium}</span>
               <span className="text-cream-400">·</span>
-              <span>磷 {(record as any).phosphorus}</span>
+              <span className="whitespace-nowrap">磷 {(record as any).phosphorus}</span>
               <span className="text-cream-400">·</span>
-              <span>钠 {(record as any).sodium} mg</span>
+              <span className="whitespace-nowrap">钠 {(record as any).sodium} mg</span>
             </>
           )}
         </div>

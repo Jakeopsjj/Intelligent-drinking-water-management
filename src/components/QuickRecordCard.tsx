@@ -275,7 +275,7 @@ export const FruitQuickRecord: FC = () => {
               <span className="text-xl">{selectedFruit.emoji}</span>
               <div>
                 <div className="text-sm font-medium text-sage-700">{selectedFruit.name}</div>
-                <div className="text-[10px] text-sage-600/70">
+                <div className="whitespace-nowrap text-[10px] text-sage-600/70">
                   每100g：钾{selectedFruit.potassiumPer100g} / 磷{selectedFruit.phosphorusPer100g} / 钠{selectedFruit.sodiumPer100g} mg
                 </div>
               </div>

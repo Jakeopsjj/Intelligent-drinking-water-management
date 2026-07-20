@@ -71,12 +71,12 @@ const MetricCard: FC<MetricCardProps> = ({
           <span className="text-sm font-medium text-teal-600/80">{title}</span>
         </div>
         {status === 'exceeded' && (
-          <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">
+          <span className="whitespace-nowrap rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">
             超标
           </span>
         )}
         {status === 'warning' && (
-          <span className="rounded-full bg-clay-100 px-2 py-0.5 text-[10px] font-medium text-clay-600">
+          <span className="whitespace-nowrap rounded-full bg-clay-100 px-2 py-0.5 text-[10px] font-medium text-clay-600">
             注意
           </span>
         )}

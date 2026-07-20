@@ -246,28 +246,28 @@ function DayHistoryCard({
         <div className="flex items-center gap-2">
           <span className="font-medium text-teal-700">{formatDateOnly(metrics.date)}</span>
           {metrics.records.length === 0 && (
-            <span className="rounded-full bg-cream-200 px-2 py-0.5 text-[10px] text-teal-600/60">
+            <span className="whitespace-nowrap rounded-full bg-cream-200 px-2 py-0.5 text-[10px] text-teal-600/60">
               无记录
             </span>
           )}
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-teal-600/70">
-          <span className={cn('flex items-center gap-0.5', waterExceeded && 'text-red-500')}>
+          <span className={cn('flex whitespace-nowrap items-center gap-0.5', waterExceeded && 'text-red-500')}>
             <Droplets className="h-3 w-3" />
             水 {metrics.water} ml
           </span>
-          <span className="flex items-center gap-0.5 text-clay-600/80">
+          <span className="flex whitespace-nowrap items-center gap-0.5 text-clay-600/80">
             <Activity className="h-3 w-3" />
             超滤 {metrics.ultrafiltration} ml
           </span>
-          <span>果 {metrics.fruit} g</span>
-          <span className={cn('flex items-center gap-0.5', potExceeded && 'text-red-500')}>
+          <span className="whitespace-nowrap">果 {metrics.fruit} g</span>
+          <span className={cn('flex whitespace-nowrap items-center gap-0.5', potExceeded && 'text-red-500')}>
             钾 {metrics.potassium}
           </span>
-          <span className={cn('flex items-center gap-0.5', phoExceeded && 'text-red-500')}>
+          <span className={cn('flex whitespace-nowrap items-center gap-0.5', phoExceeded && 'text-red-500')}>
             磷 {metrics.phosphorus}
           </span>
-          <span className={cn('flex items-center gap-0.5', sodExceeded && 'text-red-500')}>
+          <span className={cn('flex whitespace-nowrap items-center gap-0.5', sodExceeded && 'text-red-500')}>
             钠 {metrics.sodium}
           </span>
         </div>

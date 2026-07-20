@@ -178,7 +178,7 @@ function LegendBadge({ level }: { level: 'low' | 'medium' | 'high' }) {
 // 元素含量小标签
 function NutrientTag({ label, value }: { label: string; value: number }) {
   return (
-    <span className="inline-flex items-baseline gap-0.5 rounded-md bg-cream-100 px-1.5 py-0.5 text-[10px] text-teal-600/80">
+    <span className="inline-flex whitespace-nowrap items-baseline gap-0.5 rounded-md bg-cream-100 px-1.5 py-0.5 text-[10px] text-teal-600/80">
       <span className="text-teal-600/60">{label}</span>
       <span className="font-medium text-teal-700">{value}</span>
       <span className="text-teal-600/40">mg</span>
