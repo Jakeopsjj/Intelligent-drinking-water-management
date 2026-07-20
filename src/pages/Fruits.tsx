@@ -93,7 +93,7 @@ export default function Fruits() {
               <div className="flex items-center gap-2">
                 <span
                   className={cn(
-                    'rounded-full px-3 py-1 text-xs font-medium',
+                    'whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium',
                     LEVEL_COLORS[level].bg,
                     LEVEL_COLORS[level].text
                   )}
@@ -164,7 +164,7 @@ function LegendBadge({ level }: { level: 'low' | 'medium' | 'high' }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium',
+        'inline-flex whitespace-nowrap items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium',
         LEVEL_COLORS[level].bg,
         LEVEL_COLORS[level].text
       )}
@@ -234,7 +234,7 @@ function FruitCard({
         </div>
         <span
           className={cn(
-            'rounded-full px-2 py-0.5 text-[10px] font-medium ring-1',
+            'whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium ring-1',
             LEVEL_COLORS[fruit.level].bg,
             LEVEL_COLORS[fruit.level].text,
             LEVEL_COLORS[fruit.level].ring
