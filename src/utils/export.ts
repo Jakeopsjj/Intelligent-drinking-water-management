@@ -133,13 +133,15 @@ export async function exportAsCSV(records: AnyRecord[]): Promise<void> {
     } else if (r.type === 'ultrafiltration') {
       rows.push([dateStr, timeStr, '超滤', '超滤量', r.amount, 'ml', '', '', '', '']);
     } else {
+      // 水果重量换算为 kg（4 位小数保证精度，如 0.1 kg）
+      const kgVal = (r.weight / 1000).toFixed(3).replace(/\.?0+$/, '');
       rows.push([
         dateStr,
         timeStr,
         '水果',
         `${r.fruitEmoji} ${r.fruitName}`,
-        r.weight,
-        'g',
+        kgVal,
+        'kg',
         r.potassium,
         r.phosphorus,
         r.sodium,
@@ -213,10 +215,13 @@ function buildReportSVG(ctx: ExportContext): string {
   const H = tableTop + tableH + footerH;
 
   // 汇总卡片数据
+  // 水果总量换算为 kg 显示（保留 2 位小数）
+  const fruitKg = s.fruit / 1000;
+  const fruitKgStr = fruitKg.toFixed(2).replace(/\.?0+$/, '');
   const cards = [
     { label: '总摄水量', value: s.water, unit: 'ml', color: '#0d9488', sub: s.fruitWater > 0 ? `含水果水 ${s.fruitWater} ml` : '' },
     { label: '总超滤量', value: s.ultrafiltration, unit: 'ml', color: '#0ea5e9', sub: '' },
-    { label: '总水果量', value: s.fruit, unit: 'g', color: '#84cc16', sub: s.fruitWater > 0 ? `贡献水 ${s.fruitWater} ml` : '' },
+    { label: '总水果量', value: fruitKgStr, unit: 'kg', color: '#84cc16', sub: s.fruitWater > 0 ? `贡献水 ${s.fruitWater} ml` : '' },
     { label: '总钾摄入', value: s.potassium, unit: 'mg', color: '#f59e0b', sub: '' },
     { label: '总磷摄入', value: s.phosphorus, unit: 'mg', color: '#ef4444', sub: '' },
     { label: '总钠摄入', value: s.sodium, unit: 'mg', color: '#8b5cf6', sub: '' },
@@ -287,7 +292,10 @@ function buildReportSVG(ctx: ExportContext): string {
     else if (r.type === 'ultrafiltration') { name = '超滤量'; amount = `${r.amount} ml`; }
     else {
       name = `${r.fruitEmoji} ${r.fruitName}`;
-      amount = `${r.weight} g`;
+      // 水果重量换算为 kg 显示
+      const kg = r.weight / 1000;
+      const kgStr = kg.toFixed(2).replace(/\.?0+$/, '');
+      amount = `${kgStr} kg`;
       k = String(r.potassium);
       pV = String(r.phosphorus);
       na = String(r.sodium);

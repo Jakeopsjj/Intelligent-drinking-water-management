@@ -203,7 +203,7 @@ export default function Settings() {
 
           <Field
             label="水果摄入限额"
-            hint="每日水果总重量限额"
+            hint="每日水果总重量限额（存储以 g 为单位，便于精确计算）"
             icon={<Citrus className="h-3.5 w-3.5" />}
           >
             <NumberInput

@@ -85,6 +85,15 @@ export function formatNumber(value: number): string {
   return value.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
 }
 
+// 将克转换为千克显示字符串：1250 -> "1.25 kg"，300 -> "0.3 kg"
+export function formatWeightKg(grams: number): string {
+  if (!Number.isFinite(grams)) return '0 kg';
+  const kg = grams / 1000;
+  // 去除多余尾零：保留最多 2 位小数
+  const str = kg.toFixed(2).replace(/\.?0+$/, '');
+  return `${str} kg`;
+}
+
 // 按日期筛选记录（纯函数）
 export function getRecordsByDate(records: AnyRecord[], dateKey: string): AnyRecord[] {
   const [start, end] = getDayRange(dateKey);

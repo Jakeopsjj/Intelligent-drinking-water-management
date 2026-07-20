@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Plus, Check, Search, X } from 'lucide-react';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useFruitsStore } from '@/store/useFruitsStore';
+import { formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 import type { FC, ReactNode } from 'react';
 
@@ -309,7 +310,7 @@ export const FruitQuickRecord: FC = () => {
                   onClick={() => setWeight(String(w))}
                   className="whitespace-nowrap rounded-lg border border-cream-300 bg-cream-50 px-2 py-1 text-[11px] font-medium text-teal-600 transition hover:border-sage-300 hover:bg-sage-50"
                 >
-                  {w} g
+                  {formatWeightKg(w)}
                 </button>
               ))}
             </div>
@@ -318,7 +319,7 @@ export const FruitQuickRecord: FC = () => {
                 type="number"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
-                placeholder="输入克数 (g)"
+                placeholder="输入克数 (g)，将自动换算为 kg 显示"
                 className="flex-1 rounded-xl border border-cream-300 bg-cream-50 px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-sage-400 focus:bg-white"
                 onKeyDown={(e) => e.key === 'Enter' && handleSave()}
               />
@@ -347,7 +348,7 @@ export const FruitQuickRecord: FC = () => {
         {/* 元素摄入预览（含水分） */}
         {selectedFruit && weight && Number(weight) > 0 && (
           <div className="whitespace-nowrap rounded-xl bg-sage-50 px-4 py-2 text-xs text-sage-700">
-            本次将摄入：钾 <span className="font-semibold">{Math.round((selectedFruit.potassiumPer100g * Number(weight)) / 100)}</span> mg / 磷 <span className="font-semibold">{Math.round((selectedFruit.phosphorusPer100g * Number(weight)) / 100)}</span> mg / 钠 <span className="font-semibold">{Math.round((selectedFruit.sodiumPer100g * Number(weight)) / 100)}</span> mg / 水 <span className="font-semibold">{Math.round((selectedFruit.waterPer100g * Number(weight)) / 100)}</span> ml
+            本次 {formatWeightKg(Number(weight))}：钾 <span className="font-semibold">{Math.round((selectedFruit.potassiumPer100g * Number(weight)) / 100)}</span> mg / 磷 <span className="font-semibold">{Math.round((selectedFruit.phosphorusPer100g * Number(weight)) / 100)}</span> mg / 钠 <span className="font-semibold">{Math.round((selectedFruit.sodiumPer100g * Number(weight)) / 100)}</span> mg / 水 <span className="font-semibold">{Math.round((selectedFruit.waterPer100g * Number(weight)) / 100)}</span> ml
           </div>
         )}
       </div>

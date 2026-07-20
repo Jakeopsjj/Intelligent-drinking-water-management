@@ -9,6 +9,12 @@ interface MetricCardProps {
   current: number;
   limit: number;
   unit: string;
+  /** 显示值覆盖（如将 g 显示为 kg），不传则用 current */
+  displayValue?: string;
+  /** 显示单位覆盖（如把 g 改为 kg） */
+  displayUnit?: string;
+  /** 显示限额覆盖（如把 g 限额改为 kg 限额） */
+  displayLimit?: string;
   /** 颜色主题 */
   theme?: 'teal' | 'sage' | 'clay';
   /** 子标题描述 */
@@ -31,6 +37,9 @@ const MetricCard: FC<MetricCardProps> = ({
   current,
   limit,
   unit,
+  displayValue,
+  displayUnit,
+  displayLimit,
   theme = 'teal',
   description,
   showProgress = true,
@@ -45,6 +54,13 @@ const MetricCard: FC<MetricCardProps> = ({
 
   const remaining = limit - current;
   const colors = themeColors[theme];
+
+  // 显示值 / 单位 / 限额的覆盖逻辑（用于 g → kg 转换等场景）
+  const shownValue = displayValue ?? String(current);
+  const shownUnit = displayUnit ?? unit;
+  const shownRemaining = displayLimit != null ? undefined : `${remaining}`;
+  const shownLimit = displayLimit ?? `${limit}`;
+  const shownExceeded = displayLimit != null ? undefined : `${-remaining}`;
 
   return (
     <div
@@ -111,22 +127,22 @@ const MetricCard: FC<MetricCardProps> = ({
                   : 'text-teal-600'
               )}
             >
-              {current}
+              {shownValue}
             </span>
-            <span className="text-xs text-teal-600/60">{unit}</span>
+            <span className="text-xs text-teal-600/60">{shownUnit}</span>
           </div>
           {limit > 0 ? (
             <div className="mt-1 text-xs text-teal-600/70">
               {inverseProgress ? (
                 <span>
-                  目标 <span className="font-medium text-teal-700">{limit}</span> {unit}
+                  目标 <span className="font-medium text-teal-700">{shownLimit}</span> {shownUnit}
                 </span>
               ) : remaining > 0 ? (
                 <span>
-                  还可摄入 <span className="font-medium text-sage-600">{remaining}</span> {unit}
+                  还可摄入 <span className="font-medium text-sage-600">{shownRemaining}</span> {shownUnit}
                 </span>
               ) : (
-                <span className="text-red-500">已超出 {-remaining} {unit}</span>
+                <span className="text-red-500">已超出 {shownExceeded} {shownUnit}</span>
               )}
             </div>
           ) : (

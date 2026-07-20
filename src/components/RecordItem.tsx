@@ -1,6 +1,7 @@
 import { Trash2, Droplets, Activity, Citrus } from 'lucide-react';
 import type { AnyRecord } from '@/types';
 import { formatDateTime } from '@/utils/date';
+import { formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 
 interface RecordItemProps {
@@ -51,7 +52,7 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
               ? `${record.amount} ml`
               : record.type === 'ultrafiltration'
               ? `${record.amount} ml`
-              : `${(record as any).weight} g`}
+              : `${formatWeightKg((record as any).weight)}`}
           </span>
           {record.type === 'fruit' && (
             <>

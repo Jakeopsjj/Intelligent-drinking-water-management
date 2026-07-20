@@ -17,7 +17,7 @@ import { Calendar, TrendingUp, ChevronRight, X, Droplets, Activity } from 'lucid
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { getRecentDays, formatDateFriendly, formatDateOnly } from '@/utils/date';
-import { getRangeMetrics as calcRangeMetrics } from '@/utils/calc';
+import { getRangeMetrics as calcRangeMetrics, formatWeightKg } from '@/utils/calc';
 import RecordItem from '@/components/RecordItem';
 import { cn } from '@/lib/utils';
 import type { DailyMetrics } from '@/types';
@@ -260,15 +260,15 @@ function DayHistoryCard({
             <Activity className="h-3 w-3" />
             超滤 {metrics.ultrafiltration} ml
           </span>
-          <span className="whitespace-nowrap">果 {metrics.fruit} g</span>
+          <span className="whitespace-nowrap">果 {formatWeightKg(metrics.fruit)}</span>
           <span className={cn('flex whitespace-nowrap items-center gap-0.5', potExceeded && 'text-red-500')}>
-            钾 {metrics.potassium}
+            钾 {metrics.potassium} mg
           </span>
           <span className={cn('flex whitespace-nowrap items-center gap-0.5', phoExceeded && 'text-red-500')}>
-            磷 {metrics.phosphorus}
+            磷 {metrics.phosphorus} mg
           </span>
           <span className={cn('flex whitespace-nowrap items-center gap-0.5', sodExceeded && 'text-red-500')}>
-            钠 {metrics.sodium}
+            钠 {metrics.sodium} mg
           </span>
         </div>
       </div>
@@ -316,7 +316,7 @@ function DayDetailDrawer({
         <div className="grid grid-cols-2 gap-2 p-4">
           <SummaryItem label="摄水量" value={metrics.water} unit="ml" />
           <SummaryItem label="超滤量" value={metrics.ultrafiltration} unit="ml" />
-          <SummaryItem label="水果摄入" value={metrics.fruit} unit="g" />
+          <SummaryItem label="水果摄入" value={formatWeightKg(metrics.fruit)} />
           <SummaryItem label="钾摄入" value={metrics.potassium} unit="mg" />
           <SummaryItem label="磷摄入" value={metrics.phosphorus} unit="mg" />
           <SummaryItem label="钠摄入" value={metrics.sodium} unit="mg" />
@@ -350,14 +350,14 @@ function SummaryItem({
   unit,
 }: {
   label: string;
-  value: number;
-  unit: string;
+  value: number | string;
+  unit?: string;
 }) {
   return (
     <div className="rounded-2xl border border-cream-200 bg-white/70 p-3">
       <div className="text-[10px] text-teal-600/60">{label}</div>
       <div className="mt-0.5 font-medium text-teal-700">
-        {value} <span className="text-[10px] text-teal-600/60">{unit}</span>
+        {value} {unit && <span className="text-[10px] text-teal-600/60">{unit}</span>}
       </div>
     </div>
   );

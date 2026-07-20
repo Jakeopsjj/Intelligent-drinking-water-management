@@ -257,13 +257,13 @@ function NumberPicker({
               key={p}
               onClick={() => onChange(p)}
               className={cn(
-                'rounded-xl px-3 py-1.5 text-xs font-medium transition',
+                'whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-medium transition',
                 value === p
                   ? 'bg-teal-500 text-white'
                   : 'bg-cream-100 text-teal-600 hover:bg-cream-200'
               )}
             >
-              {p}
+              {p} {unit}
             </button>
           ))}
         </div>
