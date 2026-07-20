@@ -12,6 +12,16 @@ export function calculatePotassium(fruit: Fruit, weightGram: number): number {
   return Math.round((fruit.potassiumPer100g * weightGram) / 100);
 }
 
+// 计算水果摄入产生的磷量
+export function calculatePhosphorus(fruit: Fruit, weightGram: number): number {
+  return Math.round((fruit.phosphorusPer100g * weightGram) / 100);
+}
+
+// 计算水果摄入产生的钠量
+export function calculateSodium(fruit: Fruit, weightGram: number): number {
+  return Math.round((fruit.sodiumPer100g * weightGram) / 100);
+}
+
 // 生成唯一 ID
 export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;

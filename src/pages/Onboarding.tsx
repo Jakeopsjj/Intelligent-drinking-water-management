@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Droplets, Citrus, HeartPulse, ChevronRight, Check } from 'lucide-react';
+import { Droplets, Citrus, HeartPulse, ChevronRight, Check, Atom, Waves } from 'lucide-react';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { DEFAULT_SETTINGS } from '@/data/fruits';
 import { cn } from '@/lib/utils';
 
-const STEPS = ['欢迎', '摄水限额', '钾摄入限额', '完成'] as const;
+const STEPS = ['欢迎', '摄水限额', '元素限额', '完成'] as const;
 
 export default function Onboarding() {
   const updateSettings = useSettingsStore((s) => s.updateSettings);
@@ -13,6 +13,8 @@ export default function Onboarding() {
   const [step, setStep] = useState(0);
   const [waterLimit, setWaterLimit] = useState(DEFAULT_SETTINGS.dailyWaterLimit);
   const [potassiumLimit, setPotassiumLimit] = useState(DEFAULT_SETTINGS.dailyPotassiumLimit);
+  const [phosphorusLimit, setPhosphorusLimit] = useState(DEFAULT_SETTINGS.dailyPhosphorusLimit);
+  const [sodiumLimit, setSodiumLimit] = useState(DEFAULT_SETTINGS.dailySodiumLimit);
   const [fruitLimit, setFruitLimit] = useState(DEFAULT_SETTINGS.dailyFruitLimit);
   const [ufTarget, setUfTarget] = useState(DEFAULT_SETTINGS.dailyUltrafiltrationTarget);
 
@@ -20,6 +22,8 @@ export default function Onboarding() {
     updateSettings({
       dailyWaterLimit: waterLimit,
       dailyPotassiumLimit: potassiumLimit,
+      dailyPhosphorusLimit: phosphorusLimit,
+      dailySodiumLimit: sodiumLimit,
       dailyFruitLimit: fruitLimit,
       dailyUltrafiltrationTarget: ufTarget,
       initialized: true,
@@ -65,12 +69,12 @@ export default function Onboarding() {
                 欢迎使用肾友笔记
               </h1>
               <p className="mt-2 text-sm text-teal-600/70">
-                一款专为透析患者设计的健康追踪应用，帮你轻松记录每日摄水、超滤、水果摄入与钾元素。
+                一款专为透析患者设计的健康追踪应用，帮你轻松记录每日摄水、超滤、水果摄入与钾磷钠元素。
               </p>
 
               <div className="mt-6 space-y-2 text-left">
                 <FeatureRow icon={<Droplets className="h-4 w-4" />} title="摄水控制" desc="实时查看剩余配额" />
-                <FeatureRow icon={<HeartPulse className="h-4 w-4" />} title="钾摄入追踪" desc="自动计算水果钾含量" />
+                <FeatureRow icon={<HeartPulse className="h-4 w-4" />} title="元素追踪" desc="钾 / 磷 / 钠自动计算" />
                 <FeatureRow icon={<Citrus className="h-4 w-4" />} title="水果库参考" desc="内置 24 种常见水果" />
               </div>
 
@@ -109,25 +113,58 @@ export default function Onboarding() {
             </motion.div>
           )}
 
-          {/* Step 2: 钾限额 */}
+          {/* Step 2: 元素限额（钾/磷/钠） */}
           {step === 2 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               <div className="mb-2 flex items-center gap-2 text-teal-500">
                 <HeartPulse className="h-5 w-5" />
                 <span className="text-xs font-medium uppercase tracking-wider">Step 3 / 4</span>
               </div>
-              <h2 className="font-serif text-2xl font-semibold text-teal-700">钾元素摄入限额</h2>
+              <h2 className="font-serif text-2xl font-semibold text-teal-700">元素摄入限额</h2>
               <p className="mt-1 text-sm text-teal-600/70">
-                透析患者一般建议每日钾摄入不超过 2000-3000 mg。
+                透析患者需严格控制钾、磷、钠摄入，参考下方常用预设。
               </p>
 
-              <NumberPicker
-                value={potassiumLimit}
-                onChange={setPotassiumLimit}
-                unit="mg"
-                step={100}
-                presets={[1500, 2000, 2500, 3000]}
-              />
+              <div className="mt-5 space-y-5">
+                <div>
+                  <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-teal-600">
+                    <HeartPulse className="h-3.5 w-3.5" /> 钾摄入限额（建议 2000-3000mg）
+                  </div>
+                  <NumberPicker
+                    value={potassiumLimit}
+                    onChange={setPotassiumLimit}
+                    unit="mg"
+                    step={100}
+                    presets={[1500, 2000, 2500, 3000]}
+                  />
+                </div>
+
+                <div>
+                  <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-teal-600">
+                    <Atom className="h-3.5 w-3.5" /> 磷摄入限额（建议 800-1000mg）
+                  </div>
+                  <NumberPicker
+                    value={phosphorusLimit}
+                    onChange={setPhosphorusLimit}
+                    unit="mg"
+                    step={50}
+                    presets={[600, 800, 1000, 1200]}
+                  />
+                </div>
+
+                <div>
+                  <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-teal-600">
+                    <Waves className="h-3.5 w-3.5" /> 钠摄入限额（5g 食盐 ≈ 2000mg 钠）
+                  </div>
+                  <NumberPicker
+                    value={sodiumLimit}
+                    onChange={setSodiumLimit}
+                    unit="mg"
+                    step={100}
+                    presets={[1500, 2000, 2500, 3000]}
+                  />
+                </div>
+              </div>
 
               <StepperButtons onBack={() => setStep(1)} onNext={() => setStep(3)} />
             </motion.div>
@@ -146,6 +183,8 @@ export default function Onboarding() {
               <div className="mt-4 space-y-2">
                 <SummaryItem icon={<Droplets className="h-4 w-4" />} label="每日摄水" value={`${waterLimit} ml`} />
                 <SummaryItem icon={<HeartPulse className="h-4 w-4" />} label="钾摄入上限" value={`${potassiumLimit} mg`} />
+                <SummaryItem icon={<Atom className="h-4 w-4" />} label="磷摄入上限" value={`${phosphorusLimit} mg`} />
+                <SummaryItem icon={<Waves className="h-4 w-4" />} label="钠摄入上限" value={`${sodiumLimit} mg`} />
                 <SummaryItem icon={<Citrus className="h-4 w-4" />} label="水果摄入" value={`${fruitLimit} g`} />
               </div>
 

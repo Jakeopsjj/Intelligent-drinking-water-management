@@ -175,6 +175,17 @@ function LegendBadge({ level }: { level: 'low' | 'medium' | 'high' }) {
   );
 }
 
+// 元素含量小标签
+function NutrientTag({ label, value }: { label: string; value: number }) {
+  return (
+    <span className="inline-flex items-baseline gap-0.5 rounded-md bg-cream-100 px-1.5 py-0.5 text-[10px] text-teal-600/80">
+      <span className="text-teal-600/60">{label}</span>
+      <span className="font-medium text-teal-700">{value}</span>
+      <span className="text-teal-600/40">mg</span>
+    </span>
+  );
+}
+
 // 水果卡片
 function FruitCard({
   fruit,
@@ -214,9 +225,10 @@ function FruitCard({
                 </span>
               )}
             </div>
-            <div className="mt-0.5 text-xs text-teal-600/60">
-              每 100g 含钾{' '}
-              <span className="font-medium text-teal-700">{fruit.potassiumPer100g} mg</span>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              <NutrientTag label="钾" value={fruit.potassiumPer100g} />
+              <NutrientTag label="磷" value={fruit.phosphorusPer100g} />
+              <NutrientTag label="钠" value={fruit.sodiumPer100g} />
             </div>
           </div>
         </div>
@@ -298,6 +310,8 @@ function AddFruitDrawer({
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState('🍇');
   const [potassium, setPotassium] = useState('');
+  const [phosphorus, setPhosphorus] = useState('');
+  const [sodium, setSodium] = useState('');
   const [suggestion, setSuggestion] = useState('');
 
   const emojiChoices = ['🍇', '🍊', '🍋', '🍎', '🍐', '🥭', '🍑', '🍓', '🥝', '🍍', '🥥', '🥑', '🍈', '🫐'];
@@ -308,6 +322,8 @@ function AddFruitDrawer({
       name: name.trim(),
       emoji,
       potassiumPer100g: Number(potassium),
+      phosphorusPer100g: Number(phosphorus) || 0,
+      sodiumPer100g: Number(sodium) || 0,
       suggestion: suggestion.trim() || '请根据医嘱适量食用',
     });
   };
@@ -373,7 +389,7 @@ function AddFruitDrawer({
               </div>
             </div>
 
-            {/* 钾含量 */}
+            {/* 元素含量：钾 / 磷 / 钠 */}
             <div>
               <label className="mb-1 block text-xs font-medium text-teal-600">
                 每 100g 含钾量 (mg) <span className="text-clay-500">*</span>
@@ -385,6 +401,33 @@ function AddFruitDrawer({
                 placeholder="例如：180"
                 className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-teal-600">
+                  磷 (mg/100g)
+                </label>
+                <input
+                  type="number"
+                  value={phosphorus}
+                  onChange={(e) => setPhosphorus(e.target.value)}
+                  placeholder="可选"
+                  className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-teal-600">
+                  钠 (mg/100g)
+                </label>
+                <input
+                  type="number"
+                  value={sodium}
+                  onChange={(e) => setSodium(e.target.value)}
+                  placeholder="可选"
+                  className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
+                />
+              </div>
             </div>
 
             {/* 建议 */}

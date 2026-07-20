@@ -276,7 +276,7 @@ export const FruitQuickRecord: FC = () => {
               <div>
                 <div className="text-sm font-medium text-sage-700">{selectedFruit.name}</div>
                 <div className="text-[10px] text-sage-600/70">
-                  每100g含钾 {selectedFruit.potassiumPer100g}mg
+                  每100g：钾{selectedFruit.potassiumPer100g} / 磷{selectedFruit.phosphorusPer100g} / 钠{selectedFruit.sodiumPer100g} mg
                 </div>
               </div>
             </div>
@@ -331,13 +331,22 @@ export const FruitQuickRecord: FC = () => {
           </div>
         )}
 
-        {/* 钾含量预览 */}
+        {/* 元素摄入预览 */}
         {selectedFruit && weight && Number(weight) > 0 && (
           <div className="rounded-xl bg-sage-50 px-4 py-2 text-xs text-sage-700">
-            本次将摄入钾约{' '}
+            本次将摄入：钾{' '}
             <span className="font-semibold">
-              {Math.round((selectedFruit.potassiumPer100g * Number(weight)) / 100)} mg
-            </span>
+              {Math.round((selectedFruit.potassiumPer100g * Number(weight)) / 100)}
+            </span>{' '}
+            / 磷{' '}
+            <span className="font-semibold">
+              {Math.round((selectedFruit.phosphorusPer100g * Number(weight)) / 100)}
+            </span>{' '}
+            / 钠{' '}
+            <span className="font-semibold">
+              {Math.round((selectedFruit.sodiumPer100g * Number(weight)) / 100)}
+            </span>{' '}
+            mg
           </div>
         )}
       </div>
@@ -388,7 +397,7 @@ export const FruitQuickRecord: FC = () => {
                           {f.name}
                         </div>
                         <div className="text-[10px] text-teal-600/60">
-                          钾 {f.potassiumPer100g}/100g
+                          钾{f.potassiumPer100g} / 磷{f.phosphorusPer100g} / 钠{f.sodiumPer100g}
                         </div>
                       </div>
                     </button>

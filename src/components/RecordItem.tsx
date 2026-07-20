@@ -56,7 +56,11 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
           {record.type === 'fruit' && (
             <>
               <span className="text-cream-400">·</span>
-              <span>钾 {(record as any).potassium} mg</span>
+              <span>钾 {(record as any).potassium}</span>
+              <span className="text-cream-400">·</span>
+              <span>磷 {(record as any).phosphorus}</span>
+              <span className="text-cream-400">·</span>
+              <span>钠 {(record as any).sodium} mg</span>
             </>
           )}
         </div>

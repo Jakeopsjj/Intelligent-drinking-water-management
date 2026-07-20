@@ -41,6 +41,8 @@ export default function Records() {
     water: m.water,
     ultrafiltration: m.ultrafiltration,
     potassium: m.potassium,
+    phosphorus: m.phosphorus,
+    sodium: m.sodium,
     fruit: m.fruit,
   }));
 
@@ -161,62 +163,13 @@ export default function Records() {
         </div>
       </motion.section>
 
-      {/* 钾摄入柱状图 */}
-      <motion.section
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-serif text-lg font-semibold text-teal-700">每日钾摄入量</h2>
-            <p className="mt-1 text-xs text-teal-600/60">红色表示当日已超标</p>
-          </div>
-          <span className="rounded-full bg-clay-50 px-3 py-1 text-xs font-medium text-clay-600">
-            限额 {settings.dailyPotassiumLimit} mg/日
-          </span>
-        </div>
-        <div className="mt-6 h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={trendData} margin={{ top: 4, right: 4, bottom: 4, left: -20 }}>
-              <CartesianGrid stroke="#E8E0D5" strokeDasharray="3 3" vertical={false} />
-              <XAxis
-                dataKey="shortDate"
-                stroke="#9DB9A2"
-                fontSize={10}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis stroke="#9DB9A2" fontSize={10} tickLine={false} axisLine={false} />
-              <Tooltip
-                cursor={{ fill: 'rgba(217, 119, 87, 0.05)' }}
-                contentStyle={{
-                  background: '#FDFBF7',
-                  border: '1px solid #E8E0D5',
-                  borderRadius: 12,
-                  fontSize: 12,
-                  color: '#234A48',
-                }}
-                formatter={(value: number) => [`${value} mg`, '钾摄入']}
-              />
-              <ReferenceLine
-                y={settings.dailyPotassiumLimit}
-                stroke="#EF4444"
-                strokeDasharray="4 4"
-              />
-              <Bar dataKey="potassium" radius={[6, 6, 0, 0]}>
-                {trendData.map((entry, i) => (
-                  <Cell
-                    key={i}
-                    fill={entry.potassium > settings.dailyPotassiumLimit ? '#EF4444' : '#7A9B7E'}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </motion.section>
+      {/* 元素摄入柱状图（钾 / 磷 / 钠 切换） */}
+      <ElementBarSection
+        trendData={trendData}
+        potassiumLimit={settings.dailyPotassiumLimit}
+        phosphorusLimit={settings.dailyPhosphorusLimit}
+        sodiumLimit={settings.dailySodiumLimit}
+      />
 
       {/* 历史记录列表 */}
       <motion.section
@@ -235,6 +188,8 @@ export default function Records() {
               metrics={m}
               waterLimit={settings.dailyWaterLimit}
               potassiumLimit={settings.dailyPotassiumLimit}
+              phosphorusLimit={settings.dailyPhosphorusLimit}
+              sodiumLimit={settings.dailySodiumLimit}
               onClick={() => setSelectedDate(m.date)}
             />
           ))}
@@ -258,15 +213,21 @@ function DayHistoryCard({
   metrics,
   waterLimit,
   potassiumLimit,
+  phosphorusLimit,
+  sodiumLimit,
   onClick,
 }: {
   metrics: DailyMetrics;
   waterLimit: number;
   potassiumLimit: number;
+  phosphorusLimit: number;
+  sodiumLimit: number;
   onClick: () => void;
 }) {
   const waterExceeded = metrics.water > waterLimit;
   const potExceeded = metrics.potassium > potassiumLimit;
+  const phoExceeded = metrics.phosphorus > phosphorusLimit;
+  const sodExceeded = metrics.sodium > sodiumLimit;
 
   return (
     <button
@@ -286,18 +247,24 @@ function DayHistoryCard({
             </span>
           )}
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-teal-600/70">
-          <span className={cn('flex items-center gap-1', waterExceeded && 'text-red-500')}>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-teal-600/70">
+          <span className={cn('flex items-center gap-0.5', waterExceeded && 'text-red-500')}>
             <Droplets className="h-3 w-3" />
             水 {metrics.water} ml
           </span>
-          <span className="flex items-center gap-1 text-clay-600/80">
+          <span className="flex items-center gap-0.5 text-clay-600/80">
             <Activity className="h-3 w-3" />
             超滤 {metrics.ultrafiltration} ml
           </span>
-          <span>水果 {metrics.fruit} g</span>
-          <span className={cn('flex items-center gap-1', potExceeded && 'text-red-500')}>
-            钾 {metrics.potassium} mg
+          <span>果 {metrics.fruit} g</span>
+          <span className={cn('flex items-center gap-0.5', potExceeded && 'text-red-500')}>
+            钾 {metrics.potassium}
+          </span>
+          <span className={cn('flex items-center gap-0.5', phoExceeded && 'text-red-500')}>
+            磷 {metrics.phosphorus}
+          </span>
+          <span className={cn('flex items-center gap-0.5', sodExceeded && 'text-red-500')}>
+            钠 {metrics.sodium}
           </span>
         </div>
       </div>
@@ -347,6 +314,8 @@ function DayDetailDrawer({
           <SummaryItem label="超滤量" value={metrics.ultrafiltration} unit="ml" />
           <SummaryItem label="水果摄入" value={metrics.fruit} unit="g" />
           <SummaryItem label="钾摄入" value={metrics.potassium} unit="mg" />
+          <SummaryItem label="磷摄入" value={metrics.phosphorus} unit="mg" />
+          <SummaryItem label="钠摄入" value={metrics.sodium} unit="mg" />
         </div>
 
         {/* 详情列表 */}
@@ -383,10 +352,111 @@ function SummaryItem({
   return (
     <div className="rounded-2xl border border-cream-200 bg-white/70 p-3">
       <div className="text-[10px] text-teal-600/60">{label}</div>
-      <div className="mt-1 flex items-baseline gap-1">
-        <span className="font-serif text-lg font-semibold text-teal-700">{value}</span>
-        <span className="text-[10px] text-teal-600/60">{unit}</span>
+      <div className="mt-0.5 font-medium text-teal-700">
+        {value} <span className="text-[10px] text-teal-600/60">{unit}</span>
       </div>
     </div>
   );
 }
+
+// 元素柱状图（钾 / 磷 / 钠 切换）
+type ElementKey = 'potassium' | 'phosphorus' | 'sodium';
+const ELEMENT_META: Record<ElementKey, { label: string; color: string; unit: string }> = {
+  potassium: { label: '钾', color: '#7A9B7E', unit: 'mg' },
+  phosphorus: { label: '磷', color: '#D97757', unit: 'mg' },
+  sodium: { label: '钠', color: '#3B7A7C', unit: 'mg' },
+};
+
+function ElementBarSection({
+  trendData,
+  potassiumLimit,
+  phosphorusLimit,
+  sodiumLimit,
+}: {
+  trendData: Array<{ shortDate: string; potassium: number; phosphorus: number; sodium: number }>;
+  potassiumLimit: number;
+  phosphorusLimit: number;
+  sodiumLimit: number;
+}) {
+  const [active, setActive] = useState<ElementKey>('potassium');
+  const limitMap: Record<ElementKey, number> = {
+    potassium: potassiumLimit,
+    phosphorus: phosphorusLimit,
+    sodium: sodiumLimit,
+  };
+  const currentLimit = limitMap[active];
+  const meta = ELEMENT_META[active];
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-serif text-lg font-semibold text-teal-700">每日{meta.label}摄入量</h2>
+          <p className="mt-1 text-xs text-teal-600/60">红色表示当日已超标</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-full bg-cream-100 p-0.5">
+            {(Object.keys(ELEMENT_META) as ElementKey[]).map((k) => (
+              <button
+                key={k}
+                onClick={() => setActive(k)}
+                className={cn(
+                  'rounded-full px-3 py-1 text-xs font-medium transition',
+                  active === k
+                    ? 'bg-white text-teal-700 shadow-soft'
+                    : 'text-teal-600/60 hover:text-teal-700'
+                )}
+              >
+                {ELEMENT_META[k].label}
+              </button>
+            ))}
+          </div>
+          <span className="rounded-full bg-cream-50 px-3 py-1 text-xs font-medium text-teal-600">
+            限额 {currentLimit} mg/日
+          </span>
+        </div>
+      </div>
+      <div className="mt-6 h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={trendData} margin={{ top: 4, right: 4, bottom: 4, left: -20 }}>
+            <CartesianGrid stroke="#E8E0D5" strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey="shortDate"
+              stroke="#9DB9A2"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis stroke="#9DB9A2" fontSize={10} tickLine={false} axisLine={false} />
+            <Tooltip
+              cursor={{ fill: 'rgba(217, 119, 87, 0.05)' }}
+              contentStyle={{
+                background: '#FDFBF7',
+                border: '1px solid #E8E0D5',
+                borderRadius: 12,
+                fontSize: 12,
+                color: '#234A48',
+              }}
+              formatter={(value: number) => [`${value} mg`, `${meta.label}摄入`]}
+            />
+            <ReferenceLine y={currentLimit} stroke="#EF4444" strokeDasharray="4 4" />
+            <Bar dataKey={active} radius={[6, 6, 0, 0]}>
+              {trendData.map((entry, i) => (
+                <Cell
+                  key={i}
+                  fill={entry[active] > currentLimit ? '#EF4444' : meta.color}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </motion.section>
+  );
+}
+

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2 } from 'lucide-react';
+import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves } from 'lucide-react';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { cn } from '@/lib/utils';
@@ -131,6 +131,34 @@ export default function Settings() {
             <NumberInput
               value={settings.dailyPotassiumLimit}
               onChange={(v) => updateSettings({ dailyPotassiumLimit: v })}
+              unit="mg"
+              step={100}
+              min={0}
+            />
+          </Field>
+
+          <Field
+            label="磷摄入限额"
+            hint="每日磷元素摄入上限（建议 800-1000mg）"
+            icon={<Atom className="h-3.5 w-3.5" />}
+          >
+            <NumberInput
+              value={settings.dailyPhosphorusLimit}
+              onChange={(v) => updateSettings({ dailyPhosphorusLimit: v })}
+              unit="mg"
+              step={50}
+              min={0}
+            />
+          </Field>
+
+          <Field
+            label="钠摄入限额"
+            hint="每日钠元素摄入上限（约 5g 食盐 = 2000mg 钠）"
+            icon={<Waves className="h-3.5 w-3.5" />}
+          >
+            <NumberInput
+              value={settings.dailySodiumLimit}
+              onChange={(v) => updateSettings({ dailySodiumLimit: v })}
               unit="mg"
               step={100}
               min={0}

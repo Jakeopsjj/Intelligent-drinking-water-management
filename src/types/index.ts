@@ -31,6 +31,8 @@ export interface FruitRecord extends BaseRecord {
   fruitEmoji: string;
   weight: number; // 克
   potassium: number; // 自动计算所得的钾摄入量 mg
+  phosphorus: number; // 自动计算所得的磷摄入量 mg
+  sodium: number; // 自动计算所得的钠摄入量 mg
 }
 
 // 联合记录类型
@@ -42,7 +44,9 @@ export interface Fruit {
   name: string;
   emoji: string;
   potassiumPer100g: number; // 每100g含钾量 mg
-  level: PotassiumLevel; // 钾含量等级
+  phosphorusPer100g: number; // 每100g含磷量 mg
+  sodiumPer100g: number; // 每100g含钠量 mg
+  level: PotassiumLevel; // 钾含量等级（主参考）
   suggestion: string; // 食用建议
   isCustom?: boolean; // 是否自定义添加
 }
@@ -51,6 +55,8 @@ export interface Fruit {
 export interface UserSettings {
   dailyWaterLimit: number; // 每日摄水限额 ml
   dailyPotassiumLimit: number; // 每日钾摄入限额 mg
+  dailyPhosphorusLimit: number; // 每日磷摄入限额 mg
+  dailySodiumLimit: number; // 每日钠摄入限额 mg
   dailyFruitLimit: number; // 每日水果限额 g
   dailyUltrafiltrationTarget: number; // 每日超滤目标 ml
   userName?: string;
@@ -65,6 +71,8 @@ export interface DailyMetrics {
   ultrafiltration: number; // 当日超滤量 ml
   fruit: number; // 当日水果摄入量 g
   potassium: number; // 当日钾摄入量 mg
+  phosphorus: number; // 当日磷摄入量 mg
+  sodium: number; // 当日钠摄入量 mg
   records: AnyRecord[]; // 当日所有记录
 }
 

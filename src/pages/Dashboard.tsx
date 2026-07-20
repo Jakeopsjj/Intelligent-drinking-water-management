@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Droplets, Activity, Citrus, HeartPulse, Sparkles, TrendingUp } from 'lucide-react';
+import { Droplets, Activity, Citrus, HeartPulse, Sparkles, TrendingUp, Atom, Waves } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -38,10 +38,19 @@ export default function Dashboard() {
     todayMetrics.potassium,
     settings.dailyPotassiumLimit
   );
+  const phosphorusStatus = getProgressStatus(
+    todayMetrics.phosphorus,
+    settings.dailyPhosphorusLimit
+  );
+  const sodiumStatus = getProgressStatus(todayMetrics.sodium, settings.dailySodiumLimit);
   const fruitStatus = getProgressStatus(todayMetrics.fruit, settings.dailyFruitLimit);
 
   const overallWarning =
-    waterStatus === 'exceeded' || potassiumStatus === 'exceeded' || fruitStatus === 'exceeded';
+    waterStatus === 'exceeded' ||
+    potassiumStatus === 'exceeded' ||
+    phosphorusStatus === 'exceeded' ||
+    sodiumStatus === 'exceeded' ||
+    fruitStatus === 'exceeded';
 
   return (
     <div className="space-y-6">
@@ -81,7 +90,7 @@ export default function Dashboard() {
       </motion.section>
 
       {/* 指标卡片区 */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -99,7 +108,7 @@ export default function Dashboard() {
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ delay: 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         >
           <MetricCard
             title="超滤量"
@@ -115,7 +124,7 @@ export default function Dashboard() {
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ delay: 0.11, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         >
           <MetricCard
             title="水果摄入"
@@ -129,7 +138,7 @@ export default function Dashboard() {
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ delay: 0.14, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         >
           <MetricCard
             title="钾摄入"
@@ -138,7 +147,37 @@ export default function Dashboard() {
             limit={settings.dailyPotassiumLimit}
             unit="mg"
             theme="clay"
-            description="钾元素需严格控制"
+            description="影响心律，需严格控制"
+          />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.17, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <MetricCard
+            title="磷摄入"
+            icon={<Atom className="h-4 w-4" />}
+            current={todayMetrics.phosphorus}
+            limit={settings.dailyPhosphorusLimit}
+            unit="mg"
+            theme="sage"
+            description="过量致皮肤瘙痒、骨病"
+          />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <MetricCard
+            title="钠摄入"
+            icon={<Waves className="h-4 w-4" />}
+            current={todayMetrics.sodium}
+            limit={settings.dailySodiumLimit}
+            unit="mg"
+            theme="teal"
+            description="影响血压与水钠潴留"
           />
         </motion.div>
       </section>
