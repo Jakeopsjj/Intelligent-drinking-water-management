@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Droplets, Activity, Citrus, HeartPulse, Sparkles, TrendingUp, Atom, Waves } from 'lucide-react';
 import {
@@ -18,17 +19,23 @@ import {
 import RecordItem from '@/components/RecordItem';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
-import { getGreeting, formatDateLong } from '@/utils/date';
-import { getProgressStatus } from '@/utils/calc';
+import { getGreeting, formatDateLong, getTodayKey } from '@/utils/date';
+import { getProgressStatus, getDailyMetrics, getHourlyDistribution } from '@/utils/calc';
 
 export default function Dashboard() {
-  const getTodayMetrics = useRecordsStore((s) => s.getTodayMetrics);
-  const getHourlyDistribution = useRecordsStore((s) => s.getHourlyDistribution);
+  const records = useRecordsStore((s) => s.records);
   const deleteRecord = useRecordsStore((s) => s.deleteRecord);
   const settings = useSettingsStore((s) => s.settings);
 
-  const todayMetrics = getTodayMetrics();
-  const hourlyDist = getHourlyDistribution(todayMetrics.date);
+  const todayKey = getTodayKey();
+  const todayMetrics = useMemo(
+    () => getDailyMetrics(records, todayKey),
+    [records, todayKey]
+  );
+  const hourlyDist = useMemo(
+    () => getHourlyDistribution(records, todayKey),
+    [records, todayKey]
+  );
 
   const userName = settings.userName?.trim() || '肾友';
   const greeting = getGreeting();

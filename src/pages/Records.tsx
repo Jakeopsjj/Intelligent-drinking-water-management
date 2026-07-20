@@ -17,6 +17,7 @@ import { Calendar, TrendingUp, ChevronRight, X, Droplets, Activity } from 'lucid
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { getRecentDays, formatDateFriendly, formatDateOnly } from '@/utils/date';
+import { getRangeMetrics as calcRangeMetrics } from '@/utils/calc';
 import RecordItem from '@/components/RecordItem';
 import { cn } from '@/lib/utils';
 import type { DailyMetrics } from '@/types';
@@ -27,12 +28,15 @@ export default function Records() {
   const [range, setRange] = useState<Range>(7);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  const getRangeMetrics = useRecordsStore((s) => s.getRangeMetrics);
+  const records = useRecordsStore((s) => s.records);
   const deleteRecord = useRecordsStore((s) => s.deleteRecord);
   const settings = useSettingsStore((s) => s.settings);
 
   const dateKeys = useMemo(() => getRecentDays(range), [range]);
-  const metrics = useMemo(() => getRangeMetrics(dateKeys), [getRangeMetrics, dateKeys]);
+  const metrics = useMemo(
+    () => calcRangeMetrics(records, dateKeys),
+    [records, dateKeys]
+  );
 
   // 折线图数据
   const trendData = metrics.map((m) => ({
