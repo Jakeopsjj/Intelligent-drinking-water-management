@@ -1,18 +1,25 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves } from 'lucide-react';
+import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet } from 'lucide-react';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
+import { useFruitsStore } from '@/store/useFruitsStore';
+import { exportAsJSON, exportAsCSV } from '@/utils/export';
 import { cn } from '@/lib/utils';
 
 export default function Settings() {
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const records = useRecordsStore((s) => s.records);
+  const customFruits = useFruitsStore((s) => s.customFruits);
+  const builtinFruits = useFruitsStore((s) => s.fruits);
   const clearAllRecords = useRecordsStore((s) => s.clearAll);
-  const recordCount = useRecordsStore((s) => s.records.length);
+  const recordCount = records.length;
 
   const [saved, setSaved] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [exportedAt, setExportedAt] = useState<string | null>(null);
+  const [exportType, setExportType] = useState<'json' | 'csv' | null>(null);
 
   const handleSave = () => {
     updateSettings({ initialized: true });
@@ -23,6 +30,29 @@ export default function Settings() {
   const handleClear = () => {
     clearAllRecords();
     setShowClearConfirm(false);
+  };
+
+  const handleExportJSON = () => {
+    if (recordCount === 0) return;
+    const allFruits = [...customFruits, ...builtinFruits];
+    exportAsJSON(records, settings, allFruits);
+    setExportType('json');
+    setExportedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false }));
+    setTimeout(() => {
+      setExportType(null);
+      setExportedAt(null);
+    }, 2000);
+  };
+
+  const handleExportCSV = () => {
+    if (recordCount === 0) return;
+    exportAsCSV(records);
+    setExportType('csv');
+    setExportedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false }));
+    setTimeout(() => {
+      setExportType(null);
+      setExportedAt(null);
+    }, 2000);
   };
 
   return (
@@ -207,6 +237,69 @@ export default function Settings() {
             </div>
           </div>
           <span className="font-serif text-2xl font-semibold text-teal-600">{recordCount}</span>
+        </div>
+
+        {/* 数据导出 */}
+        <div className="mt-3 rounded-2xl bg-teal-50 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Download className="h-4 w-4 text-teal-500" />
+            <div className="text-sm font-medium text-teal-700">数据导出</div>
+          </div>
+          <div className="mt-0.5 text-xs text-teal-600/70">
+            将记录导出为可备份或分享的文件
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              onClick={handleExportJSON}
+              disabled={recordCount === 0}
+              className={cn(
+                'flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium transition',
+                exportType === 'json'
+                  ? 'bg-sage-500 text-white'
+                  : 'border border-teal-300 bg-white text-teal-600 hover:bg-teal-100 disabled:opacity-40'
+              )}
+            >
+              {exportType === 'json' ? (
+                <>
+                  <Check className="h-3.5 w-3.5" /> 已导出
+                </>
+              ) : (
+                <>
+                  <FileJson className="h-3.5 w-3.5" /> JSON 备份
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleExportCSV}
+              disabled={recordCount === 0}
+              className={cn(
+                'flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium transition',
+                exportType === 'csv'
+                  ? 'bg-sage-500 text-white'
+                  : 'border border-teal-300 bg-white text-teal-600 hover:bg-teal-100 disabled:opacity-40'
+              )}
+            >
+              {exportType === 'csv' ? (
+                <>
+                  <Check className="h-3.5 w-3.5" /> 已导出
+                </>
+              ) : (
+                <>
+                  <FileSpreadsheet className="h-3.5 w-3.5" /> CSV 表格
+                </>
+              )}
+            </button>
+          </div>
+          {exportedAt && (
+            <p className="mt-2 text-[10px] text-sage-600">
+              已导出（{exportedAt}），请到手机下载目录查看
+            </p>
+          )}
+          {recordCount === 0 && (
+            <p className="mt-2 text-[10px] text-teal-600/50">
+              暂无记录，无法导出
+            </p>
+          )}
         </div>
 
         <div className="mt-3 rounded-2xl bg-clay-50 px-4 py-3">
