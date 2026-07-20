@@ -7,19 +7,35 @@ android {
         applicationId "com.dialysis.kidneynotes"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 160
-        versionName "1.6.0"
+        versionCode 161
+        versionName "1.6.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#L61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    // 签名配置：从 gradle.properties 读取敏感信息，未配置时回退到 debug 签名
+    signingConfigs {
+        release {
+            if (project.hasProperty('KIDNEYNOTES_STORE_FILE')) {
+                storeFile file(project.property('KIDNEYNOTES_STORE_FILE'))
+                storePassword project.property('KIDNEYNOTES_STORE_PASSWORD')
+                keyAlias project.property('KIDNEYNOTES_KEY_ALIAS')
+                keyPassword project.property('KIDNEYNOTES_KEY_PASSWORD')
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (project.hasProperty('KIDNEYNOTES_STORE_FILE')) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
