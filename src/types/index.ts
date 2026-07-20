@@ -1,0 +1,75 @@
+// 记录类型
+export type RecordType = 'water' | 'ultrafiltration' | 'fruit';
+
+// 钾含量等级
+export type PotassiumLevel = 'low' | 'medium' | 'high';
+
+// 基础记录
+export interface BaseRecord {
+  id: string;
+  timestamp: number; // 记录时间戳
+  type: RecordType;
+}
+
+// 饮水记录
+export interface WaterRecord extends BaseRecord {
+  type: 'water';
+  amount: number; // 毫升
+}
+
+// 超滤量记录
+export interface UltrafiltrationRecord extends BaseRecord {
+  type: 'ultrafiltration';
+  amount: number; // 毫升
+}
+
+// 水果摄入记录
+export interface FruitRecord extends BaseRecord {
+  type: 'fruit';
+  fruitId: string;
+  fruitName: string;
+  fruitEmoji: string;
+  weight: number; // 克
+  potassium: number; // 自动计算所得的钾摄入量 mg
+}
+
+// 联合记录类型
+export type AnyRecord = WaterRecord | UltrafiltrationRecord | FruitRecord;
+
+// 水果定义
+export interface Fruit {
+  id: string;
+  name: string;
+  emoji: string;
+  potassiumPer100g: number; // 每100g含钾量 mg
+  level: PotassiumLevel; // 钾含量等级
+  suggestion: string; // 食用建议
+  isCustom?: boolean; // 是否自定义添加
+}
+
+// 用户设置
+export interface UserSettings {
+  dailyWaterLimit: number; // 每日摄水限额 ml
+  dailyPotassiumLimit: number; // 每日钾摄入限额 mg
+  dailyFruitLimit: number; // 每日水果限额 g
+  dailyUltrafiltrationTarget: number; // 每日超滤目标 ml
+  userName?: string;
+  dialysisSchedule?: string; // 透析日程备注
+  initialized: boolean; // 是否已完成初始设置
+}
+
+// 当日指标聚合
+export interface DailyMetrics {
+  date: string; // YYYY-MM-DD
+  water: number; // 当日摄水量 ml
+  ultrafiltration: number; // 当日超滤量 ml
+  fruit: number; // 当日水果摄入量 g
+  potassium: number; // 当日钾摄入量 mg
+  records: AnyRecord[]; // 当日所有记录
+}
+
+// 时段分布项
+export interface HourlyDistribution {
+  hour: string; // "08时"
+  amount: number; // 该时段摄入量 ml
+}
