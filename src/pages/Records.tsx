@@ -16,7 +16,7 @@ import {
 import { Calendar, TrendingUp, ChevronRight, X, Droplets, Activity } from 'lucide-react';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
-import { getRecentDays, formatDateFriendly } from '@/utils/date';
+import { getRecentDays, formatDateFriendly, formatDateOnly } from '@/utils/date';
 import RecordItem from '@/components/RecordItem';
 import { cn } from '@/lib/utils';
 import type { DailyMetrics } from '@/types';
@@ -279,7 +279,7 @@ function DayHistoryCard({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-teal-700">{formatDateFriendly(metrics.date)}</span>
+          <span className="font-medium text-teal-700">{formatDateOnly(metrics.date)}</span>
           {metrics.records.length === 0 && (
             <span className="rounded-full bg-cream-200 px-2 py-0.5 text-[10px] text-teal-600/60">
               无记录
@@ -329,7 +329,7 @@ function DayDetailDrawer({
         <div className="flex items-center justify-between border-b border-cream-200 p-4">
           <div>
             <h3 className="font-serif text-lg font-semibold text-teal-700">
-              {formatDateFriendly(metrics.date)}
+              {formatDateOnly(metrics.date)}
             </h3>
             <p className="text-xs text-teal-600/60">{metrics.records.length} 条记录</p>
           </div>

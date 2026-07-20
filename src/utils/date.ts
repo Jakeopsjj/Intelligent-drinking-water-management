@@ -44,6 +44,12 @@ export function formatDateFriendly(dateKey: string): string {
   return `${m}月${d}日 ${weekday}`;
 }
 
+// 仅显示几月几日（不含周几）
+export function formatDateOnly(dateKey: string): string {
+  const [, m, d] = dateKey.split('-').map(Number);
+  return `${m}月${d}日`;
+}
+
 // 获取当前时间的问候语
 export function getGreeting(): string {
   const h = new Date().getHours();
