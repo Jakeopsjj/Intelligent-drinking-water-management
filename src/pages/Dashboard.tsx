@@ -22,10 +22,13 @@ import { getGreeting, formatDateLong } from '@/utils/date';
 import { getProgressStatus } from '@/utils/calc';
 
 export default function Dashboard() {
-  const todayMetrics = useRecordsStore((s) => s.getTodayMetrics());
-  const hourlyDist = useRecordsStore((s) => s.getHourlyDistribution(todayMetrics.date));
+  const getTodayMetrics = useRecordsStore((s) => s.getTodayMetrics);
+  const getHourlyDistribution = useRecordsStore((s) => s.getHourlyDistribution);
   const deleteRecord = useRecordsStore((s) => s.deleteRecord);
   const settings = useSettingsStore((s) => s.settings);
+
+  const todayMetrics = getTodayMetrics();
+  const hourlyDist = getHourlyDistribution(todayMetrics.date);
 
   const userName = settings.userName?.trim() || '肾友';
   const greeting = getGreeting();

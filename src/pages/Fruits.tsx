@@ -8,11 +8,13 @@ import { cn } from '@/lib/utils';
 import type { Fruit } from '@/types';
 
 export default function Fruits() {
-  const allFruits = useFruitsStore((s) => s.allFruits());
   const customFruits = useFruitsStore((s) => s.customFruits);
+  const builtinFruits = useFruitsStore((s) => s.fruits);
   const addFruit = useFruitsStore((s) => s.addFruit);
   const deleteFruit = useFruitsStore((s) => s.deleteFruit);
   const addFruitRecord = useRecordsStore((s) => s.addFruitRecord);
+
+  const allFruits = [...customFruits, ...builtinFruits];
 
   const [query, setQuery] = useState('');
   const [showAdd, setShowAdd] = useState(false);
