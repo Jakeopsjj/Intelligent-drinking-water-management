@@ -235,7 +235,9 @@ export const UltrafiltrationQuickRecord: FC = () => {
 // 水果快速记录
 export const FruitQuickRecord: FC = () => {
   const addFruitRecord = useRecordsStore((s) => s.addFruitRecord);
-  const allFruits = useFruitsStore((s) => s.allFruits());
+  const customFruits = useFruitsStore((s) => s.customFruits);
+  const builtinFruits = useFruitsStore((s) => s.fruits);
+  const allFruits = [...customFruits, ...builtinFruits];
   const [selectedFruitId, setSelectedFruitId] = useState<string | null>(null);
   const [weight, setWeight] = useState('');
   const [saved, setSaved] = useState(false);

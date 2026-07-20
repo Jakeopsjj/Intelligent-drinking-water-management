@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 const STEPS = ['欢迎', '摄水限额', '钾摄入限额', '完成'] as const;
 
 export default function Onboarding() {
-  const { updateSettings } = useSettingsStore();
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const [step, setStep] = useState(0);
   const [waterLimit, setWaterLimit] = useState(DEFAULT_SETTINGS.dailyWaterLimit);

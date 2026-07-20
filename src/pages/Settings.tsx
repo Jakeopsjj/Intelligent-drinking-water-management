@@ -6,7 +6,8 @@ import { useRecordsStore } from '@/store/useRecordsStore';
 import { cn } from '@/lib/utils';
 
 export default function Settings() {
-  const { settings, updateSettings } = useSettingsStore();
+  const settings = useSettingsStore((s) => s.settings);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
   const clearAllRecords = useRecordsStore((s) => s.clearAll);
   const recordCount = useRecordsStore((s) => s.records.length);
 
