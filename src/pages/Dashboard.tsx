@@ -110,6 +110,7 @@ export default function Dashboard() {
             limit={settings.dailyWaterLimit}
             unit="ml"
             theme="teal"
+            description={todayMetrics.fruitWater > 0 ? `含水果水分 ${todayMetrics.fruitWater} ml` : undefined}
           />
         </motion.div>
         <motion.div
@@ -140,6 +141,7 @@ export default function Dashboard() {
             limit={settings.dailyFruitLimit}
             unit="g"
             theme="sage"
+            description={todayMetrics.fruitWater > 0 ? `贡献水分 ${todayMetrics.fruitWater} ml` : undefined}
           />
         </motion.div>
         <motion.div
@@ -212,9 +214,16 @@ export default function Dashboard() {
               </h2>
               <p className="mt-1 text-xs text-teal-600/60">查看今日饮水节奏</p>
             </div>
-            <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-medium text-teal-600">
-              合计 {todayMetrics.water} ml
-            </span>
+            <div className="flex flex-col items-end gap-1">
+              <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-medium text-teal-600">
+                合计 {todayMetrics.water} ml
+              </span>
+              {todayMetrics.fruitWater > 0 && (
+                <span className="rounded-full bg-sage-50 px-3 py-1 text-[10px] font-medium text-sage-600">
+                  其中水果水分 {todayMetrics.fruitWater} ml
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="mt-6 h-64">

@@ -33,6 +33,7 @@ export interface FruitRecord extends BaseRecord {
   potassium: number; // 自动计算所得的钾摄入量 mg
   phosphorus: number; // 自动计算所得的磷摄入量 mg
   sodium: number; // 自动计算所得的钠摄入量 mg
+  water: number; // 自动计算所得的水分摄入量 ml（水果含水量）
 }
 
 // 联合记录类型
@@ -46,6 +47,7 @@ export interface Fruit {
   potassiumPer100g: number; // 每100g含钾量 mg
   phosphorusPer100g: number; // 每100g含磷量 mg
   sodiumPer100g: number; // 每100g含钠量 mg
+  waterPer100g: number; // 每100g含水量 ml（约等于 g）
   level: PotassiumLevel; // 钾含量等级（主参考）
   suggestion: string; // 食用建议
   isCustom?: boolean; // 是否自定义添加
@@ -67,12 +69,13 @@ export interface UserSettings {
 // 当日指标聚合
 export interface DailyMetrics {
   date: string; // YYYY-MM-DD
-  water: number; // 当日摄水量 ml
+  water: number; // 当日摄水量 ml（饮水 + 水果水分）
   ultrafiltration: number; // 当日超滤量 ml
   fruit: number; // 当日水果摄入量 g
   potassium: number; // 当日钾摄入量 mg
   phosphorus: number; // 当日磷摄入量 mg
   sodium: number; // 当日钠摄入量 mg
+  fruitWater: number; // 当日水果水分摄入量 ml（water 的子集）
   records: AnyRecord[]; // 当日所有记录
 }
 

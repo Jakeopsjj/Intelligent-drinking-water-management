@@ -118,7 +118,7 @@ function csvCell(v: string | number): string {
 
 // 导出为 CSV 表格
 export async function exportAsCSV(records: AnyRecord[]): Promise<void> {
-  const header = ['记录日期', '记录时间', '类型', '名称', '数量', '单位', '钾(mg)', '磷(mg)', '钠(mg)'];
+  const header = ['记录日期', '记录时间', '类型', '名称', '数量', '单位', '钾(mg)', '磷(mg)', '钠(mg)', '水(ml)'];
   const rows: (string | number)[][] = [header];
 
   const sorted = [...records].sort((a, b) => a.timestamp - b.timestamp);
@@ -129,9 +129,9 @@ export async function exportAsCSV(records: AnyRecord[]): Promise<void> {
     const timeStr = `${p(d.getHours())}:${p(d.getMinutes())}`;
 
     if (r.type === 'water') {
-      rows.push([dateStr, timeStr, '饮水', '饮水', r.amount, 'ml', '', '', '']);
+      rows.push([dateStr, timeStr, '饮水', '饮水', r.amount, 'ml', '', '', '', '']);
     } else if (r.type === 'ultrafiltration') {
-      rows.push([dateStr, timeStr, '超滤', '超滤量', r.amount, 'ml', '', '', '']);
+      rows.push([dateStr, timeStr, '超滤', '超滤量', r.amount, 'ml', '', '', '', '']);
     } else {
       rows.push([
         dateStr,
@@ -143,6 +143,7 @@ export async function exportAsCSV(records: AnyRecord[]): Promise<void> {
         r.potassium,
         r.phosphorus,
         r.sodium,
+        r.water,
       ]);
     }
   }
@@ -160,7 +161,7 @@ interface ExportContext {
 
 // 计算汇总指标
 function summarize(records: AnyRecord[]) {
-  let water = 0, ultrafiltration = 0, fruit = 0, potassium = 0, phosphorus = 0, sodium = 0;
+  let water = 0, ultrafiltration = 0, fruit = 0, potassium = 0, phosphorus = 0, sodium = 0, fruitWater = 0;
   let waterCount = 0, ultraCount = 0, fruitCount = 0;
   for (const r of records) {
     if (r.type === 'water') { water += r.amount; waterCount++; }
@@ -170,10 +171,13 @@ function summarize(records: AnyRecord[]) {
       potassium += r.potassium;
       phosphorus += r.phosphorus;
       sodium += r.sodium;
+      fruitWater += r.water;
+      // 水果水分计入总摄水量
+      water += r.water;
       fruitCount++;
     }
   }
-  return { water, ultrafiltration, fruit, potassium, phosphorus, sodium, waterCount, ultraCount, fruitCount };
+  return { water, ultrafiltration, fruit, potassium, phosphorus, sodium, fruitWater, waterCount, ultraCount, fruitCount };
 }
 
 // 转义 SVG 文本
@@ -210,12 +214,12 @@ function buildReportSVG(ctx: ExportContext): string {
 
   // 汇总卡片数据
   const cards = [
-    { label: '总饮水量', value: s.water, unit: 'ml', color: '#0d9488' },
-    { label: '总超滤量', value: s.ultrafiltration, unit: 'ml', color: '#0ea5e9' },
-    { label: '总水果量', value: s.fruit, unit: 'g', color: '#84cc16' },
-    { label: '总钾摄入', value: s.potassium, unit: 'mg', color: '#f59e0b' },
-    { label: '总磷摄入', value: s.phosphorus, unit: 'mg', color: '#ef4444' },
-    { label: '总钠摄入', value: s.sodium, unit: 'mg', color: '#8b5cf6' },
+    { label: '总摄水量', value: s.water, unit: 'ml', color: '#0d9488', sub: s.fruitWater > 0 ? `含水果水 ${s.fruitWater} ml` : '' },
+    { label: '总超滤量', value: s.ultrafiltration, unit: 'ml', color: '#0ea5e9', sub: '' },
+    { label: '总水果量', value: s.fruit, unit: 'g', color: '#84cc16', sub: s.fruitWater > 0 ? `贡献水 ${s.fruitWater} ml` : '' },
+    { label: '总钾摄入', value: s.potassium, unit: 'mg', color: '#f59e0b', sub: '' },
+    { label: '总磷摄入', value: s.phosphorus, unit: 'mg', color: '#ef4444', sub: '' },
+    { label: '总钠摄入', value: s.sodium, unit: 'mg', color: '#8b5cf6', sub: '' },
   ];
 
   const cardW = (W - 80 - 5 * 16) / 6;
@@ -223,32 +227,38 @@ function buildReportSVG(ctx: ExportContext): string {
   const cardEls = cards.map((c, i) => {
     const x = 40 + i * (cardW + 16);
     const y = headerH + 40;
+    const subEl = c.sub
+      ? `<text x="${x + cardW / 2}" y="${y + 168}" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="16" fill="${c.color}" opacity="0.7" text-anchor="middle">${esc(c.sub)}</text>`
+      : '';
     return `
       <g>
-        <rect x="${x}" y="${y}" width="${cardW}" height="160" rx="20" fill="#ffffff" stroke="#e7f0ee" stroke-width="2"/>
+        <rect x="${x}" y="${y}" width="${cardW}" height="${c.sub ? 180 : 160}" rx="20" fill="#ffffff" stroke="#e7f0ee" stroke-width="2"/>
         <rect x="${x}" y="${y}" width="${cardW}" height="6" rx="3" fill="${c.color}"/>
         <text x="${x + cardW / 2}" y="${y + 44}" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="22" fill="#7a8a87" text-anchor="middle">${esc(c.label)}</text>
         <text x="${x + cardW / 2}" y="${y + 110}" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="46" font-weight="700" fill="${c.color}" text-anchor="middle">${esc(c.value)}</text>
         <text x="${x + cardW / 2}" y="${y + 142}" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="20" fill="#9aa8a5" text-anchor="middle">${esc(c.unit)}</text>
+        ${subEl}
       </g>`;
   }).join('');
 
   // 表格行
   const cols = [
-    { key: 'date', label: '日期', w: 200 },
-    { key: 'time', label: '时间', w: 110 },
-    { key: 'type', label: '类型', w: 120 },
-    { key: 'name', label: '名称', w: 280 },
-    { key: 'amount', label: '数量', w: 160 },
-    { key: 'k', label: '钾(mg)', w: 100 },
-    { key: 'p', label: '磷(mg)', w: 100 },
+    { key: 'date', label: '日期', w: 170 },
+    { key: 'time', label: '时间', w: 90 },
+    { key: 'type', label: '类型', w: 90 },
+    { key: 'name', label: '名称', w: 220 },
+    { key: 'amount', label: '数量', w: 130 },
+    { key: 'k', label: '钾(mg)', w: 95 },
+    { key: 'p', label: '磷(mg)', w: 95 },
+    { key: 'na', label: '钠(mg)', w: 95 },
+    { key: 'water', label: '水(ml)', w: 95 },
   ];
   const tableW = cols.reduce((a, b) => a + b.w, 0);
   const tableX = (W - tableW) / 2;
 
   const headerCells = cols.map((c, i) => {
     const x = cols.slice(0, i).reduce((a, b) => a + b.w, 0);
-    return `<text x="${tableX + x + c.w / 2}" y="${tableTop + 36}" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#ffffff" text-anchor="middle">${esc(c.label)}</text>`;
+    return `<text x="${tableX + x + c.w / 2}" y="${tableTop + 36}" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="600" fill="#ffffff" text-anchor="middle">${esc(c.label)}</text>`;
   }).join('');
 
   const typeColor: Record<string, string> = {
@@ -271,6 +281,8 @@ function buildReportSVG(ctx: ExportContext): string {
     let amount = '';
     let k = '';
     let pV = '';
+    let na = '';
+    let wV = '';
     if (r.type === 'water') { name = '饮水'; amount = `${r.amount} ml`; }
     else if (r.type === 'ultrafiltration') { name = '超滤量'; amount = `${r.amount} ml`; }
     else {
@@ -278,6 +290,8 @@ function buildReportSVG(ctx: ExportContext): string {
       amount = `${r.weight} g`;
       k = String(r.potassium);
       pV = String(r.phosphorus);
+      na = String(r.sodium);
+      wV = String(r.water);
     }
 
     const cells = [
@@ -288,13 +302,15 @@ function buildReportSVG(ctx: ExportContext): string {
       { text: amount, col: 4 },
       { text: k, col: 5 },
       { text: pV, col: 6 },
+      { text: na, col: 7 },
+      { text: wV, col: 8 },
     ];
 
     const cellEls = cells.map((c) => {
       const x = cols.slice(0, c.col).reduce((a, b) => a + b.w, 0);
       const fill = c.color || '#374151';
       const fw = c.col === 2 ? '600' : '400';
-      return `<text x="${tableX + x + cols[c.col].w / 2}" y="${y + 34}" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="${fw}" fill="${fill}" text-anchor="middle">${esc(c.text)}</text>`;
+      return `<text x="${tableX + x + cols[c.col].w / 2}" y="${y + 34}" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="${fw}" fill="${fill}" text-anchor="middle">${esc(c.text)}</text>`;
     }).join('');
 
     return `

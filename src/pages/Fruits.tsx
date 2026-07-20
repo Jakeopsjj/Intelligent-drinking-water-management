@@ -175,13 +175,13 @@ function LegendBadge({ level }: { level: 'low' | 'medium' | 'high' }) {
   );
 }
 
-// 元素含量小标签
-function NutrientTag({ label, value }: { label: string; value: number }) {
+// 元素含量小标签（带明确单位 mg/100g）
+function NutrientTag({ label, value, unit }: { label: string; value: number; unit: string }) {
   return (
     <span className="inline-flex whitespace-nowrap items-baseline gap-0.5 rounded-md bg-cream-100 px-1.5 py-0.5 text-[10px] text-teal-600/80">
       <span className="text-teal-600/60">{label}</span>
       <span className="font-medium text-teal-700">{value}</span>
-      <span className="text-teal-600/40">mg</span>
+      <span className="text-teal-600/40">{unit}</span>
     </span>
   );
 }
@@ -225,10 +225,12 @@ function FruitCard({
                 </span>
               )}
             </div>
+            <div className="mt-0.5 text-[9px] text-teal-600/40">每 100g 含</div>
             <div className="mt-1 flex flex-wrap gap-1.5">
-              <NutrientTag label="钾" value={fruit.potassiumPer100g} />
-              <NutrientTag label="磷" value={fruit.phosphorusPer100g} />
-              <NutrientTag label="钠" value={fruit.sodiumPer100g} />
+              <NutrientTag label="钾" value={fruit.potassiumPer100g} unit="mg" />
+              <NutrientTag label="磷" value={fruit.phosphorusPer100g} unit="mg" />
+              <NutrientTag label="钠" value={fruit.sodiumPer100g} unit="mg" />
+              <NutrientTag label="水" value={fruit.waterPer100g} unit="ml" />
             </div>
           </div>
         </div>
@@ -252,28 +254,46 @@ function FruitCard({
 
       {/* 快速记录 */}
       {showAdd ? (
-        <div className="mt-3 flex gap-2">
-          <input
-            type="number"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            placeholder="输入克数"
-            autoFocus
-            className="min-w-0 flex-1 rounded-xl border border-cream-300 bg-cream-50 px-3 py-1.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-sage-400 focus:bg-white"
-            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-          />
-          <button
-            onClick={handleAdd}
-            className="flex-shrink-0 whitespace-nowrap rounded-xl bg-sage-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-sage-600"
-          >
-            记录
-          </button>
-          <button
-            onClick={() => setShowAdd(false)}
-            className="flex-shrink-0 whitespace-nowrap rounded-xl border border-cream-300 px-3 py-1.5 text-sm text-teal-600 hover:bg-cream-100"
-          >
-            取消
-          </button>
+        <div className="mt-3 space-y-2">
+          <div className="flex flex-wrap gap-1.5">
+            {[100, 150, 200, 250].map((w) => (
+              <button
+                key={w}
+                onClick={() => setWeight(String(w))}
+                className="whitespace-nowrap rounded-lg border border-cream-300 bg-cream-50 px-2 py-1 text-[11px] font-medium text-teal-600 transition hover:border-sage-300 hover:bg-sage-50"
+              >
+                {w} g
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              placeholder="输入克数 (g)"
+              autoFocus
+              className="min-w-0 flex-1 rounded-xl border border-cream-300 bg-cream-50 px-3 py-1.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-sage-400 focus:bg-white"
+              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+            />
+            <button
+              onClick={handleAdd}
+              className="flex-shrink-0 whitespace-nowrap rounded-xl bg-sage-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-sage-600"
+            >
+              记录
+            </button>
+            <button
+              onClick={() => setShowAdd(false)}
+              className="flex-shrink-0 whitespace-nowrap rounded-xl border border-cream-300 px-3 py-1.5 text-sm text-teal-600 hover:bg-cream-100"
+            >
+              取消
+            </button>
+          </div>
+          {weight && Number(weight) > 0 && (
+            <div className="whitespace-nowrap rounded-lg bg-sage-50 px-3 py-1.5 text-[10px] text-sage-700">
+              本次摄入：钾 <span className="font-semibold">{Math.round((fruit.potassiumPer100g * Number(weight)) / 100)}</span> mg / 磷 <span className="font-semibold">{Math.round((fruit.phosphorusPer100g * Number(weight)) / 100)}</span> mg / 钠 <span className="font-semibold">{Math.round((fruit.sodiumPer100g * Number(weight)) / 100)}</span> mg / 水 <span className="font-semibold">{Math.round((fruit.waterPer100g * Number(weight)) / 100)}</span> ml
+            </div>
+          )}
         </div>
       ) : (
         <div className="mt-3 flex items-center justify-between">
@@ -312,6 +332,7 @@ function AddFruitDrawer({
   const [potassium, setPotassium] = useState('');
   const [phosphorus, setPhosphorus] = useState('');
   const [sodium, setSodium] = useState('');
+  const [water, setWater] = useState('');
   const [suggestion, setSuggestion] = useState('');
 
   const emojiChoices = ['🍇', '🍊', '🍋', '🍎', '🍐', '🥭', '🍑', '🍓', '🥝', '🍍', '🥥', '🥑', '🍈', '🫐'];
@@ -324,6 +345,7 @@ function AddFruitDrawer({
       potassiumPer100g: Number(potassium),
       phosphorusPer100g: Number(phosphorus) || 0,
       sodiumPer100g: Number(sodium) || 0,
+      waterPer100g: Number(water) || 80,
       suggestion: suggestion.trim() || '请根据医嘱适量食用',
     });
   };
@@ -392,7 +414,7 @@ function AddFruitDrawer({
             {/* 元素含量：钾 / 磷 / 钠 */}
             <div>
               <label className="mb-1 block text-xs font-medium text-teal-600">
-                每 100g 含钾量 (mg) <span className="text-clay-500">*</span>
+                每 100g 含钾量 <span className="text-teal-600/50">(mg)</span> <span className="text-clay-500">*</span>
               </label>
               <input
                 type="number"
@@ -403,10 +425,10 @@ function AddFruitDrawer({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-teal-600">
-                  磷 (mg/100g)
+                  磷 <span className="text-teal-600/50">(mg/100g)</span>
                 </label>
                 <input
                   type="number"
@@ -418,13 +440,25 @@ function AddFruitDrawer({
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-teal-600">
-                  钠 (mg/100g)
+                  钠 <span className="text-teal-600/50">(mg/100g)</span>
                 </label>
                 <input
                   type="number"
                   value={sodium}
                   onChange={(e) => setSodium(e.target.value)}
                   placeholder="可选"
+                  className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-teal-600">
+                  水分 <span className="text-teal-600/50">(ml/100g)</span>
+                </label>
+                <input
+                  type="number"
+                  value={water}
+                  onChange={(e) => setWater(e.target.value)}
+                  placeholder="默认 80"
                   className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
                 />
               </div>

@@ -23,6 +23,11 @@ export function calculateSodium(fruit: Fruit, weightGram: number): number {
   return Math.round((fruit.sodiumPer100g * weightGram) / 100);
 }
 
+// 计算水果摄入产生的水分量（ml）
+export function calculateWater(fruit: Fruit, weightGram: number): number {
+  return Math.round((fruit.waterPer100g * weightGram) / 100);
+}
+
 // 生成唯一 ID
 export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -99,6 +104,7 @@ export function getDailyMetrics(records: AnyRecord[], dateKey: string): DailyMet
     potassium: 0,
     phosphorus: 0,
     sodium: 0,
+    fruitWater: 0,
     records: dayRecords,
   };
   for (const r of dayRecords) {
@@ -109,6 +115,9 @@ export function getDailyMetrics(records: AnyRecord[], dateKey: string): DailyMet
       metrics.potassium += r.potassium;
       metrics.phosphorus += r.phosphorus;
       metrics.sodium += r.sodium;
+      // 水果水分计入总摄水量，并单独记录 fruitWater
+      metrics.fruitWater += r.water;
+      metrics.water += r.water;
     }
   }
   return metrics;

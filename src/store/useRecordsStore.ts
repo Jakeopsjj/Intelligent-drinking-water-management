@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AnyRecord, WaterRecord, UltrafiltrationRecord, FruitRecord, Fruit, DailyMetrics, HourlyDistribution } from '@/types';
-import { generateId, calculatePotassium, calculatePhosphorus, calculateSodium } from '@/utils/calc';
+import { generateId, calculatePotassium, calculatePhosphorus, calculateSodium, calculateWater } from '@/utils/calc';
 import { getTodayKey, getDayRange } from '@/utils/date';
 import { nativeJSONStorage } from '@/lib/nativeStorage';
 
@@ -75,6 +75,7 @@ export const useRecordsStore = create<RecordsState>()(
           potassium: calculatePotassium(fruit, weight),
           phosphorus: calculatePhosphorus(fruit, weight),
           sodium: calculateSodium(fruit, weight),
+          water: calculateWater(fruit, weight),
         };
         set((state) => ({ records: [...state.records, record] }));
       },
@@ -116,6 +117,7 @@ export const useRecordsStore = create<RecordsState>()(
           potassium: 0,
           phosphorus: 0,
           sodium: 0,
+          fruitWater: 0,
           records,
         };
         for (const r of records) {
@@ -126,6 +128,8 @@ export const useRecordsStore = create<RecordsState>()(
             metrics.potassium += r.potassium;
             metrics.phosphorus += r.phosphorus;
             metrics.sodium += r.sodium;
+            metrics.fruitWater += r.water;
+            metrics.water += r.water;
           }
         }
         return metrics;

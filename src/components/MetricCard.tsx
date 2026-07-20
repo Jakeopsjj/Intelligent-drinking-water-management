@@ -132,6 +132,9 @@ const MetricCard: FC<MetricCardProps> = ({
           ) : (
             <div className="mt-1 text-xs text-teal-600/70">{description}</div>
           )}
+          {description && limit > 0 && (
+            <div className="mt-0.5 text-[10px] text-sage-600/70">{description}</div>
+          )}
         </div>
       </div>
 
