@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">肾友笔记</string>
+    <string name="title_activity_main">肾友笔记</string>
+    <string name="package_name">com.dialysis.kidneynotes</string>
+    <string name="custom_url_scheme">com.dialysis.kidneynotes</string>
+</resources>
