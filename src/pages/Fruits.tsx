@@ -259,18 +259,18 @@ function FruitCard({
             onChange={(e) => setWeight(e.target.value)}
             placeholder="输入克数"
             autoFocus
-            className="flex-1 rounded-xl border border-cream-300 bg-cream-50 px-3 py-1.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-sage-400 focus:bg-white"
+            className="min-w-0 flex-1 rounded-xl border border-cream-300 bg-cream-50 px-3 py-1.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-sage-400 focus:bg-white"
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
           />
           <button
             onClick={handleAdd}
-            className="rounded-xl bg-sage-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-sage-600"
+            className="flex-shrink-0 whitespace-nowrap rounded-xl bg-sage-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-sage-600"
           >
             记录
           </button>
           <button
             onClick={() => setShowAdd(false)}
-            className="rounded-xl border border-cream-300 px-2 py-1.5 text-sm text-teal-600 hover:bg-cream-100"
+            className="flex-shrink-0 whitespace-nowrap rounded-xl border border-cream-300 px-3 py-1.5 text-sm text-teal-600 hover:bg-cream-100"
           >
             取消
           </button>
