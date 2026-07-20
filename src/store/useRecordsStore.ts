@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { AnyRecord, WaterRecord, UltrafiltrationRecord, FruitRecord, Fruit, DailyMetrics, HourlyDistribution } from '@/types';
 import { generateId, calculatePotassium, calculatePhosphorus, calculateSodium } from '@/utils/calc';
 import { getTodayKey, getDayRange } from '@/utils/date';
+import { nativeJSONStorage } from '@/lib/nativeStorage';
 
 interface AddWaterInput {
   amount: number;
@@ -153,6 +154,7 @@ export const useRecordsStore = create<RecordsState>()(
     }),
     {
       name: 'dialysis_records',
+      storage: nativeJSONStorage,
     }
   )
 );

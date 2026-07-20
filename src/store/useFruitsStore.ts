@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { Fruit } from '@/types';
 import { BUILTIN_FRUITS } from '@/data/fruits';
 import { generateId, getLevelFromPotassium } from '@/utils/calc';
+import { nativeJSONStorage } from '@/lib/nativeStorage';
 
 interface FruitsState {
   // 内置水果（仅用于展示，不可修改）
@@ -63,6 +64,7 @@ export const useFruitsStore = create<FruitsState>()(
     {
       name: 'dialysis_fruits',
       partialize: (state) => ({ customFruits: state.customFruits }),
+      storage: nativeJSONStorage,
     }
   )
 );

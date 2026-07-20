@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { UserSettings } from '@/types';
 import { DEFAULT_SETTINGS } from '@/data/fruits';
+import { nativeJSONStorage } from '@/lib/nativeStorage';
 
 interface SettingsState {
   settings: UserSettings;
@@ -34,6 +35,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'dialysis_settings',
+      storage: nativeJSONStorage,
     }
   )
 );
