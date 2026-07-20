@@ -66,41 +66,41 @@ export default function Dashboard() {
     fruitStatus === 'exceeded';
 
   return (
-    <div className="space-y-4">
-      {/* 顶部欢迎区（紧凑） */}
+    <div className="space-y-3">
+      {/* 顶部今日总览（紧凑：收窄内边距，减少首屏占用） */}
       <motion.section
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-500 via-teal-600 to-sage-600 p-5 text-white shadow-soft-lg"
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-500 via-teal-600 to-sage-600 p-3.5 text-white shadow-soft-lg"
       >
-        <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative flex items-center justify-between gap-4">
+        <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-teal-100">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-teal-100">
               <Sparkles className="h-3 w-3" />
               {greeting}
             </div>
-            <h1 className="mt-1 font-serif text-2xl font-semibold leading-tight">
+            <h1 className="mt-0.5 font-serif text-xl font-semibold leading-tight">
               你好，{userName}
             </h1>
-            <p className="mt-0.5 text-xs text-teal-100/90">{formatDateLong()}</p>
+            <p className="mt-0.5 text-[11px] text-teal-100/80">{formatDateLong()}</p>
           </div>
           {overallWarning ? (
-            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-clay-400/90 px-3 py-1.5 text-xs font-medium text-white backdrop-blur">
-              <HeartPulse className="h-3.5 w-3.5" />
+            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-clay-400/90 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur">
+              <HeartPulse className="h-3 w-3" />
               <span className="whitespace-nowrap">有指标超标</span>
             </div>
           ) : (
-            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur">
-              <TrendingUp className="h-3.5 w-3.5" />
+            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-medium backdrop-blur">
+              <TrendingUp className="h-3 w-3" />
               <span className="whitespace-nowrap">控制良好</span>
             </div>
           )}
         </div>
       </motion.section>
 
-      {/* 指标卡片区（紧凑：6 列 → 移动端 2 列） */}
+      {/* 指标卡片区（固定高度统一，紧凑间距：6 列 → 移动端 2 列） */}
       <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <MetricCard
           title="摄水量"

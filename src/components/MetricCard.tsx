@@ -65,7 +65,8 @@ const MetricCard: FC<MetricCardProps> = ({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-2xl border p-5 transition-all duration-300',
+        // 固定高度，统一卡片尺寸；使用 flex 列布局确保内部各层对齐
+        'relative flex h-36 flex-col overflow-hidden rounded-2xl border p-4 transition-all duration-300',
         'hover:-translate-y-0.5 hover:shadow-soft-lg',
         status === 'exceeded'
           ? 'border-red-200 bg-red-50/50'
@@ -74,52 +75,54 @@ const MetricCard: FC<MetricCardProps> = ({
           : 'border-cream-300 bg-white/70'
       )}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
+      {/* 第一层：左上图标+标题，右上状态徽章 */}
+      <div className="flex items-center justify-between">
+        <div className="flex min-w-0 items-center gap-1.5">
           <div
             className={cn(
-              'flex h-9 w-9 items-center justify-center rounded-xl',
+              'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg',
               colors.icon
             )}
           >
             {icon}
           </div>
-          <span className="text-sm font-medium text-teal-600/80">{title}</span>
+          <span className="truncate text-xs font-medium text-teal-600/80">{title}</span>
         </div>
         {status === 'exceeded' && (
-          <span className="whitespace-nowrap rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">
+          <span className="whitespace-nowrap rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
             超标
           </span>
         )}
         {status === 'warning' && (
-          <span className="whitespace-nowrap rounded-full bg-clay-100 px-2 py-0.5 text-[10px] font-medium text-clay-600">
+          <span className="whitespace-nowrap rounded-full bg-clay-100 px-1.5 py-0.5 text-[10px] font-medium text-clay-600">
             注意
           </span>
         )}
       </div>
 
-      <div className="mt-4 flex items-center gap-4">
+      {/* 第二层：左侧环形进度 + 右侧大号数值+剩余阈值 */}
+      <div className="mt-2 flex flex-1 items-center gap-3">
         {showProgress && (
           <ProgressRing
             value={current}
             limit={limit}
             status={status}
-            radius={36}
-            strokeWidth={5}
+            radius={26}
+            strokeWidth={4}
           >
             <div className="text-center">
-              <div className="text-[10px] text-teal-600/60">
+              <div className="text-[9px] font-medium text-teal-600/70">
                 {Math.round(ratio * 100)}%
               </div>
             </div>
           </ProgressRing>
         )}
 
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-1">
             <span
               className={cn(
-                'font-serif text-2xl font-semibold',
+                'font-serif text-3xl font-semibold leading-none',
                 status === 'exceeded'
                   ? 'text-red-600'
                   : status === 'warning'
@@ -132,30 +135,30 @@ const MetricCard: FC<MetricCardProps> = ({
             <span className="text-xs text-teal-600/60">{shownUnit}</span>
           </div>
           {limit > 0 ? (
-            <div className="mt-1 text-xs text-teal-600/70">
+            <div className="mt-1 text-[10px] text-teal-600/50">
               {inverseProgress ? (
                 <span>
-                  目标 <span className="font-medium text-teal-700">{shownLimit}</span> {shownUnit}
+                  目标 <span className="font-medium text-teal-700/80">{shownLimit}</span> {shownUnit}
                 </span>
               ) : remaining > 0 ? (
                 <span>
-                  还可摄入 <span className="font-medium text-sage-600">{shownRemaining}</span> {shownUnit}
+                  还可摄入 <span className="font-medium text-sage-600/80">{shownRemaining}</span> {shownUnit}
                 </span>
               ) : (
-                <span className="text-red-500">已超出 {shownExceeded} {shownUnit}</span>
+                <span className="text-red-500/80">已超出 {shownExceeded} {shownUnit}</span>
               )}
             </div>
           ) : (
-            <div className="mt-1 text-xs text-teal-600/70">{description}</div>
+            <div className="mt-1 text-[10px] text-teal-600/50">{description}</div>
           )}
           {description && limit > 0 && (
-            <div className="mt-0.5 text-[10px] text-sage-600/70">{description}</div>
+            <div className="mt-0.5 text-[10px] text-sage-600/50">{description}</div>
           )}
         </div>
       </div>
 
-      {/* 进度条 */}
-      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-cream-200">
+      {/* 第四层：底部进度条 */}
+      <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-cream-200">
         <div
           className={cn(
             'h-full rounded-full transition-all duration-700',
