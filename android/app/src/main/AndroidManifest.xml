@@ -37,5 +37,25 @@
 
     <!-- Permissions -->
 
+    <!-- 网络（开发调试 + 未来可能的同步功能） -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 写入外部存储（导出备份/CSV/图片到下载目录，Android 10 以下需要） -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <!-- 读取外部存储（导入备份文件，Android 10 以下需要） -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <!-- 通知权限（Android 13+ 未来用于提醒） -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- 唤醒锁（防止导出大文件时息屏中断） -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- 剪贴板写入（未来可复制到剪贴板） -->
+    <uses-permission android:name="android.permission.SET_CLIPBOARD" />
 </manifest>
