@@ -11,6 +11,7 @@ interface FruitsState {
   customFruits: Fruit[];
   addFruit: (fruit: Omit<Fruit, 'id' | 'isCustom' | 'level'>) => void;
   deleteFruit: (id: string) => void;
+  replaceCustomFruits: (fruits: Fruit[]) => void;
   getFruitById: (id: string) => Fruit | undefined;
   allFruits: () => Fruit[];
   searchFruits: (query: string) => Fruit[];
@@ -36,6 +37,10 @@ export const useFruitsStore = create<FruitsState>()(
         set((state) => ({
           customFruits: state.customFruits.filter((f) => f.id !== id),
         }));
+      },
+      replaceCustomFruits: (fruits) => {
+        const custom = fruits.filter((f) => f.isCustom || f.id.startsWith('custom-'));
+        set({ customFruits: custom });
       },
       getFruitById: (id) => {
         const state = get();

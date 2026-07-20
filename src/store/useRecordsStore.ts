@@ -26,6 +26,8 @@ interface RecordsState {
   addUltrafiltrationRecord: (input: AddUltrafiltrationInput) => void;
   addFruitRecord: (input: AddFruitInput) => void;
   deleteRecord: (id: string) => void;
+  replaceAll: (records: AnyRecord[]) => void;
+  mergeRecords: (records: AnyRecord[]) => number;
   getRecordsByDate: (dateKey: string) => AnyRecord[];
   getTodayRecords: () => AnyRecord[];
   getDailyMetrics: (dateKey: string) => DailyMetrics;
@@ -78,6 +80,20 @@ export const useRecordsStore = create<RecordsState>()(
 
       deleteRecord: (id) => {
         set((state) => ({ records: state.records.filter((r) => r.id !== id) }));
+      },
+
+      replaceAll: (records) => {
+        const sorted = [...records].sort((a, b) => a.timestamp - b.timestamp);
+        set({ records: sorted });
+      },
+
+      mergeRecords: (incoming) => {
+        const existing = get().records;
+        const existingIds = new Set(existing.map((r) => r.id));
+        const newOnes = incoming.filter((r) => !existingIds.has(r.id));
+        if (newOnes.length === 0) return 0;
+        set({ records: [...existing, ...newOnes].sort((a, b) => a.timestamp - b.timestamp) });
+        return newOnes.length;
       },
 
       getRecordsByDate: (dateKey) => {

@@ -1,27 +1,36 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet } from 'lucide-react';
+import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet, Image as ImageIcon, Upload } from 'lucide-react';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useFruitsStore } from '@/store/useFruitsStore';
-import { exportAsJSON, exportAsCSV } from '@/utils/export';
+import { exportAsJSON, exportAsCSV, exportAsImage, parseBackupJSON, readFileAsText } from '@/utils/export';
 import { cn } from '@/lib/utils';
+
+type ExportKind = 'json' | 'csv' | 'image';
 
 export default function Settings() {
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const setSettings = useSettingsStore((s) => s.setSettings);
   const records = useRecordsStore((s) => s.records);
+  const replaceAllRecords = useRecordsStore((s) => s.replaceAll);
+  const mergeRecords = useRecordsStore((s) => s.mergeRecords);
   const customFruits = useFruitsStore((s) => s.customFruits);
   const builtinFruits = useFruitsStore((s) => s.fruits);
+  const replaceCustomFruits = useFruitsStore((s) => s.replaceCustomFruits);
   const clearAllRecords = useRecordsStore((s) => s.clearAll);
   const recordCount = records.length;
 
   const [saved, setSaved] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [exportedAt, setExportedAt] = useState<string | null>(null);
-  const [exportType, setExportType] = useState<'json' | 'csv' | null>(null);
+  const [exportType, setExportType] = useState<ExportKind | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
-  const [exporting, setExporting] = useState<'json' | 'csv' | null>(null);
+  const [exporting, setExporting] = useState<ExportKind | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importInfo, setImportInfo] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = () => {
     updateSettings({ initialized: true });
@@ -34,42 +43,77 @@ export default function Settings() {
     setShowClearConfirm(false);
   };
 
-  const handleExportJSON = async () => {
+  const handleExport = async (kind: ExportKind) => {
     if (recordCount === 0 || exporting) return;
-    setExporting('json');
+    setExporting(kind);
     setExportError(null);
     try {
-      const allFruits = [...customFruits, ...builtinFruits];
-      await exportAsJSON(records, settings, allFruits);
-      setExportType('json');
+      if (kind === 'json') {
+        const allFruits = [...customFruits, ...builtinFruits];
+        await exportAsJSON(records, settings, allFruits);
+      } else if (kind === 'csv') {
+        await exportAsCSV(records);
+      } else {
+        await exportAsImage({ records, settings });
+      }
+      setExportType(kind);
       setExportedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false }));
       setTimeout(() => {
         setExportType(null);
         setExportedAt(null);
       }, 3000);
     } catch (e: any) {
-      setExportError(`JSON 导出失败：${e?.message || String(e)}`);
+      setExportError(`导出失败：${e?.message || String(e)}`);
     } finally {
       setExporting(null);
     }
   };
 
-  const handleExportCSV = async () => {
-    if (recordCount === 0 || exporting) return;
-    setExporting('csv');
+  const handlePickFile = () => {
+    if (importing) return;
+    setImportInfo(null);
+    setExportError(null);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // 清空 input 以便重复选择同一文件
+    e.target.value = '';
+    if (!file) return;
+
+    setImporting(true);
+    setImportInfo(null);
     setExportError(null);
     try {
-      await exportAsCSV(records);
-      setExportType('csv');
-      setExportedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false }));
-      setTimeout(() => {
-        setExportType(null);
-        setExportedAt(null);
-      }, 3000);
-    } catch (e: any) {
-      setExportError(`CSV 导出失败：${e?.message || String(e)}`);
+      const text = await readFileAsText(file);
+      const result = parseBackupJSON(text);
+
+      const mode = confirm(
+        `检测到 ${result.records.length} 条记录${result.settings ? ' + 设置' : ''}${result.customFruits.length ? ` + ${result.customFruits.length} 个自定义水果` : ''}。\n\n点击「确定」：覆盖现有数据\n点击「取消」：合并到现有数据（保留已有记录）`
+      );
+
+      if (mode) {
+        // 覆盖模式
+        replaceAllRecords(result.records);
+        if (result.settings) setSettings(result.settings);
+        if (result.customFruits.length) replaceCustomFruits(result.customFruits);
+        setImportInfo(`已恢复 ${result.records.length} 条记录（覆盖模式）`);
+      } else {
+        // 合并模式
+        const added = mergeRecords(result.records);
+        if (result.customFruits.length) {
+          // 合并自定义水果：去重
+          const existingIds = new Set(customFruits.map((f) => f.id));
+          const newFruits = [...customFruits, ...result.customFruits.filter((f) => !existingIds.has(f.id))];
+          replaceCustomFruits(newFruits);
+        }
+        setImportInfo(added > 0 ? `已合并 ${added} 条新记录` : '没有新记录需要合并');
+      }
+    } catch (err: any) {
+      setExportError(`导入失败：${err?.message || String(err)}`);
     } finally {
-      setExporting(null);
+      setImporting(false);
     }
   };
 
@@ -264,80 +308,103 @@ export default function Settings() {
             <div className="text-sm font-medium text-teal-700">数据导出</div>
           </div>
           <div className="mt-0.5 text-xs text-teal-600/70">
-            将记录导出为可备份或分享的文件
+            选择合适的格式导出，分享菜单里选「保存到文件」
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              onClick={handleExportJSON}
-              disabled={recordCount === 0 || exporting !== null}
-              className={cn(
-                'flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium transition',
-                exporting === 'json'
-                  ? 'border border-teal-300 bg-teal-100 text-teal-600'
-                  : exportType === 'json'
-                  ? 'bg-sage-500 text-white'
-                  : 'border border-teal-300 bg-white text-teal-600 hover:bg-teal-100 disabled:opacity-40'
-              )}
-            >
-              {exporting === 'json' ? (
-                <>
-                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-teal-400 border-t-transparent" />
-                  导出中
-                </>
-              ) : exportType === 'json' ? (
-                <>
-                  <Check className="h-3.5 w-3.5" /> 已导出
-                </>
-              ) : (
-                <>
-                  <FileJson className="h-3.5 w-3.5" /> JSON 备份
-                </>
-              )}
-            </button>
-            <button
-              onClick={handleExportCSV}
-              disabled={recordCount === 0 || exporting !== null}
-              className={cn(
-                'flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium transition',
-                exporting === 'csv'
-                  ? 'border border-teal-300 bg-teal-100 text-teal-600'
-                  : exportType === 'csv'
-                  ? 'bg-sage-500 text-white'
-                  : 'border border-teal-300 bg-white text-teal-600 hover:bg-teal-100 disabled:opacity-40'
-              )}
-            >
-              {exporting === 'csv' ? (
-                <>
-                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-teal-400 border-t-transparent" />
-                  导出中
-                </>
-              ) : exportType === 'csv' ? (
-                <>
-                  <Check className="h-3.5 w-3.5" /> 已导出
-                </>
-              ) : (
-                <>
-                  <FileSpreadsheet className="h-3.5 w-3.5" /> CSV 表格
-                </>
-              )}
-            </button>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <ExportButton
+              kind="json"
+              label="JSON 备份"
+              hint="完整可恢复"
+              icon={<FileJson className="h-3.5 w-3.5" />}
+              exporting={exporting}
+              exportType={exportType}
+              disabled={recordCount === 0}
+              onClick={() => handleExport('json')}
+            />
+            <ExportButton
+              kind="csv"
+              label="CSV 表格"
+              hint="Excel 可打开"
+              icon={<FileSpreadsheet className="h-3.5 w-3.5" />}
+              exporting={exporting}
+              exportType={exportType}
+              disabled={recordCount === 0}
+              onClick={() => handleExport('csv')}
+            />
+            <ExportButton
+              kind="image"
+              label="图片报告"
+              hint="排版美观可分享"
+              icon={<ImageIcon className="h-3.5 w-3.5" />}
+              exporting={exporting}
+              exportType={exportType}
+              disabled={recordCount === 0}
+              onClick={() => handleExport('image')}
+            />
           </div>
-          {exportError && (
-            <p className="mt-2 whitespace-nowrap text-[10px] text-red-500">
-              {exportError}
-            </p>
-          )}
-          {exportedAt && !exportError && (
-            <p className="mt-2 whitespace-nowrap text-[10px] text-sage-600">
-              文件已生成，请在弹出的分享菜单选择「保存到文件」或「保存到下载」
-            </p>
-          )}
           {recordCount === 0 && (
             <p className="mt-2 text-[10px] text-teal-600/50">
               暂无记录，无法导出
             </p>
           )}
         </div>
+
+        {/* 数据导入 */}
+        <div className="mt-3 rounded-2xl bg-sky-50 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Upload className="h-4 w-4 text-sky-500" />
+            <div className="text-sm font-medium text-sky-700">恢复数据</div>
+          </div>
+          <div className="mt-0.5 text-xs text-sky-600/70">
+            从 JSON 备份文件恢复记录（覆盖或合并）
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <button
+            onClick={handlePickFile}
+            disabled={importing}
+            className={cn(
+              'mt-3 flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium transition',
+              importing
+                ? 'border border-sky-300 bg-sky-100 text-sky-600'
+                : 'border border-sky-300 bg-white text-sky-600 hover:bg-sky-100'
+            )}
+          >
+            {importing ? (
+              <>
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" />
+                导入中
+              </>
+            ) : (
+              <>
+                <Upload className="h-3.5 w-3.5" /> 选择备份文件
+              </>
+            )}
+          </button>
+          {importInfo && !exportError && (
+            <p className="mt-2 whitespace-nowrap text-[10px] text-sage-600">
+              {importInfo}
+            </p>
+          )}
+        </div>
+
+        {(exportError || (exportedAt && !exportError)) && (
+          <div className="mt-2">
+            {exportError && (
+              <p className="whitespace-nowrap text-[10px] text-red-500">{exportError}</p>
+            )}
+            {exportedAt && !exportError && (
+              <p className="whitespace-nowrap text-[10px] text-sage-600">
+                文件已生成，请在弹出的分享菜单选择「保存到文件」或「保存到下载」
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="mt-3 rounded-2xl bg-clay-50 px-4 py-3">
           <div className="text-sm font-medium text-clay-600">清空所有记录</div>
@@ -386,6 +453,53 @@ export default function Settings() {
         </p>
       </motion.section>
     </div>
+  );
+}
+
+function ExportButton({
+  kind,
+  label,
+  hint,
+  icon,
+  exporting,
+  exportType,
+  disabled,
+  onClick,
+}: {
+  kind: ExportKind;
+  label: string;
+  hint: string;
+  icon: React.ReactNode;
+  exporting: ExportKind | null;
+  exportType: ExportKind | null;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  const isLoading = exporting === kind;
+  const isDone = exportType === kind;
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled || exporting !== null}
+      className={cn(
+        'flex flex-col items-center justify-center gap-1 whitespace-nowrap rounded-xl px-2 py-2.5 text-xs font-medium transition',
+        isLoading
+          ? 'border border-teal-300 bg-teal-100 text-teal-600'
+          : isDone
+          ? 'border border-sage-400 bg-sage-500 text-white'
+          : 'border border-teal-300 bg-white text-teal-600 hover:bg-teal-100 disabled:opacity-40'
+      )}
+    >
+      {isLoading ? (
+        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-teal-400 border-t-transparent" />
+      ) : isDone ? (
+        <Check className="h-3.5 w-3.5" />
+      ) : (
+        icon
+      )}
+      <span>{isLoading ? '导出中' : isDone ? '已导出' : label}</span>
+      <span className={cn('text-[9px]', isDone ? 'text-white/80' : 'text-teal-600/50')}>{hint}</span>
+    </button>
   );
 }
 

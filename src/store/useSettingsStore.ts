@@ -8,6 +8,7 @@ interface SettingsState {
   updateSettings: (partial: Partial<UserSettings>) => void;
   resetSettings: () => void;
   setInitialized: () => void;
+  setSettings: (settings: UserSettings) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -26,6 +27,10 @@ export const useSettingsStore = create<SettingsState>()(
         set((state) => ({
           settings: { ...state.settings, initialized: true },
         })),
+      setSettings: (settings) =>
+        set({
+          settings: { ...DEFAULT_SETTINGS, ...settings },
+        }),
     }),
     {
       name: 'dialysis_settings',
