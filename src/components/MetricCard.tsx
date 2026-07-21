@@ -3,6 +3,8 @@ import ProgressRing from './ProgressRing';
 import { getProgressStatus } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 
+type MetricVariant = 'ring' | 'numeric' | 'split';
+
 interface MetricCardProps {
   title: string;
   icon: ReactNode;
@@ -23,6 +25,8 @@ interface MetricCardProps {
   showProgress?: boolean;
   /** 反向：值越高越好（如超滤量） */
   inverseProgress?: boolean;
+  /** 展示模式 */
+  variant?: MetricVariant;
 }
 
 const themeColors: Record<string, { bg: string; text: string; icon: string }> = {
@@ -44,6 +48,7 @@ const MetricCard: FC<MetricCardProps> = ({
   description,
   showProgress = true,
   inverseProgress = false,
+  variant = 'split',
 }) => {
   const ratio = limit > 0 ? current / limit : 0;
   const status = inverseProgress
@@ -62,117 +67,164 @@ const MetricCard: FC<MetricCardProps> = ({
   const shownLimit = displayLimit ?? `${limit}`;
   const shownExceeded = displayLimit != null ? undefined : `${-remaining}`;
 
+  const valueColor =
+    status === 'exceeded' ? 'text-red-600' : status === 'warning' ? 'text-clay-500' : colors.text;
+
   return (
     <div
       className={cn(
-        // 固定高度，统一卡片尺寸；使用 flex 列布局确保内部各层对齐
-        'relative flex h-36 flex-col overflow-hidden rounded-2xl border p-4 transition-all duration-300',
+        'relative flex flex-col overflow-hidden rounded-3xl border p-4 transition-all duration-300',
         'hover:-translate-y-0.5 hover:shadow-soft-lg',
         status === 'exceeded'
-          ? 'border-red-200 bg-red-50/50'
+          ? 'border-red-100 bg-red-50/40'
           : status === 'warning'
-          ? 'border-clay-200 bg-clay-50/40'
-          : 'border-cream-300 bg-white/70'
+          ? 'border-clay-100 bg-clay-50/30'
+          : 'border-cream-200 bg-white/80'
       )}
     >
-      {/* 第一层：左上图标+标题，右上状态徽章 */}
+      {/* 头部：图标 + 标题 + 状态徽章 */}
       <div className="flex items-center justify-between">
-        <div className="flex min-w-0 items-center gap-1.5">
+        <div className="flex min-w-0 items-center gap-2">
           <div
             className={cn(
-              'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg',
+              'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl',
               colors.icon
             )}
           >
             {icon}
           </div>
-          <span className="truncate text-xs font-medium text-teal-600/80">{title}</span>
+          <span className="truncate text-sm font-medium text-teal-700/80">{title}</span>
         </div>
         {status === 'exceeded' && (
-          <span className="whitespace-nowrap rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
+          <span className="whitespace-nowrap rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">
             超标
           </span>
         )}
         {status === 'warning' && (
-          <span className="whitespace-nowrap rounded-full bg-clay-100 px-1.5 py-0.5 text-[10px] font-medium text-clay-600">
+          <span className="whitespace-nowrap rounded-full bg-clay-100 px-2 py-0.5 text-[10px] font-medium text-clay-600">
             注意
           </span>
         )}
       </div>
 
-      {/* 第二层：左侧环形进度 + 右侧大号数值+剩余阈值 */}
-      <div className="mt-2 flex flex-1 items-center gap-3">
-        {showProgress && (
-          <ProgressRing
-            value={current}
-            limit={limit}
-            status={status}
-            radius={26}
-            strokeWidth={4}
-          >
-            <div className="text-center">
-              <div className="text-[9px] font-medium text-teal-600/70">
-                {Math.round(ratio * 100)}%
-              </div>
+      {/* 中间内容：根据 variant 切换 */}
+      <div className="mt-3 flex flex-1 items-center">
+        {variant === 'ring' && (
+          <div className="flex w-full items-center gap-4">
+            <div className="flex-shrink-0">
+              <ProgressRing
+                value={current}
+                limit={limit}
+                status={status}
+                radius={34}
+                strokeWidth={6}
+              >
+                <div className="text-center">
+                  <div className={cn('text-xs font-medium', valueColor)}>{Math.round(ratio * 100)}%</div>
+                </div>
+              </ProgressRing>
             </div>
-          </ProgressRing>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-1">
+                <span className={cn('font-serif text-4xl font-semibold leading-none', valueColor)}>
+                  {shownValue}
+                </span>
+                <span className="text-sm text-teal-600/60">{shownUnit}</span>
+              </div>
+              {description && limit > 0 && (
+                <div className="mt-1 text-[10px] text-sage-600/60">{description}</div>
+              )}
+            </div>
+          </div>
         )}
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-1">
-            <span
-              className={cn(
-                'font-serif text-3xl font-semibold leading-none',
-                status === 'exceeded'
-                  ? 'text-red-600'
-                  : status === 'warning'
-                  ? 'text-clay-500'
-                  : 'text-teal-600'
-              )}
-            >
-              {shownValue}
-            </span>
-            <span className="text-xs text-teal-600/60">{shownUnit}</span>
-          </div>
-          {limit > 0 ? (
-            <div className="mt-1 text-[10px] text-teal-600/50">
-              {inverseProgress ? (
-                <span>
-                  目标 <span className="font-medium text-teal-700/80">{shownLimit}</span> {shownUnit}
+        {variant === 'numeric' && (
+          <div className="flex w-full items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-baseline gap-1">
+                <span className={cn('font-serif text-4xl font-semibold leading-none', valueColor)}>
+                  {shownValue}
                 </span>
-              ) : remaining > 0 ? (
-                <span>
-                  还可摄入 <span className="font-medium text-sage-600/80">{shownRemaining}</span> {shownUnit}
-                </span>
-              ) : (
-                <span className="text-red-500/80">已超出 {shownExceeded} {shownUnit}</span>
+                <span className="text-sm text-teal-600/60">{shownUnit}</span>
+              </div>
+              {description && limit > 0 && (
+                <div className="mt-1 text-[10px] text-sage-600/60">{description}</div>
               )}
             </div>
-          ) : (
-            <div className="mt-1 text-[10px] text-teal-600/50">{description}</div>
-          )}
-          {description && limit > 0 && (
-            <div className="mt-0.5 text-[10px] text-sage-600/50">{description}</div>
-          )}
-        </div>
+            <div className="text-right text-xs leading-relaxed text-teal-600/70">
+              {limit > 0 ? (
+                inverseProgress ? (
+                  <>
+                    <div>
+                      目标 <span className={cn('font-medium', valueColor)}>{shownLimit}</span> {shownUnit}
+                    </div>
+                  </>
+                ) : remaining > 0 ? (
+                  <>
+                    <div>
+                      剩余 <span className={cn('font-medium', valueColor)}>{shownRemaining}</span> {shownUnit}
+                    </div>
+                    <div>
+                      目标 <span className="font-medium text-teal-700/70">{shownLimit}</span> {shownUnit}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-red-500/80">
+                    已超出 <span className="font-medium">{shownExceeded}</span> {shownUnit}
+                  </div>
+                )
+              ) : (
+                <div>{description}</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {variant === 'split' && (
+          <div className="flex w-full items-center justify-between">
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className={cn('font-serif text-3xl font-semibold leading-none', valueColor)}>
+                  {shownValue}
+                </span>
+                <span className="text-sm text-teal-600/60">{shownUnit}</span>
+              </div>
+              <div className="mt-1 text-[11px] text-teal-600/50">已摄入</div>
+            </div>
+            <div className="text-right">
+              <div className="text-[11px] text-teal-600/50">剩余</div>
+              <div className="mt-0.5 text-lg font-semibold text-teal-700/80">
+                {remaining > 0 ? (
+                  <>
+                    {shownRemaining} <span className="text-xs font-normal text-teal-600/60">{shownUnit}</span>
+                  </>
+                ) : (
+                  <span className="text-red-500/80">0 {shownUnit}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* 第四层：底部进度条 */}
-      <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-cream-200">
-        <div
-          className={cn(
-            'h-full rounded-full transition-all duration-700',
-            status === 'exceeded'
-              ? 'bg-red-500'
-              : status === 'warning'
-              ? 'bg-clay-400'
-              : 'bg-teal-500'
-          )}
-          style={{
-            width: `${Math.min(ratio * 100, 100)}%`,
-          }}
-        />
-      </div>
+      {/* 底部进度条 */}
+      {showProgress && (
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-cream-200">
+          <div
+            className={cn(
+              'h-full rounded-full transition-all duration-700',
+              status === 'exceeded'
+                ? 'bg-red-500'
+                : status === 'warning'
+                ? 'bg-clay-400'
+                : 'bg-teal-500'
+            )}
+            style={{
+              width: `${Math.min(ratio * 100, 100)}%`,
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 };
