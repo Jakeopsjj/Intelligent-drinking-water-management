@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { X, Check } from 'lucide-react';
 import type { FC } from 'react';
 import { cn } from '@/lib/utils';
@@ -21,7 +22,7 @@ interface AvatarPickerProps {
 }
 
 const AvatarPicker: FC<AvatarPickerProps> = ({ open, current, onSelect, onClose }) => {
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -79,7 +80,8 @@ const AvatarPicker: FC<AvatarPickerProps> = ({ open, current, onSelect, onClose 
           </div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 
