@@ -154,17 +154,15 @@ export default function Dashboard() {
           limit={settings.dailyWaterLimit}
           unit="ml"
           theme="teal"
-          variant="ring"
           description={todayMetrics.fruitWater > 0 ? `含水果水 ${todayMetrics.fruitWater} ml` : undefined}
         />
         <MetricCard
           title="超滤量"
           icon={<Gauge className="h-4 w-4" />}
           current={todayMetrics.ultrafiltration}
-          limit={settings.dailyUltrafiltrationTarget}
+          limit={2500}
           unit="ml"
           theme="teal"
-          variant="numeric"
           description="透析当日累计"
         />
         <MetricCard
@@ -176,7 +174,6 @@ export default function Dashboard() {
           displayValue={gToKgNum(todayMetrics.fruit)}
           displayUnit="kg"
           theme="sage"
-          variant="numeric"
           description={todayMetrics.fruitWater > 0 ? `贡献水分 ${todayMetrics.fruitWater} ml` : undefined}
         />
         <MetricCard
@@ -186,7 +183,6 @@ export default function Dashboard() {
           limit={settings.dailyPotassiumLimit}
           unit="mg"
           theme="sage"
-          variant="numeric"
           description="影响心律"
         />
         <MetricCard
@@ -196,7 +192,6 @@ export default function Dashboard() {
           limit={settings.dailyPhosphorusLimit}
           unit="mg"
           theme="teal"
-          variant="numeric"
           description="过量致瘙痒"
         />
         <MetricCard
@@ -206,7 +201,6 @@ export default function Dashboard() {
           limit={settings.dailySodiumLimit}
           unit="mg"
           theme="sage"
-          variant="numeric"
           description="影响血压"
         />
       </motion.section>

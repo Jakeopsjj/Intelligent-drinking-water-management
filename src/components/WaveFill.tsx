@@ -13,8 +13,9 @@ interface WaveFillProps {
 }
 
 /**
- * 波浪液位填充
- * - 容器自带背景色 = 水的颜色，水位越高，填充面积越大
+ * 波浪液位填充 + 液态玻璃效果
+ * - 容器自带半透明背景色 = 水的颜色，水位越高，填充面积越大
+ * - 应用 backdrop-blur 模拟液态玻璃质感
  * - SVG 波浪位于水面上方，提供流动的波浪表面
  * - 超额时水位全满 100%，卡片被水色完全填满
  * - 波浪持续流动，每秒随机切换方向（通过 ref 操作 DOM，不触发 React 重渲染）
@@ -26,22 +27,67 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
   // 反向模式（超滤量）：值越高水位越高，最低 15%
   const finalHeight = inverse ? Math.max(ratio * 100, 15) : heightPercent;
 
-  // 颜色映射 - 背景色比波浪色稍深，形成层次
+  // 液态玻璃颜色映射 - 提升饱和度让透明容器更醒目
   const colorMap = {
     normal: {
-      teal: { bg: 'rgba(45, 95, 93, 0.20)', surface: 'rgba(45, 95, 93, 0.28)', line: 'rgba(93, 168, 162, 0.35)' },
-      sage: { bg: 'rgba(70, 107, 76, 0.20)', surface: 'rgba(70, 107, 76, 0.28)', line: 'rgba(122, 155, 126, 0.35)' },
-      clay: { bg: 'rgba(217, 119, 87, 0.20)', surface: 'rgba(217, 119, 87, 0.28)', line: 'rgba(224, 142, 111, 0.35)' },
+      teal: {
+        bg: 'rgba(45, 95, 93, 0.35)',
+        surface: 'rgba(45, 95, 93, 0.45)',
+        line: 'rgba(93, 168, 162, 0.55)',
+        highlight: 'rgba(255, 255, 255, 0.25)',
+      },
+      sage: {
+        bg: 'rgba(70, 107, 76, 0.35)',
+        surface: 'rgba(70, 107, 76, 0.45)',
+        line: 'rgba(122, 155, 126, 0.55)',
+        highlight: 'rgba(255, 255, 255, 0.25)',
+      },
+      clay: {
+        bg: 'rgba(217, 119, 87, 0.35)',
+        surface: 'rgba(217, 119, 87, 0.45)',
+        line: 'rgba(224, 142, 111, 0.55)',
+        highlight: 'rgba(255, 255, 255, 0.25)',
+      },
     },
     warning: {
-      teal: { bg: 'rgba(217, 119, 87, 0.22)', surface: 'rgba(217, 119, 87, 0.30)', line: 'rgba(224, 142, 111, 0.38)' },
-      sage: { bg: 'rgba(217, 119, 87, 0.22)', surface: 'rgba(217, 119, 87, 0.30)', line: 'rgba(224, 142, 111, 0.38)' },
-      clay: { bg: 'rgba(217, 119, 87, 0.22)', surface: 'rgba(217, 119, 87, 0.30)', line: 'rgba(224, 142, 111, 0.38)' },
+      teal: {
+        bg: 'rgba(217, 119, 87, 0.38)',
+        surface: 'rgba(217, 119, 87, 0.48)',
+        line: 'rgba(224, 142, 111, 0.58)',
+        highlight: 'rgba(255, 255, 255, 0.25)',
+      },
+      sage: {
+        bg: 'rgba(217, 119, 87, 0.38)',
+        surface: 'rgba(217, 119, 87, 0.48)',
+        line: 'rgba(224, 142, 111, 0.58)',
+        highlight: 'rgba(255, 255, 255, 0.25)',
+      },
+      clay: {
+        bg: 'rgba(217, 119, 87, 0.38)',
+        surface: 'rgba(217, 119, 87, 0.48)',
+        line: 'rgba(224, 142, 111, 0.58)',
+        highlight: 'rgba(255, 255, 255, 0.25)',
+      },
     },
     exceeded: {
-      teal: { bg: 'rgba(220, 38, 38, 0.25)', surface: 'rgba(220, 38, 38, 0.32)', line: 'rgba(248, 113, 113, 0.40)' },
-      sage: { bg: 'rgba(220, 38, 38, 0.25)', surface: 'rgba(220, 38, 38, 0.32)', line: 'rgba(248, 113, 113, 0.40)' },
-      clay: { bg: 'rgba(220, 38, 38, 0.25)', surface: 'rgba(220, 38, 38, 0.32)', line: 'rgba(248, 113, 113, 0.40)' },
+      teal: {
+        bg: 'rgba(220, 38, 38, 0.42)',
+        surface: 'rgba(220, 38, 38, 0.52)',
+        line: 'rgba(248, 113, 113, 0.62)',
+        highlight: 'rgba(255, 255, 255, 0.28)',
+      },
+      sage: {
+        bg: 'rgba(220, 38, 38, 0.42)',
+        surface: 'rgba(220, 38, 38, 0.52)',
+        line: 'rgba(248, 113, 113, 0.62)',
+        highlight: 'rgba(255, 255, 255, 0.28)',
+      },
+      clay: {
+        bg: 'rgba(220, 38, 38, 0.42)',
+        surface: 'rgba(220, 38, 38, 0.52)',
+        line: 'rgba(248, 113, 113, 0.62)',
+        highlight: 'rgba(255, 255, 255, 0.28)',
+      },
     },
   };
 
@@ -72,7 +118,6 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
       }
     };
 
-    // 初始动画
     setAnim(currentDir);
 
     const timer = setInterval(() => {
@@ -89,10 +134,21 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
       style={{
         height: `${finalHeight}%`,
         transition: 'height 0.7s cubic-bezier(0.16, 1, 0.3, 1)',
-        background: colors.bg,
+        background: `linear-gradient(180deg, ${colors.surface} 0%, ${colors.bg} 100%)`,
+        backdropFilter: 'blur(2px)',
+        WebkitBackdropFilter: 'blur(2px)',
       }}
       aria-hidden="true"
     >
+      {/* 液态玻璃高光：顶部白色光泽 */}
+      <div
+        className="absolute inset-x-0 top-0 h-1/3"
+        style={{
+          background: `linear-gradient(180deg, ${colors.highlight} 0%, transparent 100%)`,
+          opacity: 0.6,
+        }}
+      />
+
       {/* 后层波浪：位于水面，向上填充 */}
       <svg
         ref={backWaveRef}
@@ -120,6 +176,12 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
           fill={colors.surface}
         />
       </svg>
+
+      {/* 液态玻璃侧边高光 */}
+      <div
+        className="absolute left-0 top-0 h-full w-px"
+        style={{ background: `linear-gradient(180deg, transparent, ${colors.highlight}, transparent)` }}
+      />
     </div>
   );
 };

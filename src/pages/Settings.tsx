@@ -188,20 +188,6 @@ export default function Settings() {
           </Field>
 
           <Field
-            label="超滤量目标"
-            hint="每次透析的目标超滤量"
-            icon={<Activity className="h-3.5 w-3.5" />}
-          >
-            <NumberInput
-              value={settings.dailyUltrafiltrationTarget}
-              onChange={(v) => updateSettings({ dailyUltrafiltrationTarget: v })}
-              unit="ml"
-              step={50}
-              min={0}
-            />
-          </Field>
-
-          <Field
             label="水果摄入限额"
             hint="每日水果总重量限额（存储以 g 为单位，便于精确计算）"
             icon={<Citrus className="h-3.5 w-3.5" />}
