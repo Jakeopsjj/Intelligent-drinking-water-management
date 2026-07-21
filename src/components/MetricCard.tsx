@@ -3,7 +3,7 @@ import ProgressRing from './ProgressRing';
 import { getProgressStatus } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 
-type MetricVariant = 'ring' | 'numeric' | 'split';
+type MetricVariant = 'ring' | 'numeric';
 
 interface MetricCardProps {
   title: string;
@@ -15,10 +15,6 @@ interface MetricCardProps {
   displayValue?: string;
   /** 显示单位覆盖（如把 g 改为 kg） */
   displayUnit?: string;
-  /** 显示限额覆盖（纯数字字符串，不含单位） */
-  displayLimit?: string;
-  /** 显示剩余覆盖（纯数字字符串，不含单位）。不传则自动计算 */
-  displayRemaining?: string;
   /** 颜色主题 */
   theme?: 'teal' | 'sage' | 'clay';
   /** 子标题描述 */
@@ -45,13 +41,11 @@ const MetricCard: FC<MetricCardProps> = ({
   unit,
   displayValue,
   displayUnit,
-  displayLimit,
-  displayRemaining,
   theme = 'teal',
   description,
   showProgress = true,
   inverseProgress = false,
-  variant = 'split',
+  variant = 'numeric',
 }) => {
   const ratio = limit > 0 ? current / limit : 0;
   const status = inverseProgress
@@ -60,42 +54,16 @@ const MetricCard: FC<MetricCardProps> = ({
       : 'warning'
     : getProgressStatus(current, limit);
 
-  const remaining = limit - current;
-
-  // 显示值 / 单位 / 限额 / 剩余的覆盖逻辑
-  // 重要：displayValue / displayLimit / displayRemaining 都是纯数字，不含单位
   const shownValue = displayValue ?? String(current);
   const shownUnit = displayUnit ?? unit;
-  const shownLimit = displayLimit ?? String(limit);
 
-  // 计算显示剩余
-  let shownRemaining: string;
-  if (displayRemaining != null) {
-    shownRemaining = displayRemaining;
-  } else if (displayLimit != null && displayValue != null) {
-    // 从覆盖的数字字符串计算
-    const dv = parseFloat(displayValue);
-    const dl = parseFloat(displayLimit);
-    shownRemaining = isNaN(dv) || isNaN(dl) ? String(remaining) : String(dl - dv);
-  } else {
-    shownRemaining = String(remaining);
-  }
-
-  // 颜色：正常状态统一用深青色，避免不同 theme 带来红色感
-  // 只有 warning / exceeded 才用暖色
+  // 颜色：正常状态统一用深青色，避免红色压迫感
   const valueColor =
     status === 'exceeded'
       ? 'text-red-600'
       : status === 'warning'
       ? 'text-clay-500'
       : 'text-teal-700';
-
-  const remainingColor =
-    status === 'exceeded'
-      ? 'text-red-500'
-      : status === 'warning'
-      ? 'text-clay-500'
-      : 'text-sage-600';
 
   return (
     <div
@@ -160,7 +128,7 @@ const MetricCard: FC<MetricCardProps> = ({
                 </span>
                 <span className="text-sm text-teal-600/60">{shownUnit}</span>
               </div>
-              {description && limit > 0 && (
+              {description && (
                 <div className="mt-1.5 text-[11px] text-teal-600/50">{description}</div>
               )}
             </div>
@@ -168,56 +136,22 @@ const MetricCard: FC<MetricCardProps> = ({
         )}
 
         {variant === 'numeric' && (
-          <div className="flex w-full items-end justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-baseline gap-1">
-                <span className={cn('font-serif text-4xl font-semibold leading-none', valueColor)}>
-                  {shownValue}
-                </span>
-                <span className="text-sm text-teal-600/60">{shownUnit}</span>
-              </div>
-              {description && (
-                <div className="mt-1.5 text-[11px] text-teal-600/50">{description}</div>
-              )}
+          <div className="w-full">
+            <div className="flex items-baseline gap-1">
+              <span className={cn('font-serif text-4xl font-semibold leading-none', valueColor)}>
+                {shownValue}
+              </span>
+              <span className="text-sm text-teal-600/60">{shownUnit}</span>
             </div>
-            <div className="text-right">
-              <div className="text-[11px] text-teal-600/50">目标</div>
-              <div className="mt-0.5 text-base font-semibold text-teal-700/80">
-                {shownLimit}
-                <span className="text-xs font-normal text-teal-600/60"> {shownUnit}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {variant === 'split' && (
-          <div className="flex w-full items-end justify-between gap-3">
-            {/* 左侧：已摄入 */}
-            <div className="min-w-0">
-              <div className="text-[11px] font-medium text-teal-600/50">已摄入</div>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className={cn('font-serif text-3xl font-semibold leading-none', valueColor)}>
-                  {shownValue}
-                </span>
-                <span className="text-xs text-teal-600/60">{shownUnit}</span>
-              </div>
-            </div>
-            {/* 右侧：剩余 */}
-            <div className="text-right">
-              <div className="text-[11px] font-medium text-teal-600/50">剩余</div>
-              <div className="mt-1 flex items-baseline justify-end gap-1">
-                <span className={cn('font-serif text-2xl font-semibold leading-none', remainingColor)}>
-                  {Number(shownRemaining) > 0 ? shownRemaining : '0'}
-                </span>
-                <span className="text-xs text-teal-600/60">{shownUnit}</span>
-              </div>
-            </div>
+            {description && (
+              <div className="mt-1.5 text-[11px] text-teal-600/50">{description}</div>
+            )}
           </div>
         )}
       </div>
 
       {/* 底部进度条 */}
-      {showProgress && (
+      {showProgress && limit > 0 && (
         <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-cream-200">
           <div
             className={cn(

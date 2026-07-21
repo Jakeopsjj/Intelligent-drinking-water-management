@@ -175,10 +175,8 @@ export default function Dashboard() {
           unit="g"
           displayValue={gToKgNum(todayMetrics.fruit)}
           displayUnit="kg"
-          displayLimit={gToKgNum(settings.dailyFruitLimit)}
-          displayRemaining={gToKgNum(settings.dailyFruitLimit - todayMetrics.fruit)}
           theme="sage"
-          variant="split"
+          variant="numeric"
           description={todayMetrics.fruitWater > 0 ? `贡献水分 ${todayMetrics.fruitWater} ml` : undefined}
         />
         <MetricCard
@@ -188,7 +186,7 @@ export default function Dashboard() {
           limit={settings.dailyPotassiumLimit}
           unit="mg"
           theme="sage"
-          variant="split"
+          variant="numeric"
           description="影响心律"
         />
         <MetricCard
@@ -198,7 +196,7 @@ export default function Dashboard() {
           limit={settings.dailyPhosphorusLimit}
           unit="mg"
           theme="teal"
-          variant="split"
+          variant="numeric"
           description="过量致瘙痒"
         />
         <MetricCard
@@ -208,7 +206,7 @@ export default function Dashboard() {
           limit={settings.dailySodiumLimit}
           unit="mg"
           theme="sage"
-          variant="split"
+          variant="numeric"
           description="影响血压"
         />
       </motion.section>
