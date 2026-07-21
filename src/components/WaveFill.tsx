@@ -27,66 +27,66 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
   // 反向模式（超滤量）：值越高水位越高，最低 15%
   const finalHeight = inverse ? Math.max(ratio * 100, 15) : heightPercent;
 
-  // 液态玻璃颜色映射 - 提升饱和度让透明容器更醒目
+  // 液态玻璃水色映射：在深色玻璃底上使用亮色，让水位清晰可见
   const colorMap = {
     normal: {
       teal: {
-        bg: 'rgba(45, 95, 93, 0.35)',
-        surface: 'rgba(45, 95, 93, 0.45)',
-        line: 'rgba(93, 168, 162, 0.55)',
-        highlight: 'rgba(255, 255, 255, 0.25)',
+        bg: 'rgba(20, 184, 166, 0.55)',
+        surface: 'rgba(45, 212, 191, 0.65)',
+        line: 'rgba(153, 246, 228, 0.75)',
+        highlight: 'rgba(255, 255, 255, 0.35)',
       },
       sage: {
-        bg: 'rgba(70, 107, 76, 0.35)',
-        surface: 'rgba(70, 107, 76, 0.45)',
-        line: 'rgba(122, 155, 126, 0.55)',
-        highlight: 'rgba(255, 255, 255, 0.25)',
+        bg: 'rgba(132, 204, 22, 0.50)',
+        surface: 'rgba(163, 230, 53, 0.62)',
+        line: 'rgba(190, 242, 100, 0.72)',
+        highlight: 'rgba(255, 255, 255, 0.35)',
       },
       clay: {
-        bg: 'rgba(217, 119, 87, 0.35)',
-        surface: 'rgba(217, 119, 87, 0.45)',
-        line: 'rgba(224, 142, 111, 0.55)',
-        highlight: 'rgba(255, 255, 255, 0.25)',
+        bg: 'rgba(234, 88, 12, 0.55)',
+        surface: 'rgba(251, 146, 60, 0.65)',
+        line: 'rgba(253, 186, 116, 0.75)',
+        highlight: 'rgba(255, 255, 255, 0.35)',
       },
     },
     warning: {
       teal: {
-        bg: 'rgba(217, 119, 87, 0.38)',
-        surface: 'rgba(217, 119, 87, 0.48)',
-        line: 'rgba(224, 142, 111, 0.58)',
-        highlight: 'rgba(255, 255, 255, 0.25)',
+        bg: 'rgba(234, 88, 12, 0.55)',
+        surface: 'rgba(251, 146, 60, 0.65)',
+        line: 'rgba(253, 186, 116, 0.75)',
+        highlight: 'rgba(255, 255, 255, 0.35)',
       },
       sage: {
-        bg: 'rgba(217, 119, 87, 0.38)',
-        surface: 'rgba(217, 119, 87, 0.48)',
-        line: 'rgba(224, 142, 111, 0.58)',
-        highlight: 'rgba(255, 255, 255, 0.25)',
+        bg: 'rgba(234, 88, 12, 0.55)',
+        surface: 'rgba(251, 146, 60, 0.65)',
+        line: 'rgba(253, 186, 116, 0.75)',
+        highlight: 'rgba(255, 255, 255, 0.35)',
       },
       clay: {
-        bg: 'rgba(217, 119, 87, 0.38)',
-        surface: 'rgba(217, 119, 87, 0.48)',
-        line: 'rgba(224, 142, 111, 0.58)',
-        highlight: 'rgba(255, 255, 255, 0.25)',
+        bg: 'rgba(234, 88, 12, 0.55)',
+        surface: 'rgba(251, 146, 60, 0.65)',
+        line: 'rgba(253, 186, 116, 0.75)',
+        highlight: 'rgba(255, 255, 255, 0.35)',
       },
     },
     exceeded: {
       teal: {
-        bg: 'rgba(220, 38, 38, 0.42)',
-        surface: 'rgba(220, 38, 38, 0.52)',
-        line: 'rgba(248, 113, 113, 0.62)',
-        highlight: 'rgba(255, 255, 255, 0.28)',
+        bg: 'rgba(220, 38, 38, 0.60)',
+        surface: 'rgba(248, 113, 113, 0.70)',
+        line: 'rgba(254, 202, 202, 0.80)',
+        highlight: 'rgba(255, 255, 255, 0.38)',
       },
       sage: {
-        bg: 'rgba(220, 38, 38, 0.42)',
-        surface: 'rgba(220, 38, 38, 0.52)',
-        line: 'rgba(248, 113, 113, 0.62)',
-        highlight: 'rgba(255, 255, 255, 0.28)',
+        bg: 'rgba(220, 38, 38, 0.60)',
+        surface: 'rgba(248, 113, 113, 0.70)',
+        line: 'rgba(254, 202, 202, 0.80)',
+        highlight: 'rgba(255, 255, 255, 0.38)',
       },
       clay: {
-        bg: 'rgba(220, 38, 38, 0.42)',
-        surface: 'rgba(220, 38, 38, 0.52)',
-        line: 'rgba(248, 113, 113, 0.62)',
-        highlight: 'rgba(255, 255, 255, 0.28)',
+        bg: 'rgba(220, 38, 38, 0.60)',
+        surface: 'rgba(248, 113, 113, 0.70)',
+        line: 'rgba(254, 202, 202, 0.80)',
+        highlight: 'rgba(255, 255, 255, 0.38)',
       },
     },
   };

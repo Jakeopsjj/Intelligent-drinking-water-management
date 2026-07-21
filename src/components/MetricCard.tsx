@@ -55,32 +55,52 @@ const MetricCard: FC<MetricCardProps> = ({
   const shownValue = displayValue ?? String(current);
   const shownUnit = displayUnit ?? unit;
 
-  // 颜色：正常状态白色（透明卡片），warning 深色，超额 红色
-  const valueColor =
-    status === 'exceeded'
-      ? 'text-white'
-      : status === 'warning'
-      ? 'text-white'
-      : 'text-white';
+  // 深色玻璃底色调（按主题区分玻璃色调），保证白色文字始终可读
+  const glassTint =
+    theme === 'sage'
+      ? 'from-sage-900/75 to-sage-950/85'
+      : theme === 'clay'
+      ? 'from-clay-900/75 to-clay-950/85'
+      : 'from-teal-900/75 to-teal-950/85';
 
-  const titleColor =
+  const borderColor =
     status === 'exceeded'
-      ? 'text-white/90'
+      ? 'border-red-300/40'
       : status === 'warning'
-      ? 'text-white/90'
-      : 'text-white/90';
+      ? 'border-clay-300/40'
+      : 'border-white/20';
 
   return (
     <div
       className={cn(
-        'relative flex min-h-[140px] flex-col overflow-hidden rounded-3xl border p-5 transition-all duration-300',
+        'relative flex min-h-[148px] flex-col overflow-hidden rounded-3xl border p-5 transition-all duration-300',
         'hover:-translate-y-0.5 hover:shadow-soft-lg',
-        // 容器透明化，背景由 WaveFill 提供
-        'border-white/40 bg-white/5 backdrop-blur-sm',
-        status === 'exceeded' && 'border-red-200/60',
-        status === 'warning' && 'border-clay-200/60'
+        // 深色透明玻璃：背景渐变 + backdrop-blur + 玻璃边框 + 内阴影厚度感
+        'bg-gradient-to-br backdrop-blur-md',
+        glassTint,
+        borderColor,
+        'shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.25),0_10px_30px_-12px_rgba(0,0,0,0.4)]'
       )}
     >
+      {/* 玻璃顶部高光：模拟反射光泽 */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 50%, transparent 100%)',
+        }}
+        aria-hidden="true"
+      />
+      {/* 玻璃左侧高光：模拟立体边缘 */}
+      <div
+        className="pointer-events-none absolute left-0 top-0 h-full w-px"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.05) 50%, transparent 100%)',
+        }}
+        aria-hidden="true"
+      />
+
       {/* 底层：波浪液位填充（根据进度控制水位高度） */}
       {showWave && limit > 0 && (
         <WaveFill ratio={ratio} status={status} theme={theme} inverse={inverseProgress} />
@@ -93,13 +113,13 @@ const MetricCard: FC<MetricCardProps> = ({
           <div className="flex min-w-0 items-center gap-2">
             <div
               className={cn(
-                'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-md',
+                'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 backdrop-blur-md',
                 themeIcon[theme]
               )}
             >
               {icon}
             </div>
-            <span className={cn('truncate text-sm font-medium', titleColor)}>{title}</span>
+            <span className="truncate text-sm font-medium text-white/95 drop-shadow-sm">{title}</span>
           </div>
           {status === 'exceeded' && (
             <span className="whitespace-nowrap rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-medium text-white">
@@ -117,29 +137,22 @@ const MetricCard: FC<MetricCardProps> = ({
         <div className="mt-4 flex flex-1 items-center">
           <div className="w-full">
             <div className="flex items-baseline gap-1">
-              <span className={cn('font-serif text-4xl font-semibold leading-none drop-shadow-sm', valueColor)}>
+              <span className="font-serif text-4xl font-semibold leading-none text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
                 {shownValue}
               </span>
-              <span className="text-sm text-white/70">{shownUnit}</span>
+              <span className="text-sm font-medium text-white/80">{shownUnit}</span>
             </div>
             {description && (
-              <div className="mt-1.5 text-[11px] text-white/60">{description}</div>
+              <div className="mt-1.5 text-[11px] text-white/70">{description}</div>
             )}
           </div>
         </div>
 
         {/* 底部进度条 */}
         {showProgress && limit > 0 && (
-          <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+          <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full border border-white/10 bg-black/25">
             <div
-              className={cn(
-                'h-full rounded-full transition-all duration-700',
-                status === 'exceeded'
-                  ? 'bg-white'
-                  : status === 'warning'
-                  ? 'bg-white'
-                  : 'bg-white'
-              )}
+              className="h-full rounded-full bg-gradient-to-r from-white/70 to-white transition-all duration-700"
               style={{
                 width: `${Math.min(ratio * 100, 100)}%`,
               }}
