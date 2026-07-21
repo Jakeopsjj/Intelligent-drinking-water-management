@@ -11,12 +11,14 @@ interface MetricCardProps {
   current: number;
   limit: number;
   unit: string;
-  /** 显示值覆盖（如将 g 显示为 kg），不传则用 current */
+  /** 显示值覆盖（纯数字字符串，不含单位） */
   displayValue?: string;
   /** 显示单位覆盖（如把 g 改为 kg） */
   displayUnit?: string;
-  /** 显示限额覆盖（如把 g 限额改为 kg 限额） */
+  /** 显示限额覆盖（纯数字字符串，不含单位） */
   displayLimit?: string;
+  /** 显示剩余覆盖（纯数字字符串，不含单位）。不传则自动计算 */
+  displayRemaining?: string;
   /** 颜色主题 */
   theme?: 'teal' | 'sage' | 'clay';
   /** 子标题描述 */
@@ -29,10 +31,10 @@ interface MetricCardProps {
   variant?: MetricVariant;
 }
 
-const themeColors: Record<string, { bg: string; text: string; icon: string }> = {
-  teal: { bg: 'bg-teal-50', text: 'text-teal-600', icon: 'bg-teal-500/10 text-teal-500' },
-  sage: { bg: 'bg-sage-50', text: 'text-sage-600', icon: 'bg-sage-400/10 text-sage-500' },
-  clay: { bg: 'bg-clay-50', text: 'text-clay-600', icon: 'bg-clay-400/10 text-clay-500' },
+const themeIcon: Record<string, string> = {
+  teal: 'bg-teal-500/10 text-teal-500',
+  sage: 'bg-sage-400/10 text-sage-500',
+  clay: 'bg-clay-400/10 text-clay-500',
 };
 
 const MetricCard: FC<MetricCardProps> = ({
@@ -44,6 +46,7 @@ const MetricCard: FC<MetricCardProps> = ({
   displayValue,
   displayUnit,
   displayLimit,
+  displayRemaining,
   theme = 'teal',
   description,
   showProgress = true,
@@ -58,22 +61,46 @@ const MetricCard: FC<MetricCardProps> = ({
     : getProgressStatus(current, limit);
 
   const remaining = limit - current;
-  const colors = themeColors[theme];
 
-  // 显示值 / 单位 / 限额的覆盖逻辑（用于 g → kg 转换等场景）
+  // 显示值 / 单位 / 限额 / 剩余的覆盖逻辑
+  // 重要：displayValue / displayLimit / displayRemaining 都是纯数字，不含单位
   const shownValue = displayValue ?? String(current);
   const shownUnit = displayUnit ?? unit;
-  const shownRemaining = displayLimit != null ? undefined : `${remaining}`;
-  const shownLimit = displayLimit ?? `${limit}`;
-  const shownExceeded = displayLimit != null ? undefined : `${-remaining}`;
+  const shownLimit = displayLimit ?? String(limit);
 
+  // 计算显示剩余
+  let shownRemaining: string;
+  if (displayRemaining != null) {
+    shownRemaining = displayRemaining;
+  } else if (displayLimit != null && displayValue != null) {
+    // 从覆盖的数字字符串计算
+    const dv = parseFloat(displayValue);
+    const dl = parseFloat(displayLimit);
+    shownRemaining = isNaN(dv) || isNaN(dl) ? String(remaining) : String(dl - dv);
+  } else {
+    shownRemaining = String(remaining);
+  }
+
+  // 颜色：正常状态统一用深青色，避免不同 theme 带来红色感
+  // 只有 warning / exceeded 才用暖色
   const valueColor =
-    status === 'exceeded' ? 'text-red-600' : status === 'warning' ? 'text-clay-500' : colors.text;
+    status === 'exceeded'
+      ? 'text-red-600'
+      : status === 'warning'
+      ? 'text-clay-500'
+      : 'text-teal-700';
+
+  const remainingColor =
+    status === 'exceeded'
+      ? 'text-red-500'
+      : status === 'warning'
+      ? 'text-clay-500'
+      : 'text-sage-600';
 
   return (
     <div
       className={cn(
-        'relative flex flex-col overflow-hidden rounded-3xl border p-4 transition-all duration-300',
+        'relative flex flex-col overflow-hidden rounded-3xl border p-5 transition-all duration-300',
         'hover:-translate-y-0.5 hover:shadow-soft-lg',
         status === 'exceeded'
           ? 'border-red-100 bg-red-50/40'
@@ -88,7 +115,7 @@ const MetricCard: FC<MetricCardProps> = ({
           <div
             className={cn(
               'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl',
-              colors.icon
+              themeIcon[theme]
             )}
           >
             {icon}
@@ -108,7 +135,7 @@ const MetricCard: FC<MetricCardProps> = ({
       </div>
 
       {/* 中间内容：根据 variant 切换 */}
-      <div className="mt-3 flex flex-1 items-center">
+      <div className="mt-4 flex flex-1 items-center">
         {variant === 'ring' && (
           <div className="flex w-full items-center gap-4">
             <div className="flex-shrink-0">
@@ -116,11 +143,13 @@ const MetricCard: FC<MetricCardProps> = ({
                 value={current}
                 limit={limit}
                 status={status}
-                radius={34}
+                radius={36}
                 strokeWidth={6}
               >
                 <div className="text-center">
-                  <div className={cn('text-xs font-medium', valueColor)}>{Math.round(ratio * 100)}%</div>
+                  <div className={cn('text-xs font-semibold', valueColor)}>
+                    {Math.round(ratio * 100)}%
+                  </div>
                 </div>
               </ProgressRing>
             </div>
@@ -132,14 +161,14 @@ const MetricCard: FC<MetricCardProps> = ({
                 <span className="text-sm text-teal-600/60">{shownUnit}</span>
               </div>
               {description && limit > 0 && (
-                <div className="mt-1 text-[10px] text-sage-600/60">{description}</div>
+                <div className="mt-1.5 text-[11px] text-teal-600/50">{description}</div>
               )}
             </div>
           </div>
         )}
 
         {variant === 'numeric' && (
-          <div className="flex w-full items-center justify-between gap-3">
+          <div className="flex w-full items-end justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-baseline gap-1">
                 <span className={cn('font-serif text-4xl font-semibold leading-none', valueColor)}>
@@ -147,60 +176,40 @@ const MetricCard: FC<MetricCardProps> = ({
                 </span>
                 <span className="text-sm text-teal-600/60">{shownUnit}</span>
               </div>
-              {description && limit > 0 && (
-                <div className="mt-1 text-[10px] text-sage-600/60">{description}</div>
+              {description && (
+                <div className="mt-1.5 text-[11px] text-teal-600/50">{description}</div>
               )}
             </div>
-            <div className="text-right text-xs leading-relaxed text-teal-600/70">
-              {limit > 0 ? (
-                inverseProgress ? (
-                  <>
-                    <div>
-                      目标 <span className={cn('font-medium', valueColor)}>{shownLimit}</span> {shownUnit}
-                    </div>
-                  </>
-                ) : remaining > 0 ? (
-                  <>
-                    <div>
-                      剩余 <span className={cn('font-medium', valueColor)}>{shownRemaining}</span> {shownUnit}
-                    </div>
-                    <div>
-                      目标 <span className="font-medium text-teal-700/70">{shownLimit}</span> {shownUnit}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-red-500/80">
-                    已超出 <span className="font-medium">{shownExceeded}</span> {shownUnit}
-                  </div>
-                )
-              ) : (
-                <div>{description}</div>
-              )}
+            <div className="text-right">
+              <div className="text-[11px] text-teal-600/50">目标</div>
+              <div className="mt-0.5 text-base font-semibold text-teal-700/80">
+                {shownLimit}
+                <span className="text-xs font-normal text-teal-600/60"> {shownUnit}</span>
+              </div>
             </div>
           </div>
         )}
 
         {variant === 'split' && (
-          <div className="flex w-full items-center justify-between">
-            <div>
-              <div className="flex items-baseline gap-1">
+          <div className="flex w-full items-end justify-between gap-3">
+            {/* 左侧：已摄入 */}
+            <div className="min-w-0">
+              <div className="text-[11px] font-medium text-teal-600/50">已摄入</div>
+              <div className="mt-1 flex items-baseline gap-1">
                 <span className={cn('font-serif text-3xl font-semibold leading-none', valueColor)}>
                   {shownValue}
                 </span>
-                <span className="text-sm text-teal-600/60">{shownUnit}</span>
+                <span className="text-xs text-teal-600/60">{shownUnit}</span>
               </div>
-              <div className="mt-1 text-[11px] text-teal-600/50">已摄入</div>
             </div>
+            {/* 右侧：剩余 */}
             <div className="text-right">
-              <div className="text-[11px] text-teal-600/50">剩余</div>
-              <div className="mt-0.5 text-lg font-semibold text-teal-700/80">
-                {remaining > 0 ? (
-                  <>
-                    {shownRemaining} <span className="text-xs font-normal text-teal-600/60">{shownUnit}</span>
-                  </>
-                ) : (
-                  <span className="text-red-500/80">0 {shownUnit}</span>
-                )}
+              <div className="text-[11px] font-medium text-teal-600/50">剩余</div>
+              <div className="mt-1 flex items-baseline justify-end gap-1">
+                <span className={cn('font-serif text-2xl font-semibold leading-none', remainingColor)}>
+                  {Number(shownRemaining) > 0 ? shownRemaining : '0'}
+                </span>
+                <span className="text-xs text-teal-600/60">{shownUnit}</span>
               </div>
             </div>
           </div>
@@ -209,7 +218,7 @@ const MetricCard: FC<MetricCardProps> = ({
 
       {/* 底部进度条 */}
       {showProgress && (
-        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-cream-200">
+        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-cream-200">
           <div
             className={cn(
               'h-full rounded-full transition-all duration-700',

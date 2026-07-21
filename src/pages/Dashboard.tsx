@@ -2,13 +2,13 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Droplets,
-  Activity,
+  Gauge,
   Citrus,
   HeartPulse,
   Sparkles,
   TrendingUp,
-  Atom,
-  Waves,
+  Bone,
+  Soup,
 } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import {
@@ -22,10 +22,11 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { formatDateLong, getTodayKey } from '@/utils/date';
 import { getProgressStatus, getDailyMetrics } from '@/utils/calc';
 
-// 将克转为 kg 显示字符串
-function gToKg(g: number): string {
+// 将克转为 kg 纯数字字符串（不含单位）
+function gToKgNum(g: number): string {
+  if (!Number.isFinite(g)) return '0';
   const kg = g / 1000;
-  return `${kg.toFixed(2).replace(/\.?0+$/, '')} kg`;
+  return kg.toFixed(2).replace(/\.?0+$/, '') || '0';
 }
 
 export default function Dashboard() {
@@ -62,19 +63,19 @@ export default function Dashboard() {
 
   const overviewItems = [
     { label: '饮水', value: todayMetrics.water, unit: 'ml', icon: <Droplets className="h-3 w-3" /> },
-    { label: '超滤', value: todayMetrics.ultrafiltration, unit: 'ml', icon: <Activity className="h-3 w-3" /> },
-    { label: '水果', value: todayMetrics.fruit, unit: 'g', icon: <Citrus className="h-3 w-3" />, displayValue: gToKg(todayMetrics.fruit).replace(' kg', '') },
+    { label: '超滤', value: todayMetrics.ultrafiltration, unit: 'ml', icon: <Gauge className="h-3 w-3" /> },
+    { label: '水果', value: gToKgNum(todayMetrics.fruit), unit: 'kg', icon: <Citrus className="h-3 w-3" /> },
     { label: '钾', value: todayMetrics.potassium, unit: 'mg', icon: <HeartPulse className="h-3 w-3" /> },
   ];
 
   return (
-    <div className="space-y-4">
-      {/* 顶部问候卡片：图片风格 */}
+    <div className="space-y-5">
+      {/* 顶部问候卡片 */}
       <motion.section
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="relative overflow-hidden rounded-3xl border border-cream-200 bg-gradient-to-br from-cream-50 to-white p-5 shadow-soft"
+        className="relative overflow-hidden rounded-3xl border border-cream-200 bg-gradient-to-br from-cream-50 to-white p-6 shadow-soft"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -106,7 +107,7 @@ export default function Dashboard() {
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
-        className="rounded-3xl border border-cream-200 bg-white/80 p-4 shadow-soft"
+        className="rounded-3xl border border-cream-200 bg-white/80 p-5 shadow-soft"
       >
         <div className="flex items-center justify-between">
           <h2 className="font-serif text-base font-semibold text-teal-700">今日总览</h2>
@@ -120,18 +121,18 @@ export default function Dashboard() {
             </span>
           )}
         </div>
-        <div className="mt-3 grid grid-cols-4 gap-2">
+        <div className="mt-4 grid grid-cols-4 gap-2.5">
           {overviewItems.map((item) => (
             <div
               key={item.label}
-              className="rounded-2xl border border-cream-200 bg-cream-50/70 p-2.5 text-center"
+              className="rounded-2xl border border-cream-200 bg-cream-50/70 p-3 text-center"
             >
               <div className="flex items-center justify-center gap-1 text-[10px] text-teal-600/60">
                 {item.icon}
                 {item.label}
               </div>
-              <div className="mt-1 text-sm font-semibold text-teal-700">
-                {item.displayValue ?? item.value}
+              <div className="mt-1.5 text-sm font-semibold text-teal-700">
+                {item.value}
                 <span className="text-[10px] font-normal text-teal-600/60"> {item.unit}</span>
               </div>
             </div>
@@ -139,12 +140,12 @@ export default function Dashboard() {
         </div>
       </motion.section>
 
-      {/* 核心指标卡片：2 列 */}
+      {/* 核心指标卡片：2 列，增加间距 */}
       <motion.section
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-        className="grid grid-cols-2 gap-3"
+        className="grid grid-cols-2 gap-4"
       >
         <MetricCard
           title="摄水量"
@@ -158,13 +159,12 @@ export default function Dashboard() {
         />
         <MetricCard
           title="超滤量"
-          icon={<Activity className="h-4 w-4" />}
+          icon={<Gauge className="h-4 w-4" />}
           current={todayMetrics.ultrafiltration}
           limit={settings.dailyUltrafiltrationTarget}
           unit="ml"
-          theme="clay"
+          theme="teal"
           variant="numeric"
-          inverseProgress
           description="透析当日累计"
         />
         <MetricCard
@@ -173,9 +173,10 @@ export default function Dashboard() {
           current={todayMetrics.fruit}
           limit={settings.dailyFruitLimit}
           unit="g"
-          displayValue={gToKg(todayMetrics.fruit)}
+          displayValue={gToKgNum(todayMetrics.fruit)}
           displayUnit="kg"
-          displayLimit={gToKg(settings.dailyFruitLimit)}
+          displayLimit={gToKgNum(settings.dailyFruitLimit)}
+          displayRemaining={gToKgNum(settings.dailyFruitLimit - todayMetrics.fruit)}
           theme="sage"
           variant="split"
           description={todayMetrics.fruitWater > 0 ? `贡献水分 ${todayMetrics.fruitWater} ml` : undefined}
@@ -186,27 +187,27 @@ export default function Dashboard() {
           current={todayMetrics.potassium}
           limit={settings.dailyPotassiumLimit}
           unit="mg"
-          theme="clay"
+          theme="sage"
           variant="split"
           description="影响心律"
         />
         <MetricCard
           title="磷摄入"
-          icon={<Atom className="h-4 w-4" />}
+          icon={<Bone className="h-4 w-4" />}
           current={todayMetrics.phosphorus}
           limit={settings.dailyPhosphorusLimit}
           unit="mg"
-          theme="sage"
+          theme="teal"
           variant="split"
           description="过量致瘙痒"
         />
         <MetricCard
           title="钠摄入"
-          icon={<Waves className="h-4 w-4" />}
+          icon={<Soup className="h-4 w-4" />}
           current={todayMetrics.sodium}
           limit={settings.dailySodiumLimit}
           unit="mg"
-          theme="teal"
+          theme="sage"
           variant="split"
           description="影响血压"
         />

@@ -22,10 +22,10 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
   return (
     <div className="flex min-h-screen flex-col bg-cream-50">
       {/* 移动端顶部标题栏：肾友笔记 + 搜索 */}
-      <header className="sticky top-0 z-30 md:hidden">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500/10 text-teal-600">
+      <header className="sticky top-0 z-30 bg-cream-50/95 backdrop-blur-md md:hidden">
+        <div className="mx-auto flex h-14 items-center justify-between px-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-teal-500/10 text-teal-600">
               <Droplets className="h-4 w-4" />
             </div>
             <span className="font-serif text-lg font-semibold text-teal-700">肾友笔记</span>
@@ -78,8 +78,8 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
       {/* 主内容区 */}
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-2 md:px-6 md:py-8 md:pb-8">{children}</main>
 
-      {/* 移动端底部导航：药丸风格 */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-cream-200 bg-cream-50/95 px-6 pb-4 pt-2 backdrop-blur-xl md:hidden">
+      {/* 移动端底部导航：统一大小，选中态用柔和色彩 */}
+      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-cream-200 bg-cream-50/95 px-4 pb-4 pt-2 backdrop-blur-md md:hidden">
         <div className="mx-auto flex max-w-md items-center justify-around">
           {NAV_ITEMS.map((item) => {
             const isActive =
@@ -91,16 +91,16 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  'flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium transition',
+                  'flex flex-1 flex-col items-center gap-1 py-1.5 text-[11px] font-medium transition',
                   isActive ? 'text-teal-600' : 'text-teal-600/40'
                 )}
               >
                 <div
                   className={cn(
-                    'flex h-10 w-10 items-center justify-center rounded-2xl transition',
+                    'flex h-8 w-8 items-center justify-center rounded-xl transition',
                     isActive
-                      ? 'bg-teal-500 text-white shadow-soft'
-                      : 'text-teal-600/50'
+                      ? 'bg-teal-100 text-teal-600'
+                      : 'text-teal-600/40'
                   )}
                 >
                   {item.icon}
