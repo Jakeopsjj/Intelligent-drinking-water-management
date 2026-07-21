@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Plus, Check, Search, X } from 'lucide-react';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useFruitsStore } from '@/store/useFruitsStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
+import { getCardBaseClass, getInnerCardClass, getListRowClass, getBodyBackgroundStyle, getHeaderClass } from '@/lib/theme';
 import type { FC, ReactNode } from 'react';
 
 interface BaseProps {
@@ -17,6 +19,8 @@ interface BaseProps {
 
 function QuickRecordShell({ title, subtitle, icon, theme, children }: BaseProps) {
   const [open, setOpen] = useState(false);
+  const cardTheme = useSettingsStore((s) => s.settings.cardTheme || 'glass');
+  const isOriginal = cardTheme === 'original';
 
   const themeMap = {
     teal: {
@@ -42,12 +46,11 @@ function QuickRecordShell({ title, subtitle, icon, theme, children }: BaseProps)
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-[28px] border border-white/80 bg-white/70 backdrop-blur-xl transition-all',
-        'shadow-[0_4px_24px_-6px_rgba(0,0,0,0.06)]',
-        open && 'shadow-[0_8px_32px_-8px_rgba(0,0,0,0.12)]'
+        'overflow-hidden rounded-[28px] border transition-all',
+        getCardBaseClass(cardTheme),
+        open && (isOriginal ? 'shadow-soft-lg' : 'shadow-[0_8px_32px_-8px_rgba(0,0,0,0.12)]')
       )}
     >
-      {/* 顶部渐变条 */}
       <div className={cn('h-1 w-full bg-gradient-to-r', themeMap.bar)} />
 
       <button
@@ -87,7 +90,7 @@ function QuickRecordShell({ title, subtitle, icon, theme, children }: BaseProps)
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-cream-200 p-5 pt-4">{children}</div>
+            <div className={cn('border-t p-5 pt-4', isOriginal ? 'border-cream-200' : 'border-white/60')}>{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -95,7 +98,6 @@ function QuickRecordShell({ title, subtitle, icon, theme, children }: BaseProps)
   );
 }
 
-// 饮水快速记录
 export const WaterQuickRecord: FC = () => {
   const addWaterRecord = useRecordsStore((s) => s.addWaterRecord);
   const [amount, setAmount] = useState('');
@@ -164,7 +166,6 @@ export const WaterQuickRecord: FC = () => {
   );
 };
 
-// 超滤量快速记录
 export const UltrafiltrationQuickRecord: FC = () => {
   const addUltrafiltrationRecord = useRecordsStore((s) => s.addUltrafiltrationRecord);
   const [amount, setAmount] = useState('');
@@ -233,11 +234,12 @@ export const UltrafiltrationQuickRecord: FC = () => {
   );
 };
 
-// 水果快速记录
 export const FruitQuickRecord: FC = () => {
   const addFruitRecord = useRecordsStore((s) => s.addFruitRecord);
   const customFruits = useFruitsStore((s) => s.customFruits);
   const builtinFruits = useFruitsStore((s) => s.fruits);
+  const cardTheme = useSettingsStore((s) => s.settings.cardTheme || 'glass');
+  const isOriginal = cardTheme === 'original';
   const allFruits = [...customFruits, ...builtinFruits];
   const [selectedFruitId, setSelectedFruitId] = useState<string | null>(null);
   const [weight, setWeight] = useState('');
@@ -261,6 +263,9 @@ export const FruitQuickRecord: FC = () => {
     setTimeout(() => setSaved(false), 1200);
   };
 
+  const pageBgStyle = getBodyBackgroundStyle(cardTheme);
+  const pageBgClass = isOriginal ? 'bg-cream-50' : '';
+
   return (
     <QuickRecordShell
       title="水果记录"
@@ -269,9 +274,11 @@ export const FruitQuickRecord: FC = () => {
       theme="sage"
     >
       <div className="space-y-3">
-        {/* 已选水果展示 */}
         {selectedFruit && !showPicker && (
-          <div className="flex items-center justify-between rounded-xl border border-sage-200 bg-sage-50 px-4 py-2.5">
+          <div className={cn(
+            'flex items-center justify-between rounded-xl border px-4 py-2.5',
+            isOriginal ? 'border-cream-200 bg-cream-50' : 'border-sage-200 bg-sage-50'
+          )}>
             <div className="flex items-center gap-2">
               <span className="text-xl">{selectedFruit.emoji}</span>
               <div>
@@ -290,17 +297,18 @@ export const FruitQuickRecord: FC = () => {
           </div>
         )}
 
-        {/* 水果选择器 */}
         {!selectedFruit && (
           <button
             onClick={() => setShowPicker(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-sage-300 bg-sage-50/50 px-4 py-3 text-sm text-sage-600 hover:bg-sage-50"
+            className={cn(
+              'flex w-full items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-3 text-sm text-sage-600',
+              isOriginal ? 'border-cream-300 bg-cream-50 hover:bg-cream-100' : 'border-sage-300 bg-sage-50/50 hover:bg-sage-50'
+            )}
           >
             <Search className="h-4 w-4" /> 选择水果
           </button>
         )}
 
-        {/* 重量输入 */}
         {selectedFruit && (
           <>
             <div className="flex flex-wrap gap-1.5">
@@ -345,7 +353,6 @@ export const FruitQuickRecord: FC = () => {
           </>
         )}
 
-        {/* 元素摄入预览（含水分） */}
         {selectedFruit && weight && Number(weight) > 0 && (
           <div className="whitespace-nowrap rounded-xl bg-sage-50 px-4 py-2 text-xs text-sage-700">
             本次 {formatWeightKg(Number(weight))}：钾 <span className="font-semibold">{Math.round((selectedFruit.potassiumPer100g * Number(weight)) / 100)}</span> mg / 磷 <span className="font-semibold">{Math.round((selectedFruit.phosphorusPer100g * Number(weight)) / 100)}</span> mg / 钠 <span className="font-semibold">{Math.round((selectedFruit.sodiumPer100g * Number(weight)) / 100)}</span> mg / 水 <span className="font-semibold">{Math.round((selectedFruit.waterPer100g * Number(weight)) / 100)}</span> ml
@@ -353,36 +360,61 @@ export const FruitQuickRecord: FC = () => {
         )}
       </div>
 
-      {/* 水果选择浮层 */}
-      {showPicker && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-teal-700/40 backdrop-blur-sm sm:items-center">
+      <AnimatePresence>
+        {showPicker && (
           <motion.div
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="max-h-[80vh] w-full max-w-lg overflow-hidden rounded-t-3xl bg-cream-50 sm:rounded-3xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={cn("fixed inset-0 z-[100] flex flex-col", pageBgClass)}
+            style={pageBgStyle}
           >
-            <div className="flex items-center justify-between border-b border-cream-200 p-4">
-              <h3 className="font-medium text-teal-700">选择水果</h3>
+            <div className={cn(
+              'flex items-center justify-between px-4 pb-3 pt-10 border-b',
+              getHeaderClass(cardTheme)
+            )}>
               <button
-                onClick={() => setShowPicker(false)}
-                className="rounded-full p-1.5 text-teal-600 hover:bg-cream-200"
+                onClick={() => { setShowPicker(false); setSearch(''); }}
+                className={cn(
+                  'flex h-9 w-9 items-center justify-center rounded-full text-teal-700',
+                  isOriginal ? 'hover:bg-cream-200' : 'active:bg-black/5'
+                )}
               >
-                <X className="h-4 w-4" />
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
               </button>
+              <h3 className="font-serif text-lg font-semibold text-teal-800">选择水果</h3>
+              <div className="h-9 w-9" />
             </div>
-            <div className="p-4">
-              <div className="relative mb-3">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-teal-600/40" />
+
+            <div className={cn(
+              'border-b px-4 py-3',
+              isOriginal ? 'border-cream-200' : 'border-white/40'
+            )}>
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-teal-600/40" />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="搜索水果名称"
                   autoFocus
-                  className="w-full rounded-xl border border-cream-300 bg-white py-2.5 pl-9 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-sage-400"
+                  className={cn(
+                    'w-full rounded-2xl border py-3 pl-10 pr-4 text-sm text-teal-800 placeholder:text-teal-600/40 focus:outline-none',
+                    isOriginal
+                      ? 'border-cream-300 bg-white focus:border-sage-400'
+                      : 'border-cream-200 bg-white/80 focus:border-sage-400 focus:bg-white'
+                  )}
                 />
               </div>
-              <div className="max-h-[400px] overflow-y-auto">
-                <div className="grid grid-cols-2 gap-2">
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-3 pb-8">
+              {filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="text-4xl opacity-40">🔍</div>
+                  <p className="mt-3 text-sm text-teal-600/60">未找到匹配的水果</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
                   {filtered.map((f) => (
                     <button
                       key={f.id}
@@ -391,30 +423,46 @@ export const FruitQuickRecord: FC = () => {
                         setShowPicker(false);
                         setSearch('');
                       }}
-                      className="flex items-center gap-2 rounded-xl border border-cream-200 bg-white px-3 py-2.5 text-left transition hover:border-sage-300 hover:bg-sage-50"
+                      className={cn(
+                        'flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left shadow-sm transition active:scale-[0.99]',
+                        getListRowClass(cardTheme)
+                      )}
                     >
-                      <span className="text-xl">{f.emoji}</span>
+                      <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-sage-50 text-3xl">
+                        {f.emoji}
+                      </span>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium text-teal-700">
-                          {f.name}
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-semibold text-teal-800">{f.name}</span>
+                          {f.potassiumPer100g >= 200 && (
+                            <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-medium text-red-600">高钾</span>
+                          )}
+                          {f.potassiumPer100g >= 150 && f.potassiumPer100g < 200 && (
+                            <span className="rounded-full bg-clay-100 px-1.5 py-0.5 text-[9px] font-medium text-clay-600">中钾</span>
+                          )}
+                          {f.potassiumPer100g < 150 && (
+                            <span className="rounded-full bg-sage-100 px-1.5 py-0.5 text-[9px] font-medium text-sage-600">低钾</span>
+                          )}
                         </div>
-                        <div className="whitespace-nowrap text-[10px] text-teal-600/60">
-                          钾 {f.potassiumPer100g}mg · 磷 {f.phosphorusPer100g}mg · 钠 {f.sodiumPer100g}mg · 水 {f.waterPer100g}ml
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-teal-600/70">
+                          <span className="whitespace-nowrap">钾 <b className="text-teal-700">{f.potassiumPer100g}</b>mg</span>
+                          <span className="text-cream-400">·</span>
+                          <span className="whitespace-nowrap">磷 <b className="text-teal-700">{f.phosphorusPer100g}</b>mg</span>
+                          <span className="text-cream-400">·</span>
+                          <span className="whitespace-nowrap">钠 <b className="text-teal-700">{f.sodiumPer100g}</b>mg</span>
+                          <span className="text-cream-400">·</span>
+                          <span className="whitespace-nowrap">水 <b className="text-teal-700">{f.waterPer100g}</b>ml</span>
                         </div>
                       </div>
+                      <svg className="h-4 w-4 flex-shrink-0 text-teal-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                     </button>
                   ))}
-                  {filtered.length === 0 && (
-                    <div className="col-span-2 py-8 text-center text-sm text-teal-600/60">
-                      未找到匹配的水果
-                    </div>
-                  )}
                 </div>
-              </div>
+              )}
             </div>
           </motion.div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </QuickRecordShell>
   );
 };

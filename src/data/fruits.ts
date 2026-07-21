@@ -40,5 +40,6 @@ export const DEFAULT_SETTINGS = {
   dailyUltrafiltrationTarget: 500, // 每日超滤目标 ml
   userName: '',
   dialysisSchedule: '周一 / 周三 / 周五',
+  cardTheme: 'glass' as const,
   initialized: false,
 };

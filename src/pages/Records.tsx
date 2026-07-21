@@ -16,6 +16,7 @@ import {
 import { Calendar, TrendingUp, ChevronRight, X, Droplets, Activity } from 'lucide-react';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import { getPageShellClass, getInnerCardClass } from '@/lib/theme';
 import { getRecentDays, formatDateFriendly, formatDateOnly } from '@/utils/date';
 import { getRangeMetrics as calcRangeMetrics, formatWeightKg } from '@/utils/calc';
 import RecordItem from '@/components/RecordItem';
@@ -31,6 +32,7 @@ export default function Records() {
   const records = useRecordsStore((s) => s.records);
   const deleteRecord = useRecordsStore((s) => s.deleteRecord);
   const settings = useSettingsStore((s) => s.settings);
+  const cardTheme = useSettingsStore((s) => s.settings.cardTheme || 'glass');
 
   const dateKeys = useMemo(() => getRecentDays(range), [range]);
   const metrics = useMemo(
@@ -95,7 +97,7 @@ export default function Records() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+        className={cn('rounded-3xl border p-6', getPageShellClass(cardTheme))}
       >
         <div className="flex items-center justify-between">
           <div>
@@ -173,6 +175,7 @@ export default function Records() {
         potassiumLimit={settings.dailyPotassiumLimit}
         phosphorusLimit={settings.dailyPhosphorusLimit}
         sodiumLimit={settings.dailySodiumLimit}
+        cardTheme={cardTheme}
       />
 
       {/* 历史记录列表 */}
@@ -180,7 +183,7 @@ export default function Records() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+        className={cn('rounded-3xl border p-6', getPageShellClass(cardTheme))}
       >
         <h2 className="font-serif text-lg font-semibold text-teal-700">历史记录</h2>
         <p className="mt-1 text-xs text-teal-600/60">点击查看每日详情</p>
@@ -194,6 +197,7 @@ export default function Records() {
               potassiumLimit={settings.dailyPotassiumLimit}
               phosphorusLimit={settings.dailyPhosphorusLimit}
               sodiumLimit={settings.dailySodiumLimit}
+              cardTheme={cardTheme}
               onClick={() => setSelectedDate(m.date)}
             />
           ))}
@@ -206,6 +210,7 @@ export default function Records() {
           metrics={selectedMetrics}
           onClose={() => setSelectedDate(null)}
           onDelete={deleteRecord}
+          cardTheme={cardTheme}
         />
       )}
     </div>
@@ -219,6 +224,7 @@ function DayHistoryCard({
   potassiumLimit,
   phosphorusLimit,
   sodiumLimit,
+  cardTheme,
   onClick,
 }: {
   metrics: DailyMetrics;
@@ -226,6 +232,7 @@ function DayHistoryCard({
   potassiumLimit: number;
   phosphorusLimit: number;
   sodiumLimit: number;
+  cardTheme: 'glass' | 'original';
   onClick: () => void;
 }) {
   const waterExceeded = metrics.water > waterLimit;
@@ -236,7 +243,11 @@ function DayHistoryCard({
   return (
     <button
       onClick={onClick}
-      className="group flex w-full items-center gap-4 rounded-2xl border border-cream-200 bg-white/60 px-4 py-3.5 text-left transition hover:border-teal-300 hover:bg-white"
+      className={cn(
+        'group flex w-full items-center gap-4 rounded-2xl border px-4 py-3.5 text-left transition',
+        getInnerCardClass(cardTheme),
+        cardTheme === 'original' ? 'hover:border-teal-300 hover:bg-cream-50' : 'hover:border-white/80 hover:bg-white/70'
+      )}
     >
       <div className="flex h-12 w-12 flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-teal-50 to-sage-50">
         <Calendar className="h-4 w-4 text-teal-500" />
@@ -283,10 +294,12 @@ function DayDetailDrawer({
   metrics,
   onClose,
   onDelete,
+  cardTheme,
 }: {
   metrics: DailyMetrics;
   onClose: () => void;
   onDelete: (id: string) => void;
+  cardTheme: 'glass' | 'original';
 }) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-teal-700/40 backdrop-blur-sm">
@@ -295,7 +308,10 @@ function DayDetailDrawer({
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="flex h-full w-full max-w-md flex-col bg-cream-50 shadow-2xl"
+        className={cn(
+          'flex h-full w-full max-w-md flex-col shadow-2xl',
+          cardTheme === 'original' ? 'bg-cream-50' : 'bg-cream-50/95 backdrop-blur-xl'
+        )}
       >
         <div className="flex items-center justify-between border-b border-cream-200 p-4">
           <div>
@@ -314,12 +330,12 @@ function DayDetailDrawer({
 
         {/* 概览 */}
         <div className="grid grid-cols-2 gap-2 p-4">
-          <SummaryItem label="摄水量" value={metrics.water} unit="ml" />
-          <SummaryItem label="超滤量" value={metrics.ultrafiltration} unit="ml" />
-          <SummaryItem label="水果摄入" value={formatWeightKg(metrics.fruit)} />
-          <SummaryItem label="钾摄入" value={metrics.potassium} unit="mg" />
-          <SummaryItem label="磷摄入" value={metrics.phosphorus} unit="mg" />
-          <SummaryItem label="钠摄入" value={metrics.sodium} unit="mg" />
+          <SummaryItem label="摄水量" value={metrics.water} unit="ml" cardTheme={cardTheme} />
+          <SummaryItem label="超滤量" value={metrics.ultrafiltration} unit="ml" cardTheme={cardTheme} />
+          <SummaryItem label="水果摄入" value={formatWeightKg(metrics.fruit)} cardTheme={cardTheme} />
+          <SummaryItem label="钾摄入" value={metrics.potassium} unit="mg" cardTheme={cardTheme} />
+          <SummaryItem label="磷摄入" value={metrics.phosphorus} unit="mg" cardTheme={cardTheme} />
+          <SummaryItem label="钠摄入" value={metrics.sodium} unit="mg" cardTheme={cardTheme} />
         </div>
 
         {/* 详情列表 */}
@@ -327,7 +343,7 @@ function DayDetailDrawer({
           {metrics.records.length > 0 ? (
             <div className="space-y-2">
               {metrics.records.map((r) => (
-                <RecordItem key={r.id} record={r} onDelete={onDelete} />
+                <RecordItem key={r.id} record={r} onDelete={onDelete} cardTheme={cardTheme} />
               ))}
             </div>
           ) : (
@@ -348,13 +364,15 @@ function SummaryItem({
   label,
   value,
   unit,
+  cardTheme,
 }: {
   label: string;
   value: number | string;
   unit?: string;
+  cardTheme: 'glass' | 'original';
 }) {
   return (
-    <div className="rounded-2xl border border-cream-200 bg-white/70 p-3">
+    <div className={cn('rounded-2xl border p-3', getInnerCardClass(cardTheme))}>
       <div className="text-[10px] text-teal-600/60">{label}</div>
       <div className="mt-0.5 font-medium text-teal-700">
         {value} {unit && <span className="text-[10px] text-teal-600/60">{unit}</span>}
@@ -376,11 +394,13 @@ function ElementBarSection({
   potassiumLimit,
   phosphorusLimit,
   sodiumLimit,
+  cardTheme,
 }: {
   trendData: Array<{ shortDate: string; potassium: number; phosphorus: number; sodium: number }>;
   potassiumLimit: number;
   phosphorusLimit: number;
   sodiumLimit: number;
+  cardTheme: 'glass' | 'original';
 }) {
   const [active, setActive] = useState<ElementKey>('potassium');
   const limitMap: Record<ElementKey, number> = {
@@ -396,7 +416,7 @@ function ElementBarSection({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+      className={cn('rounded-3xl border p-6', getPageShellClass(cardTheme))}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>

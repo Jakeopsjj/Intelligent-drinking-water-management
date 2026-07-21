@@ -21,8 +21,9 @@ import { useRecordsStore } from '@/store/useRecordsStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { formatDateLong, getTodayKey } from '@/utils/date';
 import { getProgressStatus, getDailyMetrics } from '@/utils/calc';
+import { getPageShellClass, getInnerCardClass } from '@/lib/theme';
+import { cn } from '@/lib/utils';
 
-// 将克转为 kg 纯数字字符串（不含单位）
 function gToKgNum(g: number): string {
   if (!Number.isFinite(g)) return '0';
   const kg = g / 1000;
@@ -33,6 +34,7 @@ export default function Dashboard() {
   const records = useRecordsStore((s) => s.records);
   const deleteRecord = useRecordsStore((s) => s.deleteRecord);
   const settings = useSettingsStore((s) => s.settings);
+  const cardTheme = useSettingsStore((s) => s.settings.cardTheme || 'glass');
 
   const todayKey = getTodayKey();
   const todayMetrics = useMemo(
@@ -70,12 +72,11 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
-      {/* 顶部问候卡片 */}
       <motion.section
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="relative overflow-hidden rounded-[28px] border border-white/80 bg-white/70 p-6 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.06)] backdrop-blur-xl"
+        className={cn('relative overflow-hidden rounded-[28px] border p-6', getPageShellClass(cardTheme))}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -102,12 +103,11 @@ export default function Dashboard() {
         </div>
       </motion.section>
 
-      {/* 今日总览：4 个小方块 */}
       <motion.section
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
-        className="rounded-[28px] border border-white/80 bg-white/70 p-5 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.06)] backdrop-blur-xl"
+        className={cn('rounded-[28px] border p-5', getPageShellClass(cardTheme))}
       >
         <div className="flex items-center justify-between">
           <h2 className="font-serif text-base font-semibold text-teal-700">今日总览</h2>
@@ -125,7 +125,7 @@ export default function Dashboard() {
           {overviewItems.map((item) => (
             <div
               key={item.label}
-              className="rounded-2xl border border-white/60 bg-white/50 p-3 text-center backdrop-blur-sm"
+              className={cn('rounded-2xl border p-3 text-center', getInnerCardClass(cardTheme))}
             >
               <div className="flex items-center justify-center gap-1 text-[10px] text-teal-600/60">
                 {item.icon}
@@ -140,7 +140,6 @@ export default function Dashboard() {
         </div>
       </motion.section>
 
-      {/* 核心指标卡片：2 列，增加间距 */}
       <motion.section
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
@@ -205,15 +204,13 @@ export default function Dashboard() {
         />
       </motion.section>
 
-      {/* 快速记录区 */}
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <WaterQuickRecord />
         <UltrafiltrationQuickRecord />
         <FruitQuickRecord />
       </section>
 
-      {/* 今日记录列表 */}
-      <section className="rounded-[28px] border border-white/80 bg-white/70 p-5 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.06)] backdrop-blur-xl">
+      <section className={cn('rounded-[28px] border p-5', getPageShellClass(cardTheme))}>
         <div className="flex items-center justify-between">
           <h2 className="font-serif text-base font-semibold text-teal-700">今日记录</h2>
           <span className="whitespace-nowrap rounded-full bg-sage-50 px-2.5 py-0.5 text-[11px] font-medium text-sage-600">
@@ -223,7 +220,7 @@ export default function Dashboard() {
         <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
           {todayMetrics.records.length > 0 ? (
             todayMetrics.records.map((r) => (
-              <RecordItem key={r.id} record={r} onDelete={deleteRecord} />
+              <RecordItem key={r.id} record={r} onDelete={deleteRecord} cardTheme={cardTheme} />
             ))
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center">

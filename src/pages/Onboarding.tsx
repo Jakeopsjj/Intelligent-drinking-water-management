@@ -4,11 +4,14 @@ import { Droplets, Citrus, HeartPulse, ChevronRight, Check, Atom, Waves } from '
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { DEFAULT_SETTINGS } from '@/data/fruits';
 import { cn } from '@/lib/utils';
+import { getBodyBackgroundClass, getBodyBackgroundStyle, getPageShellClass } from '@/lib/theme';
 
 const STEPS = ['欢迎', '摄水限额', '元素限额', '完成'] as const;
 
 export default function Onboarding() {
   const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const cardTheme = useSettingsStore((s) => s.settings.cardTheme || 'glass');
+  const isOriginal = cardTheme === 'original';
 
   const [step, setStep] = useState(0);
   const [waterLimit, setWaterLimit] = useState(DEFAULT_SETTINGS.dailyWaterLimit);
@@ -30,15 +33,22 @@ export default function Onboarding() {
     });
   };
 
+  const bodyBgClass = getBodyBackgroundClass(cardTheme);
+  const bodyBgStyle = getBodyBackgroundStyle(cardTheme);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cream-100 via-cream-50 to-sage-50 px-6">
-      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white/80 p-8 shadow-soft-lg backdrop-blur-xl">
-        {/* 装饰圆 */}
+    <div
+      className={cn('flex min-h-screen items-center justify-center px-6', isOriginal ? 'bg-cream-50' : 'bg-gradient-to-br from-cream-100 via-cream-50 to-sage-50', bodyBgClass)}
+      style={bodyBgStyle}
+    >
+      <div className={cn(
+        'relative w-full max-w-lg overflow-hidden rounded-3xl border p-8',
+        getPageShellClass(cardTheme)
+      )}>
         <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-teal-500/10 blur-3xl" />
         <div className="absolute -bottom-16 -left-8 h-40 w-40 rounded-full bg-clay-400/10 blur-3xl" />
 
         <div className="relative">
-          {/* 步骤指示器 */}
           <div className="mb-8 flex items-center justify-center gap-2">
             {STEPS.map((_, i) => (
               <div
@@ -55,7 +65,6 @@ export default function Onboarding() {
             ))}
           </div>
 
-          {/* Step 0: 欢迎 */}
           {step === 0 && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -87,7 +96,6 @@ export default function Onboarding() {
             </motion.div>
           )}
 
-          {/* Step 1: 摄水限额 */}
           {step === 1 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               <div className="mb-2 flex items-center gap-2 text-teal-500">
@@ -113,7 +121,6 @@ export default function Onboarding() {
             </motion.div>
           )}
 
-          {/* Step 2: 元素限额（钾/磷/钠） */}
           {step === 2 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               <div className="mb-2 flex items-center gap-2 text-teal-500">
@@ -170,7 +177,6 @@ export default function Onboarding() {
             </motion.div>
           )}
 
-          {/* Step 3: 完成 */}
           {step === 3 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               <div className="mb-2 flex items-center gap-2 text-teal-500">

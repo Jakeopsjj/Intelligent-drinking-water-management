@@ -63,6 +63,7 @@ export interface UserSettings {
   dailyUltrafiltrationTarget: number; // 每日超滤目标 ml
   userName?: string;
   dialysisSchedule?: string; // 透析日程备注
+  cardTheme?: 'glass' | 'original'; // 卡片主题
   initialized: boolean; // 是否已完成初始设置
 }
 

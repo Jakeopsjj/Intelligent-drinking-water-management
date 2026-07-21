@@ -4,6 +4,7 @@ import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Tra
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useFruitsStore } from '@/store/useFruitsStore';
+import { getPageShellClass } from '@/lib/theme';
 import { exportAsJSON, exportAsCSV, exportAsImage, parseBackupJSON, readFileAsText } from '@/utils/export';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +14,7 @@ export default function Settings() {
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
   const setSettings = useSettingsStore((s) => s.setSettings);
+  const cardTheme = useSettingsStore((s) => s.settings.cardTheme || 'glass');
   const records = useRecordsStore((s) => s.records);
   const replaceAllRecords = useRecordsStore((s) => s.replaceAll);
   const mergeRecords = useRecordsStore((s) => s.mergeRecords);
@@ -132,7 +134,7 @@ export default function Settings() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+        className={cn('rounded-3xl border p-6', getPageShellClass(cardTheme))}
       >
         <div className="mb-4 flex items-center gap-2">
           <User className="h-4 w-4 text-teal-500" />
@@ -165,7 +167,7 @@ export default function Settings() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+        className={cn('rounded-3xl border p-6', getPageShellClass(cardTheme))}
       >
         <div className="mb-4 flex items-center gap-2">
           <HeartPulse className="h-4 w-4 text-teal-500" />
@@ -270,7 +272,7 @@ export default function Settings() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+        className={cn('rounded-3xl border p-6', getPageShellClass(cardTheme))}
       >
         <div className="mb-4 flex items-center gap-2">
           <CalendarClock className="h-4 w-4 text-teal-500" />
@@ -428,7 +430,7 @@ export default function Settings() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="rounded-3xl border border-cream-300 bg-white/70 p-6 text-center shadow-soft"
+        className={cn('rounded-3xl border p-6 text-center', getPageShellClass(cardTheme))}
       >
         <div className="font-serif text-sm text-teal-700">肾友笔记</div>
         <p className="mt-1 text-xs text-teal-600/60">

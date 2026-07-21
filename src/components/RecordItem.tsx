@@ -3,13 +3,18 @@ import type { AnyRecord } from '@/types';
 import { formatDateTime } from '@/utils/date';
 import { formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
+import { getInnerCardClass } from '@/lib/theme';
+import type { CardTheme } from '@/lib/theme';
 
 interface RecordItemProps {
   record: AnyRecord;
   onDelete?: (id: string) => void;
+  cardTheme?: CardTheme;
 }
 
-export default function RecordItem({ record, onDelete }: RecordItemProps) {
+export default function RecordItem({ record, onDelete, cardTheme = 'glass' }: RecordItemProps) {
+  const isOriginal = cardTheme === 'original';
+
   const iconMap = {
     water: { icon: <Droplets className="h-4 w-4" />, bg: 'bg-teal-100', text: 'text-teal-600' },
     ultrafiltration: {
@@ -25,7 +30,11 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
   }[record.type];
 
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-cream-200 bg-white/60 px-3 py-2.5 transition hover:border-cream-300 hover:bg-white">
+    <div className={cn(
+      'group flex items-center gap-3 rounded-xl border px-3 py-2.5 transition',
+      getInnerCardClass(cardTheme),
+      isOriginal ? 'hover:bg-cream-50' : 'hover:bg-white'
+    )}>
       <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', iconMap.bg, iconMap.text)}>
         {record.type === 'fruit' ? (
           <span className="text-base">

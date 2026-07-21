@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Check, ChevronRight, Database, FileText, Bell } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { cn } from '@/lib/utils';
+import { getBodyBackgroundClass, getBodyBackgroundStyle, getPageShellClass } from '@/lib/theme';
 
 const PERMISSIONS_KEY = '__permissions_accepted__';
 
@@ -36,6 +38,8 @@ interface Props {
 }
 
 export default function PermissionsGate({ onAccepted }: Props) {
+  const cardTheme = useSettingsStore((s) => s.settings.cardTheme || 'glass');
+  const isOriginal = cardTheme === 'original';
   const [step, setStep] = useState(0);
   const [checked, setChecked] = useState<boolean[]>(PERMISSIONS.map(() => false));
 
@@ -46,7 +50,6 @@ export default function PermissionsGate({ onAccepted }: Props) {
       setStep(step + 1);
       return;
     }
-    // 全部同意 -> 记录到原生 Preferences
     if (Capacitor.isNativePlatform()) {
       await Preferences.set({ key: PERMISSIONS_KEY, value: 'accepted' });
     } else {
@@ -56,9 +59,14 @@ export default function PermissionsGate({ onAccepted }: Props) {
   };
 
   const current = PERMISSIONS[step];
+  const bodyBgClass = getBodyBackgroundClass(cardTheme);
+  const bodyBgStyle = getBodyBackgroundStyle(cardTheme);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-cream-100 px-6 py-10">
+    <div
+      className={cn('min-h-screen px-6 py-10', isOriginal ? 'bg-cream-50' : 'bg-gradient-to-br from-teal-50 to-cream-100', bodyBgClass)}
+      style={bodyBgStyle}
+    >
       <div className="mx-auto max-w-md">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -79,7 +87,7 @@ export default function PermissionsGate({ onAccepted }: Props) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -24 }}
             transition={{ duration: 0.25 }}
-            className="rounded-3xl border border-cream-300 bg-white/80 p-6 shadow-soft"
+            className={cn('rounded-3xl border p-6', getPageShellClass(cardTheme))}
           >
             <div className="mb-3 flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-100 text-teal-600">
@@ -147,7 +155,6 @@ export default function PermissionsGate({ onAccepted }: Props) {
   );
 }
 
-// 检查是否已同意权限
 export async function hasAcceptedPermissions(): Promise<boolean> {
   if (Capacitor.isNativePlatform()) {
     const { value } = await Preferences.get({ key: PERMISSIONS_KEY });

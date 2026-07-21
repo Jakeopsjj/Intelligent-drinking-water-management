@@ -1,6 +1,8 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, BookOpen, Citrus, Settings as SettingsIcon, Droplets, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSettingsStore } from '@/store/useSettingsStore';
+import { getHeaderClass, getNavClass, getBodyBackgroundClass, getBodyBackgroundStyle } from '@/lib/theme';
 import type { FC, ReactNode } from 'react';
 
 interface NavItem {
@@ -18,41 +20,53 @@ const NAV_ITEMS: NavItem[] = [
 
 const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
   const location = useLocation();
+  const cardTheme = useSettingsStore((s) => s.settings.cardTheme || 'glass');
+  const isOriginal = cardTheme === 'original';
+
+  const mobileHeaderCls = cn(
+    'sticky top-0 z-30 md:hidden',
+    getHeaderClass(cardTheme)
+  );
+
+  const desktopHeaderCls = cn(
+    'sticky top-0 z-30 hidden md:block',
+    getHeaderClass(cardTheme)
+  );
+
+  const bottomNavCls = cn(
+    'fixed bottom-0 left-0 right-0 z-30 px-4 pb-4 pt-2 md:hidden',
+    getNavClass(cardTheme)
+  );
+
+  const bodyBgClass = getBodyBackgroundClass(cardTheme);
+  const bodyBgStyle = getBodyBackgroundStyle(cardTheme);
 
   return (
     <div
-      className="flex min-h-screen flex-col"
-      style={{
-        background:
-          'linear-gradient(170deg, #f0f7f4 0%, #e8f4ef 30%, #f5f0e8 60%, #fdf6ee 100%)',
-      }}
+      className={cn('flex min-h-screen flex-col', bodyBgClass)}
+      style={bodyBgStyle}
     >
-      {/* 移动端顶部标题栏：肾友笔记 + 搜索 */}
-      <header
-        className="sticky top-0 z-30 backdrop-blur-xl md:hidden"
-        style={{ background: 'rgba(240, 247, 244, 0.75)' }}
-      >
+      <header className={mobileHeaderCls}>
         <div className="mx-auto flex h-14 items-center justify-between px-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-teal-500/10 text-teal-600">
+            <div className={cn(
+              'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl text-teal-600',
+              isOriginal ? 'bg-teal-50' : 'bg-teal-500/10'
+            )}>
               <Droplets className="h-4 w-4" />
             </div>
             <span className="font-serif text-lg font-semibold text-teal-700">肾友笔记</span>
           </div>
-          <button className="flex h-9 w-9 items-center justify-center rounded-full text-teal-600/70 transition active:bg-cream-200">
+          <button className={cn(
+            'flex h-9 w-9 items-center justify-center rounded-full text-teal-600/70 transition',
+            isOriginal ? 'hover:bg-cream-200' : 'active:bg-black/5'
+          )}>
             <Search className="h-5 w-5" />
           </button>
         </div>
       </header>
 
-      {/* 桌面端顶部导航 */}
-      <header
-        className="sticky top-0 z-30 hidden backdrop-blur-xl md:block"
-        style={{
-          background: 'rgba(240, 247, 244, 0.7)',
-          borderBottom: '1px solid rgba(255,255,255,0.5)',
-        }}
-      >
+      <header className={desktopHeaderCls}>
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-2.5">
             <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-sage-500 shadow-soft">
@@ -90,17 +104,9 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
         </div>
       </header>
 
-      {/* 主内容区 */}
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-2 md:px-6 md:py-8 md:pb-8">{children}</main>
 
-      {/* 移动端底部导航：毛玻璃效果 + 选中态绿色渐变 */}
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-30 px-4 pb-4 pt-2 backdrop-blur-xl md:hidden"
-        style={{
-          background: 'rgba(240, 247, 244, 0.8)',
-          borderTop: '1px solid rgba(255,255,255,0.5)',
-        }}
-      >
+      <nav className={bottomNavCls}>
         <div className="mx-auto flex max-w-md items-center justify-around">
           {NAV_ITEMS.map((item) => {
             const isActive =

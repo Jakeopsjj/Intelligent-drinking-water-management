@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, X, Info, Trash2 } from 'lucide-react';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
+import { getPageShellClass, getInnerCardClass } from '@/lib/theme';
 import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 import type { Fruit } from '@/types';
@@ -13,6 +15,8 @@ export default function Fruits() {
   const addFruit = useFruitsStore((s) => s.addFruit);
   const deleteFruit = useFruitsStore((s) => s.deleteFruit);
   const addFruitRecord = useRecordsStore((s) => s.addFruitRecord);
+  const cardTheme = useSettingsStore((s) => s.settings.cardTheme || 'glass');
+  const isOriginal = cardTheme === 'original';
 
   const allFruits = [...customFruits, ...builtinFruits];
 
@@ -58,7 +62,12 @@ export default function Fruits() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索水果名称"
-            className="w-full rounded-2xl border border-cream-300 bg-white/70 py-3 pl-11 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:bg-white"
+            className={cn(
+              'w-full rounded-2xl border py-3 pl-11 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:outline-none',
+              isOriginal
+                ? 'border-cream-300 bg-white focus:border-teal-400'
+                : 'border-cream-300 bg-white/70 focus:border-teal-400 focus:bg-white'
+            )}
           />
           {query && (
             <button
@@ -87,7 +96,7 @@ export default function Fruits() {
             key={level}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+            className={cn('rounded-3xl border p-6', getPageShellClass(cardTheme))}
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -112,6 +121,7 @@ export default function Fruits() {
                 <FruitCard
                   key={fruit.id}
                   fruit={fruit}
+                  cardTheme={cardTheme}
                   onQuickAdd={(w) => addFruitRecord({ fruit, weight: w })}
                   onDeleteCustom={fruit.isCustom ? () => deleteFruit(fruit.id) : undefined}
                 />
@@ -189,10 +199,12 @@ function NutrientTag({ label, value, unit }: { label: string; value: number; uni
 // 水果卡片
 function FruitCard({
   fruit,
+  cardTheme,
   onQuickAdd,
   onDeleteCustom,
 }: {
   fruit: Fruit;
+  cardTheme: 'glass' | 'original';
   onQuickAdd: (weight: number) => void;
   onDeleteCustom?: () => void;
 }) {
@@ -209,7 +221,11 @@ function FruitCard({
   };
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-cream-200 bg-white/70 p-4 transition hover:border-teal-300 hover:shadow-soft">
+    <div className={cn(
+      'group relative overflow-hidden rounded-2xl border p-4 transition',
+      getInnerCardClass(cardTheme),
+      cardTheme === 'original' ? 'hover:border-teal-300 hover:shadow-soft' : 'hover:border-white/80 hover:bg-white/70'
+    )}>
       {/* 顶部 */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
