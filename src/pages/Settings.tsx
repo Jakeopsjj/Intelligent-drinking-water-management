@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet, Image as ImageIcon, Upload } from 'lucide-react';
+import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet, Image as ImageIcon, Upload, Camera } from 'lucide-react';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { exportAsJSON, exportAsCSV, exportAsImage, parseBackupJSON, readFileAsText } from '@/utils/export';
 import { cn } from '@/lib/utils';
+import AvatarPicker, { AvatarView } from '@/components/AvatarPicker';
 
 type ExportKind = 'json' | 'csv' | 'image';
 
@@ -30,6 +31,7 @@ export default function Settings() {
   const [exporting, setExporting] = useState<ExportKind | null>(null);
   const [importing, setImporting] = useState(false);
   const [importInfo, setImportInfo] = useState<string | null>(null);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = () => {
@@ -140,6 +142,32 @@ export default function Settings() {
         </div>
 
         <div className="space-y-4">
+          {/* 头像 */}
+          <div className="flex items-center gap-4 rounded-xl border border-cream-300 bg-white p-3">
+            <button
+              onClick={() => setShowAvatarPicker(true)}
+              className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-cream-300 bg-cream-100 transition hover:border-teal-400"
+              aria-label="修改头像"
+            >
+              <AvatarView value={settings.userAvatar} />
+              <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-teal-500 text-white shadow-sm">
+                <Camera className="h-3 w-3" />
+              </span>
+            </button>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-teal-700">头像</div>
+              <div className="mt-0.5 text-xs text-teal-600/60">
+                点击头像可更换为内置图标或上传自定义图片
+              </div>
+              <button
+                onClick={() => setShowAvatarPicker(true)}
+                className="mt-1 text-xs font-medium text-teal-600 underline"
+              >
+                更换头像
+              </button>
+            </div>
+          </div>
+
           <Field label="昵称" hint="用于今日页面的称呼">
             <input
               value={settings.userName ?? ''}
@@ -438,6 +466,15 @@ export default function Settings() {
           所有数据均存储在本地浏览器，注重隐私保护
         </p>
       </motion.section>
+
+      {/* 头像选择器（通过 Portal 渲染到 body） */}
+      {showAvatarPicker && (
+        <AvatarPicker
+          value={settings.userAvatar ?? '🧑'}
+          onChange={(v) => updateSettings({ userAvatar: v })}
+          onClose={() => setShowAvatarPicker(false)}
+        />
+      )}
     </div>
   );
 }

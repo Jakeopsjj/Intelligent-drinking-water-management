@@ -39,7 +39,7 @@ export default function Fruits() {
       >
         <div className="flex items-end justify-between gap-4">
           <div>
-            <h1 className="font-serif text-3xl font-semibold text-teal-700">水果钾含量库</h1>
+            <h1 className="font-serif text-3xl font-semibold text-teal-700">水果元素含量库</h1>
             <p className="mt-1 text-sm text-teal-600/60">
               共 {allFruits.length} 种水果，可添加自定义水果
             </p>

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Fragment } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Plus, Check, Search, X } from 'lucide-react';
 import { useRecordsStore } from '@/store/useRecordsStore';
@@ -248,7 +250,7 @@ export const FruitQuickRecord: FC = () => {
   const selectedFruit = allFruits.find((f) => f.id === selectedFruitId);
   const filtered = search.trim()
     ? allFruits.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()))
-    : allFruits.slice(0, 8);
+    : allFruits;
 
   const handleSave = () => {
     if (!selectedFruit || !weight || Number(weight) <= 0) return;
@@ -262,160 +264,177 @@ export const FruitQuickRecord: FC = () => {
   };
 
   return (
-    <QuickRecordShell
-      title="水果记录"
-      subtitle="选择水果并输入重量"
-      icon={<Plus className="h-5 w-5" />}
-      theme="sage"
-    >
-      <div className="space-y-3">
-        {/* 已选水果展示 */}
-        {selectedFruit && !showPicker && (
-          <div className="flex items-center justify-between rounded-xl border border-sage-200 bg-sage-50 px-4 py-2.5">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">{selectedFruit.emoji}</span>
-              <div>
-                <div className="text-sm font-medium text-sage-700">{selectedFruit.name}</div>
-                <div className="whitespace-nowrap text-[10px] text-sage-600/70">
-                  每100g：钾 {selectedFruit.potassiumPer100g}mg / 磷 {selectedFruit.phosphorusPer100g}mg / 钠 {selectedFruit.sodiumPer100g}mg / 水 {selectedFruit.waterPer100g}ml
+    <Fragment>
+      <QuickRecordShell
+        title="水果记录"
+        subtitle="选择水果并输入重量"
+        icon={<Plus className="h-5 w-5" />}
+        theme="sage"
+      >
+        <div className="space-y-3">
+          {/* 已选水果展示 */}
+          {selectedFruit && !showPicker && (
+            <div className="flex items-center justify-between rounded-xl border border-sage-200 bg-sage-50 px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{selectedFruit.emoji}</span>
+                <div>
+                  <div className="text-sm font-medium text-sage-700">{selectedFruit.name}</div>
+                  <div className="whitespace-nowrap text-[10px] text-sage-600/70">
+                    每100g：钾 {selectedFruit.potassiumPer100g}mg / 磷 {selectedFruit.phosphorusPer100g}mg / 钠 {selectedFruit.sodiumPer100g}mg / 水 {selectedFruit.waterPer100g}ml
+                  </div>
                 </div>
               </div>
+              <button
+                onClick={() => setShowPicker(true)}
+                className="text-xs text-sage-600 underline"
+              >
+                更换
+              </button>
             </div>
+          )}
+
+          {/* 水果选择器 */}
+          {(!selectedFruit || showPicker) && (
             <button
               onClick={() => setShowPicker(true)}
-              className="text-xs text-sage-600 underline"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-sage-300 bg-sage-50/50 px-4 py-3 text-sm text-sage-600 hover:bg-sage-50"
             >
-              更换
+              <Search className="h-4 w-4" /> 选择水果
             </button>
-          </div>
-        )}
+          )}
 
-        {/* 水果选择器 */}
-        {!selectedFruit && (
-          <button
-            onClick={() => setShowPicker(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-sage-300 bg-sage-50/50 px-4 py-3 text-sm text-sage-600 hover:bg-sage-50"
-          >
-            <Search className="h-4 w-4" /> 选择水果
-          </button>
-        )}
-
-        {/* 重量输入 */}
-        {selectedFruit && (
-          <>
-            <div className="flex flex-wrap gap-1.5">
-              {[100, 150, 200, 250].map((w) => (
-                <button
-                  key={w}
-                  onClick={() => setWeight(String(w))}
-                  className="whitespace-nowrap rounded-lg border border-cream-300 bg-cream-50 px-2 py-1 text-[11px] font-medium text-teal-600 transition hover:border-sage-300 hover:bg-sage-50"
-                >
-                  {formatWeightKg(w)}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                placeholder="输入克数 (g)，将自动换算为 kg 显示"
-                className="flex-1 rounded-xl border border-cream-300 bg-cream-50 px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-sage-400 focus:bg-white"
-                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-              />
-              <button
-                onClick={handleSave}
-                disabled={!weight || Number(weight) <= 0}
-                className={cn(
-                  'flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-medium transition',
-                  saved
-                    ? 'bg-sage-500 text-white'
-                    : 'bg-sage-500 text-white hover:bg-sage-600 disabled:opacity-40'
-                )}
-              >
-                {saved ? (
-                  <>
-                    <Check className="h-4 w-4" /> 已记录
-                  </>
-                ) : (
-                  '记录'
-                )}
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* 元素摄入预览（含水分） */}
-        {selectedFruit && weight && Number(weight) > 0 && (
-          <div className="whitespace-nowrap rounded-xl bg-sage-50 px-4 py-2 text-xs text-sage-700">
-            本次 {formatWeightKg(Number(weight))}：钾 <span className="font-semibold">{Math.round((selectedFruit.potassiumPer100g * Number(weight)) / 100)}</span> mg / 磷 <span className="font-semibold">{Math.round((selectedFruit.phosphorusPer100g * Number(weight)) / 100)}</span> mg / 钠 <span className="font-semibold">{Math.round((selectedFruit.sodiumPer100g * Number(weight)) / 100)}</span> mg / 水 <span className="font-semibold">{Math.round((selectedFruit.waterPer100g * Number(weight)) / 100)}</span> ml
-          </div>
-        )}
-      </div>
-
-      {/* 水果选择浮层 */}
-      {showPicker && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-teal-700/40 backdrop-blur-sm sm:items-center">
-          <motion.div
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="max-h-[80vh] w-full max-w-lg overflow-hidden rounded-t-3xl bg-cream-50 sm:rounded-3xl"
-          >
-            <div className="flex items-center justify-between border-b border-cream-200 p-4">
-              <h3 className="font-medium text-teal-700">选择水果</h3>
-              <button
-                onClick={() => setShowPicker(false)}
-                className="rounded-full p-1.5 text-teal-600 hover:bg-cream-200"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="p-4">
-              <div className="relative mb-3">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-teal-600/40" />
+          {/* 重量输入 */}
+          {selectedFruit && (
+            <>
+              <div className="flex flex-wrap gap-1.5">
+                {[100, 150, 200, 250].map((w) => (
+                  <button
+                    key={w}
+                    onClick={() => setWeight(String(w))}
+                    className="whitespace-nowrap rounded-lg border border-cream-300 bg-cream-50 px-2 py-1 text-[11px] font-medium text-teal-600 transition hover:border-sage-300 hover:bg-sage-50"
+                  >
+                    {formatWeightKg(w)}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
                 <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="搜索水果名称"
-                  autoFocus
-                  className="w-full rounded-xl border border-cream-300 bg-white py-2.5 pl-9 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-sage-400"
+                  type="number"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  placeholder="输入克数 (g)，将自动换算为 kg 显示"
+                  className="flex-1 rounded-xl border border-cream-300 bg-cream-50 px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-sage-400 focus:bg-white"
+                  onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                 />
-              </div>
-              <div className="max-h-[400px] overflow-y-auto">
-                <div className="grid grid-cols-2 gap-2">
-                  {filtered.map((f) => (
-                    <button
-                      key={f.id}
-                      onClick={() => {
-                        setSelectedFruitId(f.id);
-                        setShowPicker(false);
-                        setSearch('');
-                      }}
-                      className="flex items-center gap-2 rounded-xl border border-cream-200 bg-white px-3 py-2.5 text-left transition hover:border-sage-300 hover:bg-sage-50"
-                    >
-                      <span className="text-xl">{f.emoji}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium text-teal-700">
-                          {f.name}
-                        </div>
-                        <div className="whitespace-nowrap text-[10px] text-teal-600/60">
-                          钾 {f.potassiumPer100g}mg · 磷 {f.phosphorusPer100g}mg · 钠 {f.sodiumPer100g}mg · 水 {f.waterPer100g}ml
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                  {filtered.length === 0 && (
-                    <div className="col-span-2 py-8 text-center text-sm text-teal-600/60">
-                      未找到匹配的水果
-                    </div>
+                <button
+                  onClick={handleSave}
+                  disabled={!weight || Number(weight) <= 0}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-medium transition',
+                    saved
+                      ? 'bg-sage-500 text-white'
+                      : 'bg-sage-500 text-white hover:bg-sage-600 disabled:opacity-40'
                   )}
-                </div>
+                >
+                  {saved ? (
+                    <>
+                      <Check className="h-4 w-4" /> 已记录
+                    </>
+                  ) : (
+                    '记录'
+                  )}
+                </button>
               </div>
+            </>
+          )}
+
+          {/* 元素摄入预览（含水分） */}
+          {selectedFruit && weight && Number(weight) > 0 && (
+            <div className="whitespace-nowrap rounded-xl bg-sage-50 px-4 py-2 text-xs text-sage-700">
+              本次 {formatWeightKg(Number(weight))}：钾 <span className="font-semibold">{Math.round((selectedFruit.potassiumPer100g * Number(weight)) / 100)}</span> mg / 磷 <span className="font-semibold">{Math.round((selectedFruit.phosphorusPer100g * Number(weight)) / 100)}</span> mg / 钠 <span className="font-semibold">{Math.round((selectedFruit.sodiumPer100g * Number(weight)) / 100)}</span> mg / 水 <span className="font-semibold">{Math.round((selectedFruit.waterPer100g * Number(weight)) / 100)}</span> ml
             </div>
-          </motion.div>
+          )}
         </div>
+      </QuickRecordShell>
+
+      {/* 水果选择浮层 - 通过 Portal 渲染到 document.body
+          避免 QuickRecordShell 外层 div 的 backdrop-blur-xl 创建 containing block，
+          导致 position: fixed 失效、被 overflow-hidden 裁剪。 */}
+      {createPortal(
+        <AnimatePresence>
+          {showPicker && (
+            <motion.div
+              className="fixed inset-0 z-[100] flex items-end justify-center bg-teal-700/40 backdrop-blur-sm sm:items-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <motion.div
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 30, opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-t-3xl bg-cream-50 sm:rounded-3xl"
+              >
+                <div className="flex items-center justify-between border-b border-cream-200 p-4">
+                  <h3 className="font-medium text-teal-700">选择水果</h3>
+                  <button
+                    onClick={() => setShowPicker(false)}
+                    className="rounded-full p-1.5 text-teal-600 hover:bg-cream-200"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="p-4">
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-teal-600/40" />
+                    <input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="搜索水果名称"
+                      autoFocus
+                      className="w-full rounded-xl border border-cream-300 bg-white py-2.5 pl-9 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-sage-400"
+                    />
+                  </div>
+                  <div className="max-h-[60vh] overflow-y-auto pr-1">
+                    <div className="grid grid-cols-2 gap-2">
+                      {filtered.map((f) => (
+                        <button
+                          key={f.id}
+                          onClick={() => {
+                            setSelectedFruitId(f.id);
+                            setShowPicker(false);
+                            setSearch('');
+                          }}
+                          className="flex items-center gap-2 rounded-xl border border-cream-200 bg-white px-3 py-2.5 text-left transition hover:border-sage-300 hover:bg-sage-50"
+                        >
+                          <span className="text-xl">{f.emoji}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium text-teal-700">
+                              {f.name}
+                            </div>
+                            <div className="whitespace-nowrap text-[10px] text-teal-600/60">
+                              钾 {f.potassiumPer100g}mg · 磷 {f.phosphorusPer100g}mg · 钠 {f.sodiumPer100g}mg · 水 {f.waterPer100g}ml
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                      {filtered.length === 0 && (
+                        <div className="col-span-2 py-8 text-center text-sm text-teal-600/60">
+                          未找到匹配的水果
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
       )}
-    </QuickRecordShell>
+    </Fragment>
   );
 };
 
