@@ -39,6 +39,7 @@ export const DEFAULT_SETTINGS = {
   dailyFruitLimit: 200, // 每日水果限额 g
   dailyUltrafiltrationTarget: 500, // 每日超滤目标 ml
   userName: '',
+  userAvatar: '🧑',
   dialysisSchedule: '周一 / 周三 / 周五',
   cardTheme: 'glass' as const,
   initialized: false,

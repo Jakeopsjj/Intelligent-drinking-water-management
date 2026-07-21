@@ -79,15 +79,20 @@ export default function Dashboard() {
         className={cn('relative overflow-hidden rounded-[28px] border p-6', getPageShellClass(cardTheme))}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-teal-600/70">
-              <Sparkles className="h-3 w-3" />
-              今天也要轻松管理
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-white/80 text-3xl shadow-sm ring-1 ring-teal-100">
+              {settings.userAvatar || '🧑'}
             </div>
-            <h1 className="mt-2 font-serif text-3xl font-semibold leading-tight text-teal-800">
-              你好，{userName}
-            </h1>
-            <p className="mt-1 text-xs text-teal-600/60">{formatDateLong()}</p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-teal-600/70">
+                <Sparkles className="h-3 w-3" />
+                今天也要轻松管理
+              </div>
+              <h1 className="mt-1 font-serif text-2xl font-semibold leading-tight text-teal-800 sm:text-3xl">
+                你好，{userName}
+              </h1>
+              <p className="mt-0.5 text-xs text-teal-600/60">{formatDateLong()}</p>
+            </div>
           </div>
           {overallWarning ? (
             <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-clay-100 px-3 py-1.5 text-xs font-medium text-clay-600">

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Droplets, Citrus, HeartPulse, ChevronRight, Check, Atom, Waves } from 'lucide-react';
+import { Droplets, Citrus, HeartPulse, ChevronRight, Check, Atom, Waves, User } from 'lucide-react';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { DEFAULT_SETTINGS } from '@/data/fruits';
 import { cn } from '@/lib/utils';
 import { getBodyBackgroundClass, getBodyBackgroundStyle, getPageShellClass } from '@/lib/theme';
+import AvatarPicker from '@/components/AvatarPicker';
 
-const STEPS = ['欢迎', '摄水限额', '元素限额', '完成'] as const;
+const STEPS = ['欢迎', '个人资料', '摄水限额', '元素限额', '完成'] as const;
 
 export default function Onboarding() {
   const updateSettings = useSettingsStore((s) => s.updateSettings);
@@ -14,6 +15,9 @@ export default function Onboarding() {
   const isOriginal = cardTheme === 'original';
 
   const [step, setStep] = useState(0);
+  const [userName, setUserName] = useState('');
+  const [userAvatar, setUserAvatar] = useState(DEFAULT_SETTINGS.userAvatar || '🧑');
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [waterLimit, setWaterLimit] = useState(DEFAULT_SETTINGS.dailyWaterLimit);
   const [potassiumLimit, setPotassiumLimit] = useState(DEFAULT_SETTINGS.dailyPotassiumLimit);
   const [phosphorusLimit, setPhosphorusLimit] = useState(DEFAULT_SETTINGS.dailyPhosphorusLimit);
@@ -23,6 +27,8 @@ export default function Onboarding() {
 
   const handleComplete = () => {
     updateSettings({
+      userName: userName.trim(),
+      userAvatar,
       dailyWaterLimit: waterLimit,
       dailyPotassiumLimit: potassiumLimit,
       dailyPhosphorusLimit: phosphorusLimit,
@@ -99,8 +105,47 @@ export default function Onboarding() {
           {step === 1 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               <div className="mb-2 flex items-center gap-2 text-teal-500">
+                <User className="h-5 w-5" />
+                <span className="text-xs font-medium uppercase tracking-wider">Step 2 / 5</span>
+              </div>
+              <h2 className="font-serif text-2xl font-semibold text-teal-700">个人资料</h2>
+              <p className="mt-1 text-sm text-teal-600/70">
+                设置你的头像和昵称，让应用更亲切（仅保存在本地）。
+              </p>
+
+              <div className="mt-6 flex flex-col items-center gap-4">
+                <button
+                  onClick={() => setShowAvatarPicker(true)}
+                  className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-white text-5xl shadow-soft ring-1 ring-teal-100 transition active:scale-95"
+                >
+                  {userAvatar}
+                  <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-teal-500 text-white shadow">
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </span>
+                </button>
+                <div className="text-xs text-teal-600/60">点击头像更换</div>
+              </div>
+
+              <div className="mt-5">
+                <label className="mb-2 block text-xs font-medium text-teal-600">昵称</label>
+                <input
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="例如：肾友"
+                  maxLength={12}
+                  className="w-full rounded-2xl border border-cream-300 bg-white px-4 py-3 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
+                />
+              </div>
+
+              <StepperButtons onBack={() => setStep(0)} onNext={() => setStep(2)} />
+            </motion.div>
+          )}
+
+          {step === 2 && (
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+              <div className="mb-2 flex items-center gap-2 text-teal-500">
                 <Droplets className="h-5 w-5" />
-                <span className="text-xs font-medium uppercase tracking-wider">Step 2 / 4</span>
+                <span className="text-xs font-medium uppercase tracking-wider">Step 3 / 5</span>
               </div>
               <h2 className="font-serif text-2xl font-semibold text-teal-700">每日摄水限额</h2>
               <p className="mt-1 text-sm text-teal-600/70">
@@ -115,17 +160,17 @@ export default function Onboarding() {
               />
 
               <StepperButtons
-                onBack={() => setStep(0)}
-                onNext={() => setStep(2)}
+                onBack={() => setStep(1)}
+                onNext={() => setStep(3)}
               />
             </motion.div>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               <div className="mb-2 flex items-center gap-2 text-teal-500">
                 <HeartPulse className="h-5 w-5" />
-                <span className="text-xs font-medium uppercase tracking-wider">Step 3 / 4</span>
+                <span className="text-xs font-medium uppercase tracking-wider">Step 4 / 5</span>
               </div>
               <h2 className="font-serif text-2xl font-semibold text-teal-700">元素摄入限额</h2>
               <p className="mt-1 text-sm text-teal-600/70">
@@ -173,20 +218,26 @@ export default function Onboarding() {
                 </div>
               </div>
 
-              <StepperButtons onBack={() => setStep(1)} onNext={() => setStep(3)} />
+              <StepperButtons onBack={() => setStep(2)} onNext={() => setStep(4)} />
             </motion.div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               <div className="mb-2 flex items-center gap-2 text-teal-500">
                 <Check className="h-5 w-5" />
-                <span className="text-xs font-medium uppercase tracking-wider">Step 4 / 4</span>
+                <span className="text-xs font-medium uppercase tracking-wider">Step 5 / 5</span>
               </div>
               <h2 className="font-serif text-2xl font-semibold text-teal-700">设置完成</h2>
-              <p className="mt-1 text-sm text-teal-600/70">已为你配置以下限额，可随时在设置中调整：</p>
+              <p className="mt-1 text-sm text-teal-600/70">已为你配置以下内容，可随时在设置中调整：</p>
 
               <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between rounded-xl bg-cream-50 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{userAvatar}</span>
+                    <span className="text-sm text-teal-700">{userName.trim() || '肾友'}</span>
+                  </div>
+                </div>
                 <SummaryItem icon={<Droplets className="h-4 w-4" />} label="每日摄水" value={`${waterLimit} ml`} />
                 <SummaryItem icon={<HeartPulse className="h-4 w-4" />} label="钾摄入上限" value={`${potassiumLimit} mg`} />
                 <SummaryItem icon={<Atom className="h-4 w-4" />} label="磷摄入上限" value={`${phosphorusLimit} mg`} />
@@ -204,6 +255,13 @@ export default function Onboarding() {
           )}
         </div>
       </div>
+
+      <AvatarPicker
+        open={showAvatarPicker}
+        current={userAvatar}
+        onSelect={setUserAvatar}
+        onClose={() => setShowAvatarPicker(false)}
+      />
     </div>
   );
 }

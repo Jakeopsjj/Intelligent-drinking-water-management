@@ -1,12 +1,13 @@
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet, Image as ImageIcon, Upload } from 'lucide-react';
+import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet, Image as ImageIcon, Upload, Camera } from 'lucide-react';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { getPageShellClass } from '@/lib/theme';
 import { exportAsJSON, exportAsCSV, exportAsImage, parseBackupJSON, readFileAsText } from '@/utils/export';
 import { cn } from '@/lib/utils';
+import AvatarPicker from '@/components/AvatarPicker';
 
 type ExportKind = 'json' | 'csv' | 'image';
 
@@ -32,6 +33,7 @@ export default function Settings() {
   const [exporting, setExporting] = useState<ExportKind | null>(null);
   const [importing, setImporting] = useState(false);
   const [importInfo, setImportInfo] = useState<string | null>(null);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = () => {
@@ -142,6 +144,23 @@ export default function Settings() {
         </div>
 
         <div className="space-y-4">
+          {/* 头像选择 */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowAvatarPicker(true)}
+              className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-white text-4xl shadow-sm ring-1 ring-teal-100 transition active:scale-95"
+            >
+              {settings.userAvatar || '🧑'}
+              <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-teal-500 text-white shadow">
+                <Camera className="h-3 w-3" />
+              </span>
+            </button>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-teal-700">头像</div>
+              <div className="mt-0.5 text-xs text-teal-600/60">点击更换头像</div>
+            </div>
+          </div>
+
           <Field label="昵称" hint="用于今日页面的称呼">
             <input
               value={settings.userName ?? ''}
@@ -161,6 +180,14 @@ export default function Settings() {
           </Field>
         </div>
       </motion.section>
+
+      {/* 头像选择器 */}
+      <AvatarPicker
+        open={showAvatarPicker}
+        current={settings.userAvatar || '🧑'}
+        onSelect={(avatar) => updateSettings({ userAvatar: avatar })}
+        onClose={() => setShowAvatarPicker(false)}
+      />
 
       {/* 每日限额 */}
       <motion.section

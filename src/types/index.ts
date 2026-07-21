@@ -62,6 +62,7 @@ export interface UserSettings {
   dailyFruitLimit: number; // 每日水果限额 g
   dailyUltrafiltrationTarget: number; // 每日超滤目标 ml
   userName?: string;
+  userAvatar?: string; // 用户头像（emoji 字符）
   dialysisSchedule?: string; // 透析日程备注
   cardTheme?: 'glass' | 'original'; // 卡片主题
   initialized: boolean; // 是否已完成初始设置
