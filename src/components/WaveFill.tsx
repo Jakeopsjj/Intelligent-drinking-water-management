@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { FC } from 'react';
 
 interface WaveFillProps {
@@ -16,13 +16,17 @@ interface WaveFillProps {
  * 波浪液位填充
  * - 水位高度 = 完成百分比（0-100%）
  * - 超额时水位全满 100%
- * - 波浪每秒随机切换方向（向左/向右流动）
+ * - 波浪持续流动，每秒随机切换方向（通过直接操作 DOM，不触发 React 重渲染）
+ *
+ * 关键：组件只在 ratio 变化时重渲染，保证水位实时更新。
+ * 方向切换通过 ref 直接操作 DOM style，不影响 React 渲染周期。
  */
 const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = false }) => {
-  // 反向：超滤量，值越高水位越高
-  const baseRatio = inverse ? Math.max(ratio, 0.15) : Math.min(Math.max(ratio, 0), 1);
-  // 超额时水位全满
-  const heightPercent = ratio >= 1 ? 100 : Math.max(baseRatio * 100, 5);
+  // 水位高度：超额时 100%，否则按比例（最低 5%）
+  const heightPercent = ratio >= 1 ? 100 : Math.max(Math.min(ratio, 1) * 100, 5);
+
+  // 反向模式（超滤量）：值越高水位越高，最低 15%
+  const finalHeight = inverse ? Math.max(ratio * 100, 15) : heightPercent;
 
   // 颜色映射
   const colorMap = {
@@ -45,37 +49,48 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
 
   const colors = colorMap[status][theme];
 
-  // 每秒随机切换波浪方向
-  const [direction, setDirection] = useState<'left' | 'right'>('right');
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // 每秒随机切换波浪方向（直接操作 DOM，不触发 React 重渲染）
+  const frontWaveRef = useRef<SVGSVGElement>(null);
+  const backWaveRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setDirection((prev) => (Math.random() > 0.5 ? 'left' : 'right'));
+    let currentDir: 'left' | 'right' = 'right';
+    const timer = setInterval(() => {
+      // 随机切换方向
+      currentDir = Math.random() > 0.5 ? 'left' : 'right';
+      const frontAnim =
+        currentDir === 'left'
+          ? 'wave-move-left 5s linear infinite'
+          : 'wave-move-right 5s linear infinite';
+      const backAnim =
+        currentDir === 'left'
+          ? 'wave-move-left 7s linear infinite'
+          : 'wave-move-right 7s linear infinite';
+
+      if (frontWaveRef.current) {
+        frontWaveRef.current.style.animation = frontAnim;
+      }
+      if (backWaveRef.current) {
+        backWaveRef.current.style.animation = backAnim;
+      }
     }, 1000);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+
+    return () => clearInterval(timer);
   }, []);
 
   return (
     <div
       className="pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden"
-      style={{ height: `${heightPercent}%`, transition: 'height 0.7s cubic-bezier(0.16, 1, 0.3, 1)' }}
+      style={{ height: `${finalHeight}%`, transition: 'height 0.7s cubic-bezier(0.16, 1, 0.3, 1)' }}
       aria-hidden="true"
     >
       {/* 后层波浪：缓慢流动 */}
       <svg
+        ref={backWaveRef}
         className="absolute -left-6 bottom-0 w-[calc(100%+48px)]"
         viewBox="0 0 200 40"
         preserveAspectRatio="none"
-        style={{
-          height: '40px',
-          animation:
-            direction === 'left'
-              ? 'wave-move-left 7s linear infinite'
-              : 'wave-move-right 7s linear infinite',
-        }}
+        style={{ height: '40px', animation: 'wave-move-right 7s linear infinite' }}
       >
         <path
           d="M0,20 C30,35 60,5 100,20 C140,35 170,5 200,20 L200,40 L0,40 Z"
@@ -85,16 +100,11 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
 
       {/* 前层波浪：中速流动 */}
       <svg
+        ref={frontWaveRef}
         className="absolute -left-6 bottom-0 w-[calc(100%+48px)]"
         viewBox="0 0 200 40"
         preserveAspectRatio="none"
-        style={{
-          height: '32px',
-          animation:
-            direction === 'left'
-              ? 'wave-move-left 5s linear infinite'
-              : 'wave-move-right 5s linear infinite',
-        }}
+        style={{ height: '32px', animation: 'wave-move-right 5s linear infinite' }}
       >
         <path
           d="M0,20 C25,30 50,10 100,20 C150,30 175,10 200,20 L200,40 L0,40 Z"
@@ -110,17 +120,6 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
           opacity: 0.6,
         }}
       />
-
-      <style>{`
-        @keyframes wave-move-left {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-24px); }
-        }
-        @keyframes wave-move-right {
-          0% { transform: translateX(-24px); }
-          100% { transform: translateX(0); }
-        }
-      `}</style>
     </div>
   );
 };

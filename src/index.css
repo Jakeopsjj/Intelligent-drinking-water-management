@@ -90,3 +90,20 @@ input[type="number"] {
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* 波浪液位动画 */
+@keyframes wave-move-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-24px); }
+}
+
+@keyframes wave-move-right {
+  0% { transform: translateX(-24px); }
+  100% { transform: translateX(0); }
+}
+
+/* 波浪方向随机切换（每秒变化，CSS 驱动，无需 JS 重渲染） */
+@keyframes wave-direction-flip {
+  0%, 49% { animation-name: wave-move-left; }
+  50%, 100% { animation-name: wave-move-right; }
+}
