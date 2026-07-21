@@ -14,12 +14,10 @@ interface WaveFillProps {
 
 /**
  * 波浪液位填充
- * - 水位高度 = 完成百分比（0-100%）
- * - 超额时水位全满 100%
- * - 波浪持续流动，每秒随机切换方向（通过直接操作 DOM，不触发 React 重渲染）
- *
- * 关键：组件只在 ratio 变化时重渲染，保证水位实时更新。
- * 方向切换通过 ref 直接操作 DOM style，不影响 React 渲染周期。
+ * - 容器自带背景色 = 水的颜色，水位越高，填充面积越大
+ * - SVG 波浪位于水面上方，提供流动的波浪表面
+ * - 超额时水位全满 100%，卡片被水色完全填满
+ * - 波浪持续流动，每秒随机切换方向（通过 ref 操作 DOM，不触发 React 重渲染）
  */
 const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = false }) => {
   // 水位高度：超额时 100%，否则按比例（最低 5%）
@@ -28,22 +26,22 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
   // 反向模式（超滤量）：值越高水位越高，最低 15%
   const finalHeight = inverse ? Math.max(ratio * 100, 15) : heightPercent;
 
-  // 颜色映射
+  // 颜色映射 - 背景色比波浪色稍深，形成层次
   const colorMap = {
     normal: {
-      teal: { fill: 'rgba(45, 95, 93, 0.18)', fillLight: 'rgba(93, 168, 162, 0.22)' },
-      sage: { fill: 'rgba(70, 107, 76, 0.18)', fillLight: 'rgba(122, 155, 126, 0.22)' },
-      clay: { fill: 'rgba(217, 119, 87, 0.18)', fillLight: 'rgba(224, 142, 111, 0.22)' },
+      teal: { bg: 'rgba(45, 95, 93, 0.20)', surface: 'rgba(45, 95, 93, 0.28)', line: 'rgba(93, 168, 162, 0.35)' },
+      sage: { bg: 'rgba(70, 107, 76, 0.20)', surface: 'rgba(70, 107, 76, 0.28)', line: 'rgba(122, 155, 126, 0.35)' },
+      clay: { bg: 'rgba(217, 119, 87, 0.20)', surface: 'rgba(217, 119, 87, 0.28)', line: 'rgba(224, 142, 111, 0.35)' },
     },
     warning: {
-      teal: { fill: 'rgba(217, 119, 87, 0.18)', fillLight: 'rgba(224, 142, 111, 0.22)' },
-      sage: { fill: 'rgba(217, 119, 87, 0.18)', fillLight: 'rgba(224, 142, 111, 0.22)' },
-      clay: { fill: 'rgba(217, 119, 87, 0.18)', fillLight: 'rgba(224, 142, 111, 0.22)' },
+      teal: { bg: 'rgba(217, 119, 87, 0.22)', surface: 'rgba(217, 119, 87, 0.30)', line: 'rgba(224, 142, 111, 0.38)' },
+      sage: { bg: 'rgba(217, 119, 87, 0.22)', surface: 'rgba(217, 119, 87, 0.30)', line: 'rgba(224, 142, 111, 0.38)' },
+      clay: { bg: 'rgba(217, 119, 87, 0.22)', surface: 'rgba(217, 119, 87, 0.30)', line: 'rgba(224, 142, 111, 0.38)' },
     },
     exceeded: {
-      teal: { fill: 'rgba(220, 38, 38, 0.22)', fillLight: 'rgba(248, 113, 113, 0.26)' },
-      sage: { fill: 'rgba(220, 38, 38, 0.22)', fillLight: 'rgba(248, 113, 113, 0.26)' },
-      clay: { fill: 'rgba(220, 38, 38, 0.22)', fillLight: 'rgba(248, 113, 113, 0.26)' },
+      teal: { bg: 'rgba(220, 38, 38, 0.25)', surface: 'rgba(220, 38, 38, 0.32)', line: 'rgba(248, 113, 113, 0.40)' },
+      sage: { bg: 'rgba(220, 38, 38, 0.25)', surface: 'rgba(220, 38, 38, 0.32)', line: 'rgba(248, 113, 113, 0.40)' },
+      clay: { bg: 'rgba(220, 38, 38, 0.25)', surface: 'rgba(220, 38, 38, 0.32)', line: 'rgba(248, 113, 113, 0.40)' },
     },
   };
 
@@ -55,15 +53,14 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
 
   useEffect(() => {
     let currentDir: 'left' | 'right' = 'right';
-    const timer = setInterval(() => {
-      // 随机切换方向
-      currentDir = Math.random() > 0.5 ? 'left' : 'right';
+
+    const setAnim = (dir: 'left' | 'right') => {
       const frontAnim =
-        currentDir === 'left'
+        dir === 'left'
           ? 'wave-move-left 5s linear infinite'
           : 'wave-move-right 5s linear infinite';
       const backAnim =
-        currentDir === 'left'
+        dir === 'left'
           ? 'wave-move-left 7s linear infinite'
           : 'wave-move-right 7s linear infinite';
 
@@ -73,6 +70,14 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
       if (backWaveRef.current) {
         backWaveRef.current.style.animation = backAnim;
       }
+    };
+
+    // 初始动画
+    setAnim(currentDir);
+
+    const timer = setInterval(() => {
+      currentDir = Math.random() > 0.5 ? 'left' : 'right';
+      setAnim(currentDir);
     }, 1000);
 
     return () => clearInterval(timer);
@@ -81,45 +86,40 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
   return (
     <div
       className="pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden"
-      style={{ height: `${finalHeight}%`, transition: 'height 0.7s cubic-bezier(0.16, 1, 0.3, 1)' }}
+      style={{
+        height: `${finalHeight}%`,
+        transition: 'height 0.7s cubic-bezier(0.16, 1, 0.3, 1)',
+        background: colors.bg,
+      }}
       aria-hidden="true"
     >
-      {/* 后层波浪：缓慢流动 */}
+      {/* 后层波浪：位于水面，向上填充 */}
       <svg
         ref={backWaveRef}
-        className="absolute -left-6 bottom-0 w-[calc(100%+48px)]"
+        className="absolute -left-6 top-0 w-[calc(100%+48px)]"
         viewBox="0 0 200 40"
         preserveAspectRatio="none"
-        style={{ height: '40px', animation: 'wave-move-right 7s linear infinite' }}
+        style={{ height: '40px' }}
       >
         <path
-          d="M0,20 C30,35 60,5 100,20 C140,35 170,5 200,20 L200,40 L0,40 Z"
-          fill={colors.fillLight}
+          d="M0,32 C30,22 60,35 100,32 C140,29 170,20 200,32 L200,0 L0,0 Z"
+          fill={colors.line}
         />
       </svg>
 
-      {/* 前层波浪：中速流动 */}
+      {/* 前层波浪：位于水面，向上填充 */}
       <svg
         ref={frontWaveRef}
-        className="absolute -left-6 bottom-0 w-[calc(100%+48px)]"
+        className="absolute -left-6 top-0 w-[calc(100%+48px)]"
         viewBox="0 0 200 40"
         preserveAspectRatio="none"
-        style={{ height: '32px', animation: 'wave-move-right 5s linear infinite' }}
+        style={{ height: '32px' }}
       >
         <path
-          d="M0,20 C25,30 50,10 100,20 C150,30 175,10 200,20 L200,40 L0,40 Z"
-          fill={colors.fill}
+          d="M0,28 C25,20 50,32 100,28 C150,24 175,18 200,28 L200,0 L0,0 Z"
+          fill={colors.surface}
         />
       </svg>
-
-      {/* 顶部薄边：水线高光 */}
-      <div
-        className="absolute inset-x-0 top-0 h-px"
-        style={{
-          background: `linear-gradient(90deg, transparent, ${colors.fillLight}, transparent)`,
-          opacity: 0.6,
-        }}
-      />
     </div>
   );
 };
