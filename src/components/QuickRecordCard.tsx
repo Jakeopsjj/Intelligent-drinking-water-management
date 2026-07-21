@@ -42,12 +42,12 @@ function QuickRecordShell({ title, subtitle, icon, theme, children }: BaseProps)
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-2xl border border-cream-300 bg-white/80 transition-all',
-        themeMap.hover,
-        open && 'shadow-soft-lg'
+        'overflow-hidden rounded-[28px] border border-white/80 bg-white/70 backdrop-blur-xl transition-all',
+        'shadow-[0_4px_24px_-6px_rgba(0,0,0,0.06)]',
+        open && 'shadow-[0_8px_32px_-8px_rgba(0,0,0,0.12)]'
       )}
     >
-      {/* 顶部条 */}
+      {/* 顶部渐变条 */}
       <div className={cn('h-1 w-full bg-gradient-to-r', themeMap.bar)} />
 
       <button

@@ -75,7 +75,7 @@ export default function Dashboard() {
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="relative overflow-hidden rounded-3xl border border-cream-200 bg-gradient-to-br from-cream-50 to-white p-6 shadow-soft"
+        className="relative overflow-hidden rounded-[28px] border border-white/80 bg-white/70 p-6 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.06)] backdrop-blur-xl"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -107,7 +107,7 @@ export default function Dashboard() {
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
-        className="rounded-3xl border border-cream-200 bg-white/80 p-5 shadow-soft"
+        className="rounded-[28px] border border-white/80 bg-white/70 p-5 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.06)] backdrop-blur-xl"
       >
         <div className="flex items-center justify-between">
           <h2 className="font-serif text-base font-semibold text-teal-700">今日总览</h2>
@@ -125,7 +125,7 @@ export default function Dashboard() {
           {overviewItems.map((item) => (
             <div
               key={item.label}
-              className="rounded-2xl border border-cream-200 bg-cream-50/70 p-3 text-center"
+              className="rounded-2xl border border-white/60 bg-white/50 p-3 text-center backdrop-blur-sm"
             >
               <div className="flex items-center justify-center gap-1 text-[10px] text-teal-600/60">
                 {item.icon}
@@ -213,7 +213,7 @@ export default function Dashboard() {
       </section>
 
       {/* 今日记录列表 */}
-      <section className="rounded-3xl border border-cream-200 bg-white/80 p-5 shadow-soft">
+      <section className="rounded-[28px] border border-white/80 bg-white/70 p-5 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.06)] backdrop-blur-xl">
         <div className="flex items-center justify-between">
           <h2 className="font-serif text-base font-semibold text-teal-700">今日记录</h2>
           <span className="whitespace-nowrap rounded-full bg-sage-50 px-2.5 py-0.5 text-[11px] font-medium text-sage-600">

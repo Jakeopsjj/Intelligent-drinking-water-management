@@ -2,98 +2,53 @@ import { useEffect, useRef } from 'react';
 import type { FC } from 'react';
 
 interface WaveFillProps {
-  /** 0-∞ 的进度比例，>1 表示已超额 */
   ratio: number;
-  /** 状态色 */
   status: 'normal' | 'warning' | 'exceeded';
-  /** 主题色 */
-  theme?: 'teal' | 'sage' | 'clay';
-  /** 是否反向（值越高水位越满，用于超滤量） */
+  theme?: 'teal' | 'sage' | 'clay' | 'peach' | 'red';
   inverse?: boolean;
 }
 
-/**
- * 波浪液位填充 + 液态玻璃效果
- * - 容器自带半透明背景色 = 水的颜色，水位越高，填充面积越大
- * - 应用 backdrop-blur 模拟液态玻璃质感
- * - SVG 波浪位于水面上方，提供流动的波浪表面
- * - 超额时水位全满 100%，卡片被水色完全填满
- * - 波浪持续流动，每秒随机切换方向（通过 ref 操作 DOM，不触发 React 重渲染）
- */
 const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = false }) => {
-  // 水位高度：超额时 100%，否则按比例（最低 5%）
   const heightPercent = ratio >= 1 ? 100 : Math.max(Math.min(ratio, 1) * 100, 5);
-
-  // 反向模式（超滤量）：值越高水位越高，最低 15%
   const finalHeight = inverse ? Math.max(ratio * 100, 15) : heightPercent;
 
-  // 液态玻璃水色映射：在深色玻璃底上使用亮色，让水位清晰可见
-  const colorMap = {
-    normal: {
-      teal: {
-        bg: 'rgba(20, 184, 166, 0.55)',
-        surface: 'rgba(45, 212, 191, 0.65)',
-        line: 'rgba(153, 246, 228, 0.75)',
-        highlight: 'rgba(255, 255, 255, 0.35)',
-      },
-      sage: {
-        bg: 'rgba(132, 204, 22, 0.50)',
-        surface: 'rgba(163, 230, 53, 0.62)',
-        line: 'rgba(190, 242, 100, 0.72)',
-        highlight: 'rgba(255, 255, 255, 0.35)',
-      },
-      clay: {
-        bg: 'rgba(234, 88, 12, 0.55)',
-        surface: 'rgba(251, 146, 60, 0.65)',
-        line: 'rgba(253, 186, 116, 0.75)',
-        highlight: 'rgba(255, 255, 255, 0.35)',
-      },
+  // 马卡龙色半透明水色 - 浅色玻璃容器内的彩色液体
+  // bg = 水底渐变色（稍深）, surface = 水主色, line = 波浪线色（最亮, 带白）
+  const colorMap: Record<string, { bg: string; surface: string; line: string; shine: string }> = {
+    teal: {
+      bg: 'rgba(150, 220, 210, 0.55)',
+      surface: 'rgba(178, 235, 225, 0.50)',
+      line: 'rgba(220, 248, 242, 0.80)',
+      shine: 'rgba(255, 255, 255, 0.60)',
     },
-    warning: {
-      teal: {
-        bg: 'rgba(234, 88, 12, 0.55)',
-        surface: 'rgba(251, 146, 60, 0.65)',
-        line: 'rgba(253, 186, 116, 0.75)',
-        highlight: 'rgba(255, 255, 255, 0.35)',
-      },
-      sage: {
-        bg: 'rgba(234, 88, 12, 0.55)',
-        surface: 'rgba(251, 146, 60, 0.65)',
-        line: 'rgba(253, 186, 116, 0.75)',
-        highlight: 'rgba(255, 255, 255, 0.35)',
-      },
-      clay: {
-        bg: 'rgba(234, 88, 12, 0.55)',
-        surface: 'rgba(251, 146, 60, 0.65)',
-        line: 'rgba(253, 186, 116, 0.75)',
-        highlight: 'rgba(255, 255, 255, 0.35)',
-      },
+    sage: {
+      bg: 'rgba(170, 220, 145, 0.55)',
+      surface: 'rgba(195, 238, 170, 0.50)',
+      line: 'rgba(230, 250, 210, 0.80)',
+      shine: 'rgba(255, 255, 255, 0.60)',
     },
-    exceeded: {
-      teal: {
-        bg: 'rgba(220, 38, 38, 0.60)',
-        surface: 'rgba(248, 113, 113, 0.70)',
-        line: 'rgba(254, 202, 202, 0.80)',
-        highlight: 'rgba(255, 255, 255, 0.38)',
-      },
-      sage: {
-        bg: 'rgba(220, 38, 38, 0.60)',
-        surface: 'rgba(248, 113, 113, 0.70)',
-        line: 'rgba(254, 202, 202, 0.80)',
-        highlight: 'rgba(255, 255, 255, 0.38)',
-      },
-      clay: {
-        bg: 'rgba(220, 38, 38, 0.60)',
-        surface: 'rgba(248, 113, 113, 0.70)',
-        line: 'rgba(254, 202, 202, 0.80)',
-        highlight: 'rgba(255, 255, 255, 0.38)',
-      },
+    clay: {
+      bg: 'rgba(225, 190, 160, 0.55)',
+      surface: 'rgba(240, 210, 180, 0.50)',
+      line: 'rgba(252, 235, 215, 0.80)',
+      shine: 'rgba(255, 255, 255, 0.60)',
+    },
+    peach: {
+      bg: 'rgba(255, 190, 150, 0.55)',
+      surface: 'rgba(255, 210, 175, 0.50)',
+      line: 'rgba(255, 235, 215, 0.85)',
+      shine: 'rgba(255, 255, 255, 0.65)',
+    },
+    red: {
+      bg: 'rgba(255, 155, 155, 0.55)',
+      surface: 'rgba(255, 180, 180, 0.50)',
+      line: 'rgba(255, 220, 220, 0.85)',
+      shine: 'rgba(255, 255, 255, 0.65)',
     },
   };
 
-  const colors = colorMap[status][theme];
+  const colors = colorMap[theme] || colorMap.teal;
 
-  // 每秒随机切换波浪方向（直接操作 DOM，不触发 React 重渲染）
   const frontWaveRef = useRef<SVGSVGElement>(null);
   const backWaveRef = useRef<SVGSVGElement>(null);
 
@@ -135,52 +90,59 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
         height: `${finalHeight}%`,
         transition: 'height 0.7s cubic-bezier(0.16, 1, 0.3, 1)',
         background: `linear-gradient(180deg, ${colors.surface} 0%, ${colors.bg} 100%)`,
-        backdropFilter: 'blur(2px)',
-        WebkitBackdropFilter: 'blur(2px)',
       }}
       aria-hidden="true"
     >
-      {/* 液态玻璃高光：顶部白色光泽 */}
+      {/* 水面顶部白色光泽线 - 模拟液体表面反光 */}
       <div
-        className="absolute inset-x-0 top-0 h-1/3"
+        className="absolute inset-x-0 top-0 h-1.5"
         style={{
-          background: `linear-gradient(180deg, ${colors.highlight} 0%, transparent 100%)`,
-          opacity: 0.6,
+          background: `linear-gradient(180deg, ${colors.shine} 0%, transparent 100%)`,
         }}
       />
 
-      {/* 后层波浪：位于水面，向上填充 */}
+      {/* 后层波浪 */}
       <svg
         ref={backWaveRef}
         className="absolute -left-6 top-0 w-[calc(100%+48px)]"
         viewBox="0 0 200 40"
         preserveAspectRatio="none"
-        style={{ height: '40px' }}
+        style={{ height: '36px' }}
       >
         <path
-          d="M0,32 C30,22 60,35 100,32 C140,29 170,20 200,32 L200,0 L0,0 Z"
-          fill={colors.line}
+          d="M0,28 C30,18 60,32 100,28 C140,24 170,16 200,28 L200,0 L0,0 Z"
+          fill={colors.bg}
+          opacity={0.7}
         />
       </svg>
 
-      {/* 前层波浪：位于水面，向上填充 */}
+      {/* 前层波浪 - 最亮的波浪线 */}
       <svg
         ref={frontWaveRef}
         className="absolute -left-6 top-0 w-[calc(100%+48px)]"
         viewBox="0 0 200 40"
         preserveAspectRatio="none"
-        style={{ height: '32px' }}
+        style={{ height: '30px' }}
       >
         <path
-          d="M0,28 C25,20 50,32 100,28 C150,24 175,18 200,28 L200,0 L0,0 Z"
+          d="M0,24 C25,16 50,28 100,24 C150,20 175,14 200,24 L200,0 L0,0 Z"
           fill={colors.surface}
+        />
+        {/* 波浪顶部高光 */}
+        <path
+          d="M0,24 C25,16 50,28 100,24 C150,20 175,14 200,24"
+          fill="none"
+          stroke={colors.line}
+          strokeWidth="2"
         />
       </svg>
 
-      {/* 液态玻璃侧边高光 */}
+      {/* 水中气泡/光泽效果 */}
       <div
-        className="absolute left-0 top-0 h-full w-px"
-        style={{ background: `linear-gradient(180deg, transparent, ${colors.highlight}, transparent)` }}
+        className="absolute right-4 top-4 h-2 w-2 rounded-full"
+        style={{
+          background: 'radial-gradient(circle, rgba(255,255,255,0.5) 0%, transparent 70%)',
+        }}
       />
     </div>
   );

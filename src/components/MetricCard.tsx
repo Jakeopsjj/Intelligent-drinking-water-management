@@ -9,26 +9,31 @@ interface MetricCardProps {
   current: number;
   limit: number;
   unit: string;
-  /** 显示值覆盖（纯数字字符串，不含单位） */
   displayValue?: string;
-  /** 显示单位覆盖（如把 g 改为 kg） */
   displayUnit?: string;
-  /** 颜色主题 */
   theme?: 'teal' | 'sage' | 'clay';
-  /** 子标题描述 */
   description?: string;
-  /** 是否显示进度条 */
   showProgress?: boolean;
-  /** 反向：值越高越好（如超滤量） */
   inverseProgress?: boolean;
-  /** 是否显示波浪液位填充 */
   showWave?: boolean;
 }
 
-const themeIcon: Record<string, string> = {
-  teal: 'text-teal-500',
-  sage: 'text-sage-500',
-  clay: 'text-clay-500',
+const themeIconBg: Record<string, string> = {
+  teal: 'bg-teal-100/80 text-teal-700',
+  sage: 'bg-green-100/80 text-green-700',
+  clay: 'bg-orange-100/80 text-orange-700',
+};
+
+const themeProgressFill: Record<string, string> = {
+  teal: 'bg-teal-400',
+  sage: 'bg-green-400',
+  clay: 'bg-orange-400',
+};
+
+const themeWaveTheme: Record<string, 'teal' | 'sage' | 'clay'> = {
+  teal: 'teal',
+  sage: 'sage',
+  clay: 'clay',
 };
 
 const MetricCard: FC<MetricCardProps> = ({
@@ -55,104 +60,110 @@ const MetricCard: FC<MetricCardProps> = ({
   const shownValue = displayValue ?? String(current);
   const shownUnit = displayUnit ?? unit;
 
-  // 深色玻璃底色调（按主题区分玻璃色调），保证白色文字始终可读
-  const glassTint =
-    theme === 'sage'
-      ? 'from-sage-900/75 to-sage-950/85'
-      : theme === 'clay'
-      ? 'from-clay-900/75 to-clay-950/85'
-      : 'from-teal-900/75 to-teal-950/85';
+  const waveTheme =
+    status === 'exceeded' ? 'red' : status === 'warning' ? 'peach' : themeWaveTheme[theme];
 
-  const borderColor =
+  const iconBg =
     status === 'exceeded'
-      ? 'border-red-300/40'
+      ? 'bg-red-100/80 text-red-600'
       : status === 'warning'
-      ? 'border-clay-300/40'
-      : 'border-white/20';
+      ? 'bg-orange-100/80 text-orange-600'
+      : themeIconBg[theme];
+
+  const progressFill =
+    status === 'exceeded'
+      ? 'bg-red-400'
+      : status === 'warning'
+      ? 'bg-orange-400'
+      : themeProgressFill[theme];
 
   return (
     <div
       className={cn(
-        'relative flex min-h-[148px] flex-col overflow-hidden rounded-3xl border p-5 transition-all duration-300',
-        'hover:-translate-y-0.5 hover:shadow-soft-lg',
-        // 深色透明玻璃：背景渐变 + backdrop-blur + 玻璃边框 + 内阴影厚度感
-        'bg-gradient-to-br backdrop-blur-md',
-        glassTint,
-        borderColor,
-        'shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.25),0_10px_30px_-12px_rgba(0,0,0,0.4)]'
+        'relative flex min-h-[148px] flex-col overflow-hidden p-5 transition-all duration-300',
+        'rounded-[28px]',
+        'hover:-translate-y-0.5',
+        // 浅色毛玻璃容器：白色半透明底 + backdrop-blur
+        'bg-white/70 backdrop-blur-xl',
+        // 玻璃边框：细亮边 + 外阴影
+        'border border-white/80',
+        'shadow-[0_4px_24px_-6px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)]'
       )}
     >
-      {/* 玻璃顶部高光：模拟反射光泽 */}
+      {/* 玻璃顶部高光反射 */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+        className="pointer-events-none absolute inset-x-0 top-0 h-8"
         style={{
           background:
-            'linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 50%, transparent 100%)',
+            'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 100%)',
         }}
         aria-hidden="true"
       />
-      {/* 玻璃左侧高光：模拟立体边缘 */}
+      {/* 玻璃边框内描边 - 顶部亮线 */}
       <div
-        className="pointer-events-none absolute left-0 top-0 h-full w-px"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px"
         style={{
           background:
-            'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.05) 50%, transparent 100%)',
+            'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.9) 20%, rgba(255,255,255,0.9) 80%, rgba(255,255,255,0) 100%)',
         }}
         aria-hidden="true"
       />
 
-      {/* 底层：波浪液位填充（根据进度控制水位高度） */}
+      {/* 底层：波浪液位填充（马卡龙色半透明水） */}
       {showWave && limit > 0 && (
-        <WaveFill ratio={ratio} status={status} theme={theme} inverse={inverseProgress} />
+        <WaveFill ratio={ratio} status={status} theme={waveTheme} inverse={inverseProgress} />
       )}
 
-      {/* 上层：图标、标题、数值文字（浮在水波之上，不被遮挡） */}
+      {/* 上层：图标、标题、数值文字 */}
       <div className="relative z-10 flex flex-1 flex-col">
         {/* 头部：图标 + 标题 + 状态徽章 */}
         <div className="flex items-center justify-between">
           <div className="flex min-w-0 items-center gap-2">
             <div
               className={cn(
-                'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 backdrop-blur-md',
-                themeIcon[theme]
+                'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl backdrop-blur-sm',
+                iconBg
               )}
             >
               {icon}
             </div>
-            <span className="truncate text-sm font-medium text-white/95 drop-shadow-sm">{title}</span>
+            <span className="truncate text-[15px] font-semibold text-gray-700">{title}</span>
           </div>
           {status === 'exceeded' && (
-            <span className="whitespace-nowrap rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-medium text-white">
+            <span className="whitespace-nowrap rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-600">
               超标
             </span>
           )}
           {status === 'warning' && (
-            <span className="whitespace-nowrap rounded-full bg-clay-500 px-2 py-0.5 text-[10px] font-medium text-white">
+            <span className="whitespace-nowrap rounded-full bg-orange-100 px-2.5 py-1 text-[11px] font-semibold text-orange-600">
               注意
             </span>
           )}
         </div>
 
         {/* 中间内容：大号数值 */}
-        <div className="mt-4 flex flex-1 items-center">
+        <div className="mt-3 flex flex-1 items-center">
           <div className="w-full">
             <div className="flex items-baseline gap-1">
-              <span className="font-serif text-4xl font-semibold leading-none text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+              <span className="font-serif text-[40px] font-bold leading-none tracking-tight text-gray-800">
                 {shownValue}
               </span>
-              <span className="text-sm font-medium text-white/80">{shownUnit}</span>
+              <span className="text-base font-medium text-gray-500">{shownUnit}</span>
             </div>
             {description && (
-              <div className="mt-1.5 text-[11px] text-white/70">{description}</div>
+              <div className="mt-1 text-[11px] text-gray-500">{description}</div>
             )}
           </div>
         </div>
 
         {/* 底部进度条 */}
         {showProgress && limit > 0 && (
-          <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full border border-white/10 bg-black/25">
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-200/60">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-white/70 to-white transition-all duration-700"
+              className={cn(
+                'h-full rounded-full transition-all duration-700',
+                progressFill
+              )}
               style={{
                 width: `${Math.min(ratio * 100, 100)}%`,
               }}

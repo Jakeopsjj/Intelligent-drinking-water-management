@@ -20,9 +20,18 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
   const location = useLocation();
 
   return (
-    <div className="flex min-h-screen flex-col bg-cream-50">
+    <div
+      className="flex min-h-screen flex-col"
+      style={{
+        background:
+          'linear-gradient(170deg, #f0f7f4 0%, #e8f4ef 30%, #f5f0e8 60%, #fdf6ee 100%)',
+      }}
+    >
       {/* 移动端顶部标题栏：肾友笔记 + 搜索 */}
-      <header className="sticky top-0 z-30 bg-cream-50/95 backdrop-blur-md md:hidden">
+      <header
+        className="sticky top-0 z-30 backdrop-blur-xl md:hidden"
+        style={{ background: 'rgba(240, 247, 244, 0.75)' }}
+      >
         <div className="mx-auto flex h-14 items-center justify-between px-5">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-teal-500/10 text-teal-600">
@@ -37,7 +46,13 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
       </header>
 
       {/* 桌面端顶部导航 */}
-      <header className="sticky top-0 z-30 hidden border-b border-cream-200 bg-cream-50/80 backdrop-blur-xl md:block">
+      <header
+        className="sticky top-0 z-30 hidden backdrop-blur-xl md:block"
+        style={{
+          background: 'rgba(240, 247, 244, 0.7)',
+          borderBottom: '1px solid rgba(255,255,255,0.5)',
+        }}
+      >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-2.5">
             <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-sage-500 shadow-soft">
@@ -78,8 +93,14 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
       {/* 主内容区 */}
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-2 md:px-6 md:py-8 md:pb-8">{children}</main>
 
-      {/* 移动端底部导航：统一大小，选中态用柔和色彩 */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-cream-200 bg-cream-50/95 px-4 pb-4 pt-2 backdrop-blur-md md:hidden">
+      {/* 移动端底部导航：毛玻璃效果 + 选中态绿色渐变 */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-30 px-4 pb-4 pt-2 backdrop-blur-xl md:hidden"
+        style={{
+          background: 'rgba(240, 247, 244, 0.8)',
+          borderTop: '1px solid rgba(255,255,255,0.5)',
+        }}
+      >
         <div className="mx-auto flex max-w-md items-center justify-around">
           {NAV_ITEMS.map((item) => {
             const isActive =
@@ -92,15 +113,15 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
                 to={item.to}
                 className={cn(
                   'flex flex-1 flex-col items-center gap-1 py-1.5 text-[11px] font-medium transition',
-                  isActive ? 'text-teal-600' : 'text-teal-600/40'
+                  isActive ? 'text-teal-700' : 'text-gray-400'
                 )}
               >
                 <div
                   className={cn(
-                    'flex h-8 w-8 items-center justify-center rounded-xl transition',
+                    'flex h-10 w-10 items-center justify-center rounded-2xl transition-all duration-300',
                     isActive
-                      ? 'bg-teal-100 text-teal-600'
-                      : 'text-teal-600/40'
+                      ? 'bg-gradient-to-br from-teal-400 to-green-500 text-white shadow-lg shadow-teal-500/30'
+                      : 'text-gray-400'
                   )}
                 >
                   {item.icon}
