@@ -1,7 +1,7 @@
 {
   "name": "workspace",
   "private": true,
-  "version": "2.3.3",
+  "version": "2.3.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
+    "@capacitor/app": "^8.1.1",
     "@capacitor/cli": "^8.4.2",
     "@capacitor/core": "^8.4.2",
     "@capacitor/filesystem": "^8.1.2",

@@ -5,6 +5,7 @@ import { useFruitsStore } from '@/store/useFruitsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
+import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import type { Fruit } from '@/types';
 
 export default function Fruits() {
@@ -18,6 +19,9 @@ export default function Fruits() {
 
   const [query, setQuery] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+
+  // 添加水果抽屉打开时，注册到返回处理栈，侧滑 / 返回键可关闭抽屉
+  useOverlayBackHandler(showAdd, () => setShowAdd(false));
 
   const filtered = query.trim()
     ? allFruits.filter((f) => f.name.toLowerCase().includes(query.toLowerCase()))

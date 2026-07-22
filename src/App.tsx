@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import { App as CapacitorApp } from '@capacitor/app';
 import AppLayout from '@/components/AppLayout';
 import Dashboard from '@/pages/Dashboard';
 import Records from '@/pages/Records';
@@ -10,11 +11,39 @@ import Onboarding from '@/pages/Onboarding';
 import PermissionsGate, { hasAcceptedPermissions } from '@/components/PermissionsGate';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { migrateLocalStorageToNative } from '@/lib/nativeStorage';
+import { closeTopOverlay } from '@/lib/backHandler';
 
 type AppPhase = 'loading' | 'permissions' | 'ready';
 
 function AppRoutes() {
   const initialized = useSettingsStore((s) => s.settings.initialized);
+  const navigate = useNavigate();
+
+  // 监听 Android 硬件返回 / 侧滑手势
+  useEffect(() => {
+    if (!initialized) return;
+    let listener: { remove: () => void } | undefined;
+    (async () => {
+      try {
+        listener = await CapacitorApp.addListener('backButton', () => {
+          // 1. 有浮层打开时，关闭最上层浮层（水果选择器 / 头像选择器 / 抽屉等）
+          if (closeTopOverlay()) return;
+          // 2. 不在首页时，回到首页
+          if (window.location.pathname !== '/') {
+            navigate('/');
+            return;
+          }
+          // 3. 在首页时，退出应用（标准 Android 行为）
+          CapacitorApp.exitApp();
+        });
+      } catch (e) {
+        // Web 环境下监听失败可忽略
+      }
+    })();
+    return () => {
+      listener?.remove();
+    };
+  }, [initialized, navigate]);
 
   // 未初始化时显示引导页
   if (!initialized) {

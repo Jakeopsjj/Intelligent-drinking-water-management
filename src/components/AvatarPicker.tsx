@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, Check, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 
 // 内置 emoji 头像（与人无关，使用中性、物体类图标作为默认头像）
 const EMOJI_CHOICES = [
@@ -89,6 +90,9 @@ export default function AvatarPicker({ value, onChange, onClose }: AvatarPickerP
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+
+  // 头像选择器始终是打开状态（挂载即打开），注册关闭函数
+  useOverlayBackHandler(true, onClose);
 
   const handlePickFile = () => {
     if (processing) return;

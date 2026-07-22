@@ -7,6 +7,7 @@ import { useRecordsStore } from '@/store/useRecordsStore';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
+import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import type { FC, ReactNode } from 'react';
 
 interface BaseProps {
@@ -251,6 +252,9 @@ export const FruitQuickRecord: FC = () => {
   const filtered = search.trim()
     ? allFruits.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()))
     : allFruits;
+
+  // 水果选择器打开时，注册到返回处理栈，侧滑 / 返回键可关闭浮层
+  useOverlayBackHandler(showPicker, () => setShowPicker(false));
 
   const handleSave = () => {
     if (!selectedFruit || !weight || Number(weight) <= 0) return;
