@@ -229,6 +229,90 @@ copy_apks_to_releases() {
 }
 
 # ============================================================
+# 8. 创建 GitHub Release 并上传 APK（让 Releases 页面可下载）
+# ============================================================
+upload_to_github_release() {
+    # 需要 GITHUB_TOKEN 环境变量
+    if [ -z "${GITHUB_TOKEN:-}" ]; then
+        # 尝试从 git credential 读取
+        if git credential fill <<< "protocol=https
+host=github.com" 2>/dev/null | grep -q "^password="; then
+            GITHUB_TOKEN=$(git credential fill <<< "protocol=https
+host=github.com" 2>/dev/null | grep "^password=" | cut -d= -f2-)
+        fi
+    fi
+
+    if [ -z "${GITHUB_TOKEN:-}" ]; then
+        warn "未设置 GITHUB_TOKEN，跳过 GitHub Release 上传"
+        warn "设置方法: export GITHUB_TOKEN=ghp_xxxxxxxx"
+        return 0
+    fi
+
+    local repo="Jakeopsjj/Intelligent-drinking-water-management"
+    local tag="v$(grep versionName android/app/build.gradle | head -1 | sed 's/.*"\(.*\)".*/\1/')"
+
+    info "创建 GitHub Release ($tag)..."
+
+    # 删除已有的同名 release（保留 tag）
+    local existing_release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+        "https://api.github.com/repos/$repo/releases/tags/$tag" 2>/dev/null | grep '"id"' | head -1 | grep -o '[0-9]*')
+    if [ -n "$existing_release_id" ]; then
+        curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$repo/releases/$existing_release_id" >/dev/null 2>&1
+        info "  删除旧 release"
+    fi
+
+    # 删除已有的 tag
+    curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+        "https://api.github.com/repos/$repo/git/refs/tags/$tag" >/dev/null 2>&1
+
+    # 创建新 release
+    local response=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+        -H "Content-Type: application/json" \
+        "https://api.github.com/repos/$repo/releases" -d "{
+        \"tag_name\": \"$tag\",
+        \"target_commitish\": \"main\",
+        \"name\": \"$tag Debug + Release APK\",
+        \"body\": \"肾友笔记 $tag\\n\\n包含 Debug 和 Release 两个版本的 APK\",
+        \"draft\": false,
+        \"prerelease\": false
+    }")
+
+    local release_id=$(echo "$response" | grep '"id"' | head -1 | grep -o '[0-9]*')
+
+    if [ -z "$release_id" ]; then
+        error "创建 GitHub Release 失败"
+        echo "$response" | head -5
+        return 1
+    fi
+    info "  Release 创建成功 (ID: $release_id)"
+
+    # 上传 debug APK
+    local debug_src="$ANDROID_DIR/app/build/outputs/apk/debug/app-debug.apk"
+    if [ -f "$debug_src" ]; then
+        info "  上传 app-debug.apk..."
+        curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            --data-binary @"$debug_src" \
+            "https://uploads.github.com/repos/$repo/releases/$release_id/assets?name=app-debug.apk" >/dev/null 2>&1
+        info "    完成"
+    fi
+
+    # 上传 release APK
+    local release_src="$ANDROID_DIR/app/build/outputs/apk/release/app-release.apk"
+    if [ -f "$release_src" ]; then
+        info "  上传 app-release.apk..."
+        curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            --data-binary @"$release_src" \
+            "https://uploads.github.com/repos/$repo/releases/$release_id/assets?name=app-release.apk" >/dev/null 2>&1
+        info "    完成"
+    fi
+
+    info "GitHub Release 上传完成: https://github.com/$repo/releases/tag/$tag"
+}
+
+# ============================================================
 # 主流程
 # ============================================================
 main() {
@@ -249,8 +333,11 @@ main() {
     # 构建 Release
     build_apk release
 
-    # 复制 APK 到 releases/ 目录（用于提交到 GitHub）
+    # 复制 APK 到 releases/ 目录
     copy_apks_to_releases
+
+    # 创建 GitHub Release 并上传 APK
+    upload_to_github_release
 
     echo ""
     echo "=============================================="
