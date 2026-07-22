@@ -72,11 +72,20 @@ export default function UpdateModal({ open, onClose, mode, release: releaseProp 
     onClose();
   };
 
-  const handleDownload = async () => {
-    if (release?.apkUrl) {
+  const handleDownloadDebug = async () => {
+    if (release?.debugApkUrl) {
       setDownloading(true);
-      // 在系统浏览器中打开 APK 下载链接
-      window.open(release.apkUrl, '_blank');
+      window.open(release.debugApkUrl, '_blank');
+      setTimeout(() => setDownloading(false), 1500);
+    } else if (release?.htmlUrl) {
+      window.open(release.htmlUrl, '_blank');
+    }
+  };
+
+  const handleDownloadRelease = async () => {
+    if (release?.releaseApkUrl) {
+      setDownloading(true);
+      window.open(release.releaseApkUrl, '_blank');
       setTimeout(() => setDownloading(false), 1500);
     } else if (release?.htmlUrl) {
       window.open(release.htmlUrl, '_blank');
@@ -191,11 +200,12 @@ export default function UpdateModal({ open, onClose, mode, release: releaseProp 
                     <Check className="h-4 w-4" /> 知道了
                   </button>
                 ) : isUpdateAvailable ? (
-                  <div className="flex gap-2">
+                  <div className="space-y-2">
+                    {/* Release 版本（推荐） */}
                     <button
-                      onClick={handleDownload}
+                      onClick={handleDownloadRelease}
                       disabled={downloading}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-teal-500 to-sage-500 px-4 py-2.5 text-sm font-medium text-white transition hover:shadow-soft disabled:opacity-60"
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-teal-500 to-sage-500 px-4 py-2.5 text-sm font-medium text-white transition hover:shadow-soft disabled:opacity-60"
                     >
                       {downloading ? (
                         <>
@@ -203,15 +213,32 @@ export default function UpdateModal({ open, onClose, mode, release: releaseProp 
                         </>
                       ) : (
                         <>
-                          <Download className="h-4 w-4" /> 下载更新
+                          <Download className="h-4 w-4" /> 下载 Release 版（推荐）
                         </>
                       )}
                     </button>
+                    {/* Debug 版本 */}
+                    <button
+                      onClick={handleDownloadDebug}
+                      disabled={downloading}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-teal-300 px-4 py-2.5 text-sm font-medium text-teal-600 transition hover:bg-teal-50 disabled:opacity-60"
+                    >
+                      {downloading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" /> 正在跳转...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4" /> 下载 Debug 版
+                        </>
+                      )}
+                    </button>
+                    {/* Release 页面链接 */}
                     <button
                       onClick={() => window.open(GITHUB_RELEASES_URL, '_blank')}
-                      className="flex items-center justify-center gap-1.5 rounded-xl border border-cream-300 px-4 py-2.5 text-sm text-teal-600 hover:bg-cream-100"
+                      className="flex w-full items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs text-teal-600/60 hover:text-teal-700"
                     >
-                      <ExternalLink className="h-4 w-4" /> Release 页
+                      <ExternalLink className="h-3.5 w-3.5" /> 在浏览器中打开 Release 页面
                     </button>
                   </div>
                 ) : (

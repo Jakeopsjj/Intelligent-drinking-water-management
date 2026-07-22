@@ -249,7 +249,7 @@ host=github.com" 2>/dev/null | grep "^password=" | cut -d= -f2-)
     fi
 
     local repo="Jakeopsjj/Intelligent-drinking-water-management"
-    local tag="v$(grep versionName android/app/build.gradle | head -1 | sed 's/.*"\(.*\)".*/\1/')"
+    local tag="v$(grep versionName "$ANDROID_DIR/app/build.gradle" | head -1 | sed 's/.*"\(.*\)".*/\1/')"
 
     info "创建 GitHub Release ($tag)..."
 

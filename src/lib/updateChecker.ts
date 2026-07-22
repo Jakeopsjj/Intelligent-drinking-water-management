@@ -15,7 +15,7 @@ const GITHUB_OWNER = 'Jakeopsjj';
 const GITHUB_REPO = 'Intelligent-drinking-water-management';
 
 /** 当前版本号（从 package.json 编译时注入，这里硬编码同步） */
-export const APP_VERSION = '2.10.0';
+export const APP_VERSION = '2.10.1';
 
 /** 存储键：上次查看更新内容的版本号 */
 const LAST_VIEWED_VERSION_KEY = 'last_viewed_version';
@@ -29,8 +29,10 @@ export interface ReleaseInfo {
   body: string;
   /** Release HTML 链接 */
   htmlUrl: string;
-  /** APK 下载链接 */
-  apkUrl?: string;
+  /** Debug APK 下载链接 */
+  debugApkUrl?: string;
+  /** Release APK 下载链接 */
+  releaseApkUrl?: string;
   /** 发布时间 */
   publishedAt: string;
   /** 是否为预发布 */
@@ -69,17 +71,18 @@ export async function fetchLatestRelease(): Promise<ReleaseInfo> {
   if (!res.ok) throw new Error(`GitHub API 返回 ${res.status}`);
   const data = await res.json();
 
-  // 查找 APK 下载链接
-  const apkAsset = (data.assets as any[])?.find(
-    (a) => a.name?.endsWith('.apk') || a.content_type === 'application/vnd.android.package-archive'
-  );
+  // 查找 Debug 和 Release APK 下载链接
+  const assets = (data.assets as any[]) ?? [];
+  const debugAsset = assets.find((a) => a.name === 'app-debug.apk');
+  const releaseAsset = assets.find((a) => a.name === 'app-release.apk');
 
   return {
     version: (data.tag_name as string)?.replace(/^v/, '') ?? '',
     name: data.name ?? '',
     body: data.body ?? '',
     htmlUrl: data.html_url ?? '',
-    apkUrl: apkAsset?.browser_download_url,
+    debugApkUrl: debugAsset?.browser_download_url,
+    releaseApkUrl: releaseAsset?.browser_download_url,
     publishedAt: data.published_at ?? '',
     prerelease: data.prerelease ?? false,
   };
