@@ -7,15 +7,11 @@
  * - 降压药：氨氯地平、缬沙坦
  * - 促红素：重组人促红素 EPO
  * - 铁剂：蔗糖铁
+ *
+ * 配图与介绍由详情页自动联网获取（维基百科），无需在此硬编码
  */
 
 import type { Medication } from '@/types';
-
-/** 真实配图 URL 生成（按图片规范使用内置 text_to_image API） */
-function imageFor(prompt: string): string {
-  const encoded = encodeURIComponent(prompt);
-  return `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encoded}&image_size=square`;
-}
 
 export const BUILTIN_MEDICATIONS: Medication[] = [
   // —— 磷结合剂 ——
@@ -38,7 +34,6 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
       '必须随餐嚼服或碾碎混入食物中，餐后服用无效。避免与含铁剂、四环素同服。注意监测血钙，避免高钙血症。',
     ingredients: '碳酸钙 1500mg（含元素钙 600mg）',
     sideEffects: '便秘、腹胀、高钙血症、低磷血症',
-    image: imageFor('a medical pill bottle of calcium carbonate tablets, clean white background, pharmaceutical product photo, realistic, high detail'),
     isCustom: false,
     level: 'low',
   },
@@ -61,7 +56,6 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
       '必须随餐服用，整片吞服不可嚼碎。需大量饮水。可能影响脂溶性维生素吸收。',
     ingredients: '盐酸司维拉姆 800mg',
     sideEffects: '胃肠道不适、恶心、便秘',
-    image: imageFor('sevelamer hydrochloride tablets in blister pack, white pharmaceutical packaging, clean studio photo, realistic'),
     isCustom: false,
     level: 'low',
   },
@@ -83,7 +77,6 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
     usageNotes: '必须嚼碎后随餐服用。长期使用需监测血镧水平。',
     ingredients: '碳酸镧 500mg / 750mg / 1000mg',
     sideEffects: '恶心、呕吐、便秘',
-    image: imageFor('lanthanum carbonate chewable tablets, white pharmaceutical bottle, isolated on white background, realistic medical photo'),
     isCustom: false,
     level: 'low',
   },
@@ -108,7 +101,6 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
       '需定期监测血钙、血磷、PTH。避免与含镁抗酸剂同服。出现高钙血症应立即停药。',
     ingredients: '骨化三醇 0.25μg',
     sideEffects: '高钙血症、口渴、食欲不振',
-    image: imageFor('calcitriol soft gelatin capsules, small red oval pills, blister pack, white background, pharmaceutical product photo, realistic'),
     isCustom: false,
     level: 'low',
   },
@@ -130,7 +122,6 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
     usageNotes: '餐后服用减少胃肠刺激。注意监测血钠，可能加重水钠潴留。',
     ingredients: '碳酸氢钠 500mg',
     sideEffects: '腹胀、嗳气、水钠潴留',
-    image: imageFor('sodium bicarbonate tablets in white bottle, simple pharmaceutical packaging, white background, realistic medical photo'),
     isCustom: false,
     level: 'low',
   },
@@ -154,7 +145,6 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
     usageNotes: '可能引起踝部水肿。透析患者通常无需调整剂量。',
     ingredients: '苯磺酸氨氯地平 5mg',
     sideEffects: '踝部水肿、头痛、面部潮红',
-    image: imageFor('amlodipine besylate tablets white round pills, pharmaceutical blister pack, white background, realistic medical photo'),
     isCustom: false,
     level: 'low',
   },
@@ -176,7 +166,6 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
     usageNotes: '双侧肾动脉狭窄禁用。监测血钾，可能升高血钾。',
     ingredients: '缬沙坦 80mg',
     sideEffects: '头晕、高钾血症',
-    image: imageFor('valsartan capsules pink and yellow, pharmaceutical blister pack, white background, realistic medical product photo'),
     isCustom: false,
     level: 'low',
   },
@@ -201,7 +190,6 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
       '皮下或静脉注射。需监测血压、Hb、铁蛋白、TSAT。Hb上升过快需减量。',
     ingredients: '重组人促红素 2000IU / 3000IU / 4000IU',
     sideEffects: '高血压、血栓、纯红再障（罕见）',
-    image: imageFor('epoetin alfa injection vials, small glass vials with rubber stopper, pharmaceutical product photo, white background, realistic'),
     isCustom: false,
     level: 'low',
   },
@@ -226,7 +214,6 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
       '必须静脉滴注，透析时使用。监测铁蛋白和转铁蛋白饱和度，避免铁过载。滴注速度宜慢。',
     ingredients: '蔗糖铁 100mg/5ml',
     sideEffects: '低血压、过敏反应、味觉异常',
-    image: imageFor('iron sucrose injection dark brown glass vial, pharmaceutical product photo, white background, realistic'),
     isCustom: false,
     level: 'low',
   },

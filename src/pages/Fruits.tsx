@@ -293,15 +293,9 @@ function FruitCard({
         className="relative z-10 flex w-full items-start justify-between text-left transition"
       >
         <div className="flex items-center gap-3">
-          {fruit.image ? (
-            <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl bg-cream-100">
-              <img src={fruit.image} alt={fruit.name} loading="lazy" className="h-full w-full object-cover" />
-            </div>
-          ) : (
-            <div className="glass-tile flex h-12 w-12 items-center justify-center rounded-2xl text-2xl">
-              {fruit.emoji}
-            </div>
-          )}
+          <div className="glass-tile flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl text-2xl">
+            {fruit.emoji}
+          </div>
           <div>
             <div className="flex items-center gap-1.5">
               <h3 className="font-medium text-teal-700">{fruit.name}</h3>
@@ -478,6 +472,9 @@ function AddFruitDrawer({
                 placeholder="例如：柚子"
                 className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
               />
+              <p className="mt-1 text-[10px] text-teal-600/40">
+                添加后，详情页将自动联网获取真实配图与介绍
+              </p>
             </div>
 
             {/* emoji 选择 */}

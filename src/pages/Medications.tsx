@@ -290,15 +290,9 @@ function MedicationCard({ med, onClick }: { med: Medication; onClick: () => void
       className="glass-tile group relative overflow-hidden rounded-2xl p-4 text-left transition hover:shadow-soft"
     >
       <div className="relative z-10 flex items-start gap-3">
-        {med.image ? (
-          <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-cream-100">
-            <img src={med.image} alt={med.name} loading="lazy" className="h-full w-full object-cover" />
-          </div>
-        ) : (
-          <div className="glass-tile flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl text-2xl">
-            {med.emoji}
-          </div>
-        )}
+        <div className="glass-tile flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl text-2xl">
+          {med.emoji}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <h3 className="truncate font-medium text-teal-700">{med.name}</h3>
@@ -448,7 +442,7 @@ function AddMedicationDrawer({
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="药物介绍（可选）"
+              placeholder="药物介绍（可选，留空将自动联网获取）"
               className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
               rows={2}
             />
