@@ -13,6 +13,7 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { migrateLocalStorageToNative } from '@/lib/nativeStorage';
 import { closeTopOverlay } from '@/lib/backHandler';
 import { useDataSync } from '@/hooks/useDataSync';
+import { registerModuleEffects, printDependencyGraph } from '@/modules';
 
 type AppPhase = 'loading' | 'permissions' | 'ready';
 
@@ -21,6 +22,13 @@ function AppRoutes() {
   const navigate = useNavigate();
   // 启用事件驱动数据同步：跨模块实时联动 + 配置热更新
   useDataSync();
+
+  // 模块化解耦架构：注册跨模块副作用编排 + 打印依赖图（开发态）
+  useEffect(() => {
+    const unregister = registerModuleEffects();
+    printDependencyGraph();
+    return unregister;
+  }, []);
 
   // 监听 Android 硬件返回 / 侧滑手势
   useEffect(() => {
