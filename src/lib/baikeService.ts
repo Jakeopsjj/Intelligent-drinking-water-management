@@ -62,6 +62,38 @@ const MOBILE_UA =
 const TIMEOUT = 10000;
 
 /**
+ * CORS 代理列表（轮换使用，避免单点失败）
+ * 在 Capacitor WebView 中，跨域请求需要通过 CORS 代理
+ */
+const CORS_PROXIES = [
+  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+];
+
+/** 通过 CORS 代理发起请求，自动轮换代理 */
+async function fetchWithCorsProxy(url: string, options?: RequestInit): Promise<Response | null> {
+  // 先尝试直接请求（在某些环境下可能允许跨域）
+  try {
+    const res = await fetch(url, { ...options, signal: AbortSignal.timeout(TIMEOUT) });
+    if (res.ok) return res;
+  } catch {
+    // 直接请求失败，继续尝试代理
+  }
+
+  // 尝试 CORS 代理
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const proxiedUrl = proxy(url);
+      const res = await fetch(proxiedUrl, { ...options, signal: AbortSignal.timeout(TIMEOUT) });
+      if (res.ok) return res;
+    } catch {
+      // 继续尝试下一个代理
+    }
+  }
+  return null;
+}
+
+/**
  * 搜索百度百科，返回匹配的词条列表。
  * 失败返回空数组，不抛异常。
  */
@@ -125,21 +157,15 @@ export function fetchBaikeDetail(keyword: string): Promise<BaikeDetail | null> {
 /** 实际搜索逻辑：解析搜索结果页 */
 async function doSearch(keyword: string): Promise<BaikeSearchResult[]> {
   const searchUrl = `https://baike.baidu.com/search?word=${encodeURIComponent(keyword)}&pn=0&rn=10`;
-  let html = '';
-  try {
-    const res = await fetch(searchUrl, {
-      headers: {
-        'User-Agent': MOBILE_UA,
-        Accept: 'text/html,application/xhtml+xml',
-        'Accept-Language': 'zh-CN,zh;q=0.9',
-      },
-      signal: AbortSignal.timeout(TIMEOUT),
-    });
-    if (!res.ok) return [];
-    html = await res.text();
-  } catch {
-    return [];
-  }
+  const res = await fetchWithCorsProxy(searchUrl, {
+    headers: {
+      'User-Agent': MOBILE_UA,
+      Accept: 'text/html,application/xhtml+xml',
+      'Accept-Language': 'zh-CN,zh;q=0.9',
+    },
+  });
+  if (!res) return [];
+  const html = await res.text();
   return parseSearchResults(html);
 }
 
@@ -172,21 +198,15 @@ function parseSearchResults(html: string): BaikeSearchResult[] {
 async function doFetchDetail(keyword: string): Promise<BaikeDetail | null> {
   // 移动版页面结构更简单，便于解析
   const itemUrl = `https://baike.baidu.com/item/${encodeURIComponent(keyword)}?force=mobile`;
-  let html = '';
-  try {
-    const res = await fetch(itemUrl, {
-      headers: {
-        'User-Agent': MOBILE_UA,
-        Accept: 'text/html,application/xhtml+xml',
-        'Accept-Language': 'zh-CN,zh;q=0.9',
-      },
-      signal: AbortSignal.timeout(TIMEOUT),
-    });
-    if (!res.ok) return null;
-    html = await res.text();
-  } catch {
-    return null;
-  }
+  const res = await fetchWithCorsProxy(itemUrl, {
+    headers: {
+      'User-Agent': MOBILE_UA,
+      Accept: 'text/html,application/xhtml+xml',
+      'Accept-Language': 'zh-CN,zh;q=0.9',
+    },
+  });
+  if (!res) return null;
+  const html = await res.text();
   return parseDetail(html, keyword);
 }
 

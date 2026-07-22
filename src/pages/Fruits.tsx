@@ -6,6 +6,7 @@ import { useRecordsStore } from '@/store/useRecordsStore';
 import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 import { fetchWikiDetail, type WikiDetail } from '@/lib/wikiSearchService';
+import { findFruitBaike } from '@/data/baikeDatabase';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import DetailDrawer, { FieldIcons } from '@/components/DetailDrawer';
@@ -40,16 +41,48 @@ export default function Fruits() {
     high: filtered.filter((f) => f.level === 'high'),
   };
 
-  // 从维基百科搜索并自动添加水果
+  // 从离线百科或维基百科搜索并自动添加水果
   const handleWikiSearch = async () => {
     const keyword = query.trim();
     if (!keyword) return;
     setWikiSearching(true);
     setWikiError(null);
     try {
+      // 1. 先查离线百科数据库
+      const offlineBaike = findFruitBaike(keyword);
+      if (offlineBaike) {
+        addFruit({
+          name: offlineBaike.name,
+          emoji: '🍎',
+          potassiumPer100g: 0,
+          phosphorusPer100g: 0,
+          sodiumPer100g: 0,
+          waterPer100g: 0,
+          suggestion: '请根据医嘱适量食用',
+          description: offlineBaike.description,
+          aliases: offlineBaike.aliases,
+          origin: offlineBaike.origin,
+          varieties: offlineBaike.varieties,
+          cultivation: offlineBaike.cultivation,
+          culture: offlineBaike.culture,
+          healthBenefits: offlineBaike.healthBenefits,
+          precautions: offlineBaike.precautions,
+          storage: offlineBaike.storage,
+          image: offlineBaike.image,
+        });
+        const latest = useFruitsStore.getState().customFruits;
+        const newFruit = [...latest].reverse().find((f) => f.name === offlineBaike.name);
+        if (newFruit) {
+          setSelected(newFruit);
+          setQuery('');
+        }
+        return;
+      }
+
+      // 2. 离线库没有，联网搜索维基百科
       const detail: WikiDetail | null = await fetchWikiDetail(keyword);
       if (!detail) {
-        setWikiError('未在维基百科找到相关内容');
+        setWikiError('未找到相关内容');
         return;
       }
       addFruit({
@@ -70,7 +103,6 @@ export default function Fruits() {
         precautions: detail.precautions,
         storage: detail.storage,
       });
-      // 从最新 store 状态中找到新添加的水果并打开详情抽屉
       const latest = useFruitsStore.getState().customFruits;
       const newFruit = [...latest].reverse().find((f) => f.name === detail.title);
       if (newFruit) {
@@ -78,7 +110,7 @@ export default function Fruits() {
         setQuery('');
       }
     } catch {
-      setWikiError('未在维基百科找到相关内容');
+      setWikiError('未找到相关内容');
     } finally {
       setWikiSearching(false);
     }
@@ -186,13 +218,13 @@ export default function Fruits() {
               onClick={handleWikiSearch}
               className="inline-flex items-center gap-2 rounded-xl glass-tile px-4 py-2 text-sm font-medium text-teal-600 transition hover:bg-teal-50"
             >
-              🌐 从维基百科搜索 '{query}'
+              🌐 搜索百科 '{query}'
             </button>
           )}
           {wikiSearching && (
             <div className="inline-flex items-center gap-2 text-sm text-teal-600">
               <Loader2 className="h-4 w-4 animate-spin" />
-              正在搜索维基百科...
+              正在搜索百科...
             </div>
           )}
           {wikiError && (

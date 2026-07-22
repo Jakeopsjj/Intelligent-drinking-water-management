@@ -51,6 +51,38 @@ const TIMEOUT = 10000;
 const LANGS = ['zh', 'en'] as const;
 
 /**
+ * CORS 代理列表（轮换使用，避免单点失败）
+ * 在 Capacitor WebView 中，跨域请求可能需要通过 CORS 代理
+ */
+const CORS_PROXIES = [
+  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+];
+
+/** 通过 CORS 代理发起请求，自动轮换代理 */
+async function fetchWithCorsProxy(url: string, options?: RequestInit): Promise<Response | null> {
+  // 先尝试直接请求（Wikipedia API 支持 CORS，可能直接成功）
+  try {
+    const res = await fetch(url, { ...options, signal: AbortSignal.timeout(TIMEOUT) });
+    if (res.ok) return res;
+  } catch {
+    // 直接请求失败，继续尝试代理
+  }
+
+  // 尝试 CORS 代理
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const proxiedUrl = proxy(url);
+      const res = await fetch(proxiedUrl, { ...options, signal: AbortSignal.timeout(TIMEOUT) });
+      if (res.ok) return res;
+    } catch {
+      // 继续尝试下一个代理
+    }
+  }
+  return null;
+}
+
+/**
  * 搜索维基百科词条（OpenSearch API）。
  * 失败返回空数组，不抛异常。
  */
@@ -123,11 +155,10 @@ async function doSearch(keyword: string): Promise<WikiSearchResult[]> {
         format: 'json',
         origin: '*',
       });
-      const res = await fetch(
-        `https://${lang}.wikipedia.org/w/api.php?${params.toString()}`,
-        { signal: AbortSignal.timeout(TIMEOUT) }
+      const res = await fetchWithCorsProxy(
+        `https://${lang}.wikipedia.org/w/api.php?${params.toString()}`
       );
-      if (!res.ok) continue;
+      if (!res) continue;
       const data = await res.json();
       // OpenSearch 返回格式：[keyword, [titles], [descriptions], [urls]]
       const titles: string[] = data?.[1] ?? [];
@@ -163,11 +194,11 @@ async function doFetchDetail(keyword: string): Promise<WikiDetail | null> {
 async function fetchDetailFromLang(lang: string, keyword: string): Promise<WikiDetail | null> {
   // 1. REST summary API —— 摘要 + 主图
   const encoded = encodeURIComponent(keyword);
-  const summaryRes = await fetch(
+  const summaryRes = await fetchWithCorsProxy(
     `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encoded}?redirect=true`,
-    { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(TIMEOUT) }
+    { headers: { Accept: 'application/json' } }
   );
-  if (!summaryRes.ok) return null;
+  if (!summaryRes) return null;
   const summaryData = await summaryRes.json();
   // 消歧义页跳过
   if (summaryData.type === 'disambiguation') return null;
@@ -217,11 +248,10 @@ async function fetchWikitext(lang: string, title: string): Promise<string | unde
       format: 'json',
       origin: '*',
     });
-    const res = await fetch(
-      `https://${lang}.wikipedia.org/w/api.php?${params.toString()}`,
-      { signal: AbortSignal.timeout(TIMEOUT) }
+    const res = await fetchWithCorsProxy(
+      `https://${lang}.wikipedia.org/w/api.php?${params.toString()}`
     );
-    if (!res.ok) return undefined;
+    if (!res) return undefined;
     const data = await res.json();
     const wikitext: string | undefined = data?.parse?.wikitext?.['*'];
     return wikitext;
