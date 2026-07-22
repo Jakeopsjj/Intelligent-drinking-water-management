@@ -77,9 +77,14 @@ export default function Dashboard() {
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="relative overflow-hidden rounded-[28px] border border-white/80 bg-white/70 p-6 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.06)] backdrop-blur-xl"
+        className="glass-card relative overflow-hidden rounded-[28px] p-6"
       >
-        <div className="flex items-start justify-between gap-3">
+        {/* 水滴光斑装饰 */}
+        <div className="glass-orb -right-8 -top-8 h-32 w-32 bg-teal-300/30" />
+        <div className="glass-orb -bottom-10 -left-6 h-24 w-24 bg-sage-300/25" style={{ animationDelay: '2s' }} />
+        {/* 流动反光 */}
+        <div className="glass-shimmer" />
+        <div className="relative z-10 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 text-xs font-medium text-teal-600/70">
               <Sparkles className="h-3 w-3" />
@@ -109,9 +114,10 @@ export default function Dashboard() {
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
-        className="rounded-[28px] border border-white/80 bg-white/70 p-5 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.06)] backdrop-blur-xl"
+        className="glass-card relative overflow-hidden rounded-[28px] p-5"
       >
-        <div className="flex items-center justify-between">
+        <div className="glass-orb -right-6 -top-6 h-24 w-24 bg-teal-300/20" />
+        <div className="relative z-10 flex items-center justify-between">
           <h2 className="font-serif text-base font-semibold text-teal-700">今日总览</h2>
           {overallWarning ? (
             <span className="whitespace-nowrap rounded-full bg-clay-100 px-2 py-0.5 text-[10px] font-medium text-clay-600">
@@ -124,11 +130,11 @@ export default function Dashboard() {
           )}
         </div>
         {/* 横向滑动区域：6 个指标卡片，超出可左右滑动 */}
-        <div className="mt-4 flex gap-2.5 overflow-x-auto pb-1 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="relative z-10 mt-4 flex gap-2.5 overflow-x-auto pb-1 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {overviewItems.map((item) => (
             <div
               key={item.label}
-              className="flex w-[72px] flex-shrink-0 flex-col items-center rounded-2xl border border-white/60 bg-white/50 p-3 text-center backdrop-blur-sm"
+              className="glass-tile flex w-[72px] flex-shrink-0 flex-col items-center rounded-2xl p-3 text-center"
             >
               <div className="flex items-center justify-center gap-1 text-[10px] text-teal-600/60">
                 {item.icon}
@@ -141,7 +147,7 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
-        <p className="mt-1.5 text-[10px] text-teal-600/40">← 左右滑动查看全部 6 项指标 →</p>
+        <p className="relative z-10 mt-1.5 text-[10px] text-teal-600/40">← 左右滑动查看全部 6 项指标 →</p>
       </motion.section>
 
       {/* 核心指标卡片：2 列，增加间距 */}
@@ -217,21 +223,22 @@ export default function Dashboard() {
       </section>
 
       {/* 今日记录列表 */}
-      <section className="rounded-[28px] border border-white/80 bg-white/70 p-5 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.06)] backdrop-blur-xl">
-        <div className="flex items-center justify-between">
+      <section className="glass-card relative overflow-hidden rounded-[28px] p-5">
+        <div className="glass-orb -left-6 -bottom-6 h-24 w-24 bg-sage-300/20" style={{ animationDelay: '3s' }} />
+        <div className="relative z-10 flex items-center justify-between">
           <h2 className="font-serif text-base font-semibold text-teal-700">今日记录</h2>
           <span className="whitespace-nowrap rounded-full bg-sage-50 px-2.5 py-0.5 text-[11px] font-medium text-sage-600">
             {todayMetrics.records.length} 条
           </span>
         </div>
-        <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
+        <div className="relative z-10 mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
           {todayMetrics.records.length > 0 ? (
             todayMetrics.records.map((r) => (
               <RecordItem key={r.id} record={r} onDelete={deleteRecord} />
             ))
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cream-100">
+              <div className="glass-tile flex h-12 w-12 items-center justify-center rounded-2xl">
                 <Droplets className="h-5 w-5 text-teal-600/40" />
               </div>
               <p className="mt-2 text-xs text-teal-600/60">今日还没有记录</p>

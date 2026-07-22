@@ -107,3 +107,180 @@ input[type="number"] {
   0%, 49% { animation-name: wave-move-left; }
   50%, 100% { animation-name: wave-move-right; }
 }
+
+/* ===== 液态玻璃 / 边缘折射 / 水滴 / 反光 动效系统 ===== */
+
+/* 液态玻璃卡片基底：半透明 + 模糊 + 折射感 */
+.glass-card {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(245, 250, 247, 0.45) 100%
+  );
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 4px 24px -6px rgba(45, 95, 93, 0.12),
+    0 1px 2px -1px rgba(255, 255, 255, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* 边缘折射高光：顶部 + 左侧渐变光带 */
+.glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.1) 30%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.05) 70%,
+    rgba(255, 255, 255, 0.4) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 水滴反光：左上角柔和光斑 */
+.glass-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60%;
+  height: 40%;
+  border-radius: inherit;
+  background: radial-gradient(
+    ellipse at top left,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.15) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 流动反光动画：微弱的光带周期性扫过 */
+@keyframes glass-shimmer {
+  0%, 100% { opacity: 0.4; transform: translateX(-30%) translateY(0) rotate(8deg); }
+  50% { opacity: 0.7; transform: translateX(30%) translateY(5%) rotate(8deg); }
+}
+
+/* 水滴呼吸动效 */
+@keyframes droplet-breathe {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.08); }
+}
+
+/* 液态玻璃内部装饰光斑（需手动添加 .glass-orb 子元素） */
+.glass-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(24px);
+  pointer-events: none;
+  z-index: 0;
+  animation: droplet-breathe 6s ease-in-out infinite;
+}
+
+/* 流动反光带（需手动添加 .glass-shimmer 子元素） */
+.glass-shimmer {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    115deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.18) 48%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(255, 255, 255, 0.18) 52%,
+    transparent 65%
+  );
+  pointer-events: none;
+  z-index: 1;
+  animation: glass-shimmer 8s ease-in-out infinite;
+}
+
+/* 液态玻璃按钮：更强的按压反馈 */
+.glass-btn {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.25) 100%
+  );
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 2px 8px -2px rgba(45, 95, 93, 0.1),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.35) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* 小型玻璃块（指标方块、徽章等） */
+.glass-tile {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 2px 8px -2px rgba(45, 95, 93, 0.08),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* 顶部 / 底部导航栏液态玻璃 */
+.glass-bar {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.4) 100%
+  );
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* 底部导航栏液态玻璃（渐变方向 + border-top） */
+.glass-bar-bottom {
+  background: linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.4) 100%
+  );
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
+}

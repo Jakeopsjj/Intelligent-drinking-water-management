@@ -80,34 +80,12 @@ const MetricCard: FC<MetricCardProps> = ({
   return (
     <div
       className={cn(
-        'relative flex min-h-[148px] flex-col overflow-hidden p-5 transition-all duration-300',
-        'rounded-[28px]',
-        'hover:-translate-y-0.5',
-        // 浅色毛玻璃容器：白色半透明底 + backdrop-blur
-        'bg-white/70 backdrop-blur-xl',
-        // 玻璃边框：细亮边 + 外阴影
-        'border border-white/80',
-        'shadow-[0_4px_24px_-6px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)]'
+        'glass-card relative flex min-h-[148px] flex-col overflow-hidden rounded-[28px] p-5 transition-all duration-300',
+        'hover:-translate-y-0.5'
       )}
     >
-      {/* 玻璃顶部高光反射 */}
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-8"
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 100%)',
-        }}
-        aria-hidden="true"
-      />
-      {/* 玻璃边框内描边 - 顶部亮线 */}
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px"
-        style={{
-          background:
-            'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.9) 20%, rgba(255,255,255,0.9) 80%, rgba(255,255,255,0) 100%)',
-        }}
-        aria-hidden="true"
-      />
+      {/* 流动反光 */}
+      <div className="glass-shimmer" />
 
       {/* 底层：波浪液位填充（马卡龙色半透明水） */}
       {showWave && limit > 0 && (

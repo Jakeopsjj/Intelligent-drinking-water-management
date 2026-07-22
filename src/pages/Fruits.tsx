@@ -57,17 +57,17 @@ export default function Fruits() {
 
         {/* 搜索框 */}
         <div className="relative mt-5">
-          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-teal-600/40" />
+          <Search className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-teal-600/40" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索水果名称"
-            className="w-full rounded-2xl border border-cream-300 bg-white/70 py-3 pl-11 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:bg-white"
+            className="glass-tile w-full rounded-2xl py-3 pl-11 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
           />
           {query && (
             <button
               onClick={() => setQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-teal-600/40 hover:bg-cream-200"
+              className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full p-1 text-teal-600/40 hover:bg-cream-200"
             >
               <X className="h-4 w-4" />
             </button>
@@ -91,9 +91,11 @@ export default function Fruits() {
             key={level}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+            className="glass-card relative overflow-hidden rounded-3xl p-6"
           >
-            <div className="mb-4 flex items-center justify-between">
+            <div className="glass-orb -right-8 -top-8 h-28 w-28 bg-sage-300/20" style={{ animationDelay: `${level === 'low' ? 0 : level === 'medium' ? 2 : 4}s` }} />
+            <div className="glass-shimmer" />
+            <div className="relative z-10 mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span
                   className={cn(
@@ -111,7 +113,7 @@ export default function Fruits() {
               <span className="text-xs text-teal-600/60">{list.length} 种</span>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="relative z-10 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {list.map((fruit) => (
                 <FruitCard
                   key={fruit.id}
@@ -126,7 +128,7 @@ export default function Fruits() {
       })}
 
       {filtered.length === 0 && (
-        <div className="rounded-3xl border border-dashed border-cream-300 bg-white/40 py-16 text-center">
+        <div className="glass-card rounded-3xl py-16 text-center">
           <p className="text-sm text-teal-600/60">未找到匹配的水果</p>
           <button
             onClick={() => setShowAdd(true)}
@@ -140,7 +142,7 @@ export default function Fruits() {
       {/* 浮动添加按钮 */}
       <button
         onClick={() => setShowAdd(true)}
-        className="fixed bottom-24 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-sage-500 text-white shadow-soft-lg transition hover:scale-105 hover:shadow-soft-lg active:scale-95 md:bottom-8"
+        className="glass-btn fixed bottom-24 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-sage-500 text-white shadow-soft-lg transition hover:scale-105 hover:shadow-soft-lg active:scale-95 md:bottom-8"
         aria-label="添加水果"
       >
         <Plus className="h-6 w-6" />
@@ -213,11 +215,11 @@ function FruitCard({
   };
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-cream-200 bg-white/70 p-4 transition hover:border-teal-300 hover:shadow-soft">
+    <div className="glass-tile group relative overflow-hidden rounded-2xl p-4 transition hover:border-teal-300 hover:shadow-soft">
       {/* 顶部 */}
-      <div className="flex items-start justify-between">
+      <div className="relative z-10 flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cream-100 text-2xl">
+          <div className="glass-tile flex h-12 w-12 items-center justify-center rounded-2xl text-2xl">
             {fruit.emoji}
           </div>
           <div>
@@ -251,14 +253,14 @@ function FruitCard({
       </div>
 
       {/* 建议 */}
-      <div className="mt-3 flex items-start gap-1.5 rounded-xl bg-cream-50 px-3 py-2 text-xs text-teal-600/70">
+      <div className="relative z-10 mt-3 flex items-start gap-1.5 rounded-xl bg-cream-50/70 px-3 py-2 text-xs text-teal-600/70">
         <Info className="mt-0.5 h-3 w-3 flex-shrink-0" />
         <span>{fruit.suggestion}</span>
       </div>
 
       {/* 快速记录 */}
       {showAdd ? (
-        <div className="mt-3 space-y-2">
+        <div className="relative z-10 mt-3 space-y-2">
           <div className="flex flex-wrap gap-1.5">
             {[100, 150, 200, 250].map((w) => (
               <button
@@ -300,10 +302,10 @@ function FruitCard({
           )}
         </div>
       ) : (
-        <div className="mt-3 flex items-center justify-between">
+        <div className="relative z-10 mt-3 flex items-center justify-between">
           <button
             onClick={() => setShowAdd(true)}
-            className="rounded-xl bg-teal-50 px-3 py-1.5 text-xs font-medium text-teal-600 transition hover:bg-teal-100"
+            className="glass-btn rounded-xl px-3 py-1.5 text-xs font-medium text-teal-600 transition hover:bg-teal-50"
           >
             + 快速记录
           </button>
@@ -367,14 +369,15 @@ function AddFruitDrawer({
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="fixed bottom-0 left-0 right-0 z-50 max-h-[90vh] overflow-y-auto rounded-t-3xl bg-cream-50 p-6 shadow-soft-lg"
+        className="glass-card fixed bottom-0 left-0 right-0 z-50 max-h-[90vh] overflow-y-auto rounded-t-3xl p-6 shadow-soft-lg"
       >
-        <div className="mx-auto max-w-lg">
+        <div className="glass-shimmer" />
+        <div className="relative z-10 mx-auto max-w-lg">
           <div className="flex items-center justify-between">
             <h3 className="font-serif text-lg font-semibold text-teal-700">添加自定义水果</h3>
             <button
               onClick={onClose}
-              className="rounded-full p-1.5 text-teal-600 hover:bg-cream-200"
+              className="glass-tile rounded-full p-1.5 text-teal-600 hover:bg-cream-200"
             >
               <X className="h-5 w-5" />
             </button>

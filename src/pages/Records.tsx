@@ -72,7 +72,7 @@ export default function Records() {
         </div>
 
         {/* 时间范围切换 */}
-        <div className="inline-flex rounded-2xl border border-cream-300 bg-cream-50 p-1">
+        <div className="glass-tile inline-flex rounded-2xl p-1">
           {[7, 30].map((r) => (
             <button
               key={r}
@@ -81,7 +81,7 @@ export default function Records() {
                 'rounded-xl px-4 py-1.5 text-sm font-medium transition',
                 range === r
                   ? 'bg-teal-500 text-white shadow-soft'
-                  : 'text-teal-600 hover:bg-teal-100'
+                  : 'text-teal-600 hover:bg-teal-100/50'
               )}
             >
               {r === 7 ? '近 7 天' : '近 30 天'}
@@ -95,9 +95,11 @@ export default function Records() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+        className="glass-card relative overflow-hidden rounded-3xl p-6"
       >
-        <div className="flex items-center justify-between">
+        <div className="glass-orb -right-8 -top-8 h-28 w-28 bg-teal-300/20" />
+        <div className="glass-shimmer" />
+        <div className="relative z-10 flex items-center justify-between">
           <div>
             <h2 className="font-serif text-lg font-semibold text-teal-700">摄水量 vs 超滤量</h2>
             <p className="mt-1 text-xs text-teal-600/60">对比每日摄入与排出</p>
@@ -111,7 +113,7 @@ export default function Records() {
             </span>
           </div>
         </div>
-        <div className="mt-6 h-72">
+        <div className="relative z-10 mt-6 h-72">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={trendData} margin={{ top: 4, right: 4, bottom: 4, left: -20 }}>
               <CartesianGrid stroke="#E8E0D5" strokeDasharray="3 3" vertical={false} />
@@ -180,12 +182,14 @@ export default function Records() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+        className="glass-card relative overflow-hidden rounded-3xl p-6"
       >
-        <h2 className="font-serif text-lg font-semibold text-teal-700">历史记录</h2>
-        <p className="mt-1 text-xs text-teal-600/60">点击查看每日详情</p>
+        <div className="glass-orb -left-8 -bottom-8 h-28 w-28 bg-sage-300/20" style={{ animationDelay: '2s' }} />
+        <div className="glass-shimmer" />
+        <h2 className="relative z-10 font-serif text-lg font-semibold text-teal-700">历史记录</h2>
+        <p className="relative z-10 mt-1 text-xs text-teal-600/60">点击查看每日详情</p>
 
-        <div className="mt-4 space-y-2">
+        <div className="relative z-10 mt-4 space-y-2">
           {historyMetrics.map((m) => (
             <DayHistoryCard
               key={m.date}
@@ -236,9 +240,9 @@ function DayHistoryCard({
   return (
     <button
       onClick={onClick}
-      className="group flex w-full items-center gap-4 rounded-2xl border border-cream-200 bg-white/60 px-4 py-3.5 text-left transition hover:border-teal-300 hover:bg-white"
+      className="glass-tile group flex w-full items-center gap-4 rounded-2xl px-4 py-3.5 text-left transition hover:border-teal-300 hover:shadow-soft"
     >
-      <div className="flex h-12 w-12 flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-teal-50 to-sage-50">
+      <div className="glass-tile flex h-12 w-12 flex-col items-center justify-center rounded-2xl">
         <Calendar className="h-4 w-4 text-teal-500" />
       </div>
 
@@ -295,9 +299,10 @@ function DayDetailDrawer({
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="flex h-full w-full max-w-md flex-col bg-cream-50 shadow-2xl"
+        className="glass-card flex h-full w-full max-w-md flex-col overflow-hidden rounded-l-3xl shadow-2xl"
       >
-        <div className="flex items-center justify-between border-b border-cream-200 p-4">
+        <div className="glass-shimmer" />
+        <div className="relative z-10 flex items-center justify-between border-b border-cream-200 p-4">
           <div>
             <h3 className="font-serif text-lg font-semibold text-teal-700">
               {formatDateOnly(metrics.date)}
@@ -313,7 +318,7 @@ function DayDetailDrawer({
         </div>
 
         {/* 概览 */}
-        <div className="grid grid-cols-2 gap-2 p-4">
+        <div className="relative z-10 grid grid-cols-2 gap-2 p-4">
           <SummaryItem label="摄水量" value={metrics.water} unit="ml" />
           <SummaryItem label="超滤量" value={metrics.ultrafiltration} unit="ml" />
           <SummaryItem label="水果摄入" value={formatWeightKg(metrics.fruit)} />
@@ -323,7 +328,7 @@ function DayDetailDrawer({
         </div>
 
         {/* 详情列表 */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-4">
           {metrics.records.length > 0 ? (
             <div className="space-y-2">
               {metrics.records.map((r) => (
@@ -332,7 +337,7 @@ function DayDetailDrawer({
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-16">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cream-200">
+              <div className="glass-tile flex h-14 w-14 items-center justify-center rounded-2xl">
                 <TrendingUp className="h-6 w-6 text-teal-600/40" />
               </div>
               <p className="mt-3 text-sm text-teal-600/60">这一天没有记录</p>
@@ -354,7 +359,7 @@ function SummaryItem({
   unit?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-cream-200 bg-white/70 p-3">
+    <div className="glass-tile rounded-2xl p-3">
       <div className="text-[10px] text-teal-600/60">{label}</div>
       <div className="mt-0.5 font-medium text-teal-700">
         {value} {unit && <span className="text-[10px] text-teal-600/60">{unit}</span>}
@@ -396,15 +401,17 @@ function ElementBarSection({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+      className="glass-card relative overflow-hidden rounded-3xl p-6"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="glass-orb -right-6 -top-6 h-24 w-24 bg-clay-300/20" style={{ animationDelay: '4s' }} />
+      <div className="glass-shimmer" />
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-serif text-lg font-semibold text-teal-700">每日{meta.label}摄入量</h2>
           <p className="mt-1 text-xs text-teal-600/60">红色表示当日已超标</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex rounded-full bg-cream-100 p-0.5">
+          <div className="glass-tile flex rounded-full p-0.5">
             {(Object.keys(ELEMENT_META) as ElementKey[]).map((k) => (
               <button
                 key={k}
@@ -420,12 +427,12 @@ function ElementBarSection({
               </button>
             ))}
           </div>
-          <span className="rounded-full bg-cream-50 px-3 py-1 text-xs font-medium text-teal-600">
+          <span className="glass-tile rounded-full px-3 py-1 text-xs font-medium text-teal-600">
             限额 {currentLimit} mg/日
           </span>
         </div>
       </div>
-      <div className="mt-6 h-64">
+      <div className="relative z-10 mt-6 h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={trendData} margin={{ top: 4, right: 4, bottom: 4, left: -20 }}>
             <CartesianGrid stroke="#E8E0D5" strokeDasharray="3 3" vertical={false} />

@@ -29,8 +29,7 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
     >
       {/* 移动端顶部标题栏：肾友笔记 + 搜索 */}
       <header
-        className="sticky top-0 z-30 backdrop-blur-xl md:hidden"
-        style={{ background: 'rgba(240, 247, 244, 0.75)' }}
+        className="glass-bar sticky top-0 z-30 md:hidden"
       >
         <div className="mx-auto flex h-14 items-center justify-between px-5">
           <div className="flex items-center gap-3">
@@ -47,11 +46,7 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
 
       {/* 桌面端顶部导航 */}
       <header
-        className="sticky top-0 z-30 hidden backdrop-blur-xl md:block"
-        style={{
-          background: 'rgba(240, 247, 244, 0.7)',
-          borderBottom: '1px solid rgba(255,255,255,0.5)',
-        }}
+        className="glass-bar sticky top-0 z-30 hidden md:block"
       >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-2.5">
@@ -78,7 +73,7 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
                     'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition',
                     isActive
                       ? 'bg-teal-500 text-white shadow-soft'
-                      : 'text-teal-600 hover:bg-teal-100/60'
+                      : 'glass-tile text-teal-600 hover:bg-teal-100/60'
                   )}
                 >
                   {item.icon}
@@ -95,11 +90,7 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
 
       {/* 移动端底部导航：毛玻璃效果 + 选中态绿色渐变 */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-30 px-4 pb-4 pt-2 backdrop-blur-xl md:hidden"
-        style={{
-          background: 'rgba(240, 247, 244, 0.8)',
-          borderTop: '1px solid rgba(255,255,255,0.5)',
-        }}
+        className="glass-bar-bottom fixed bottom-0 left-0 right-0 z-30 px-4 pb-4 pt-2 md:hidden"
       >
         <div className="mx-auto flex max-w-md items-center justify-around">
           {NAV_ITEMS.map((item) => {
@@ -121,7 +112,7 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
                     'flex h-10 w-10 items-center justify-center rounded-2xl transition-all duration-300',
                     isActive
                       ? 'bg-gradient-to-br from-teal-400 to-green-500 text-white shadow-lg shadow-teal-500/30'
-                      : 'text-gray-400'
+                      : 'glass-tile text-gray-400'
                   )}
                 >
                   {item.icon}

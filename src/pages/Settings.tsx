@@ -134,8 +134,11 @@ export default function Settings() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+        className="glass-card relative overflow-hidden rounded-3xl p-6"
       >
+        <div className="glass-orb -right-10 -top-10 h-32 w-32 bg-teal-300/20" />
+        <div className="glass-shimmer" />
+        <div className="relative z-10">
         <div className="mb-4 flex items-center gap-2">
           <User className="h-4 w-4 text-teal-500" />
           <h2 className="font-serif text-lg font-semibold text-teal-700">个人信息</h2>
@@ -143,7 +146,7 @@ export default function Settings() {
 
         <div className="space-y-4">
           {/* 头像 */}
-          <div className="flex items-center gap-4 rounded-xl border border-cream-300 bg-white p-3">
+          <div className="glass-tile flex items-center gap-4 rounded-xl p-3">
             <button
               onClick={() => setShowAvatarPicker(true)}
               className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-cream-300 bg-cream-100 transition hover:border-teal-400"
@@ -173,7 +176,7 @@ export default function Settings() {
               value={settings.userName ?? ''}
               onChange={(e) => updateSettings({ userName: e.target.value })}
               placeholder="例如：肾友"
-              className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
+              className="glass-tile w-full rounded-xl px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
             />
           </Field>
 
@@ -182,9 +185,10 @@ export default function Settings() {
               value={settings.dialysisSchedule ?? ''}
               onChange={(e) => updateSettings({ dialysisSchedule: e.target.value })}
               placeholder="例如：周一 / 周三 / 周五"
-              className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
+              className="glass-tile w-full rounded-xl px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
             />
           </Field>
+        </div>
         </div>
       </motion.section>
 
@@ -193,8 +197,11 @@ export default function Settings() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+        className="glass-card relative overflow-hidden rounded-3xl p-6"
       >
+        <div className="glass-orb -left-10 -top-10 h-32 w-32 bg-sage-300/20" style={{ animationDelay: '1.5s' }} />
+        <div className="glass-shimmer" />
+        <div className="relative z-10">
         <div className="mb-4 flex items-center gap-2">
           <HeartPulse className="h-4 w-4 text-teal-500" />
           <h2 className="font-serif text-lg font-semibold text-teal-700">每日限额</h2>
@@ -291,6 +298,7 @@ export default function Settings() {
             )}
           </button>
         </div>
+        </div>
       </motion.section>
 
       {/* 数据管理 */}
@@ -298,14 +306,17 @@ export default function Settings() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="rounded-3xl border border-cream-300 bg-white/70 p-6 shadow-soft"
+        className="glass-card relative overflow-hidden rounded-3xl p-6"
       >
+        <div className="glass-orb -right-10 -bottom-10 h-32 w-32 bg-clay-300/20" style={{ animationDelay: '3s' }} />
+        <div className="glass-shimmer" />
+        <div className="relative z-10">
         <div className="mb-4 flex items-center gap-2">
           <CalendarClock className="h-4 w-4 text-teal-500" />
           <h2 className="font-serif text-lg font-semibold text-teal-700">数据管理</h2>
         </div>
 
-        <div className="flex items-center justify-between rounded-2xl bg-cream-50 px-4 py-3">
+        <div className="glass-tile flex items-center justify-between rounded-2xl px-4 py-3">
           <div>
             <div className="text-sm font-medium text-teal-700">记录总数</div>
             <div className="mt-0.5 text-xs text-teal-600/60">
@@ -449,6 +460,7 @@ export default function Settings() {
             </div>
           )}
         </div>
+        </div>
       </motion.section>
 
       {/* 关于 */}
@@ -456,15 +468,19 @@ export default function Settings() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="rounded-3xl border border-cream-300 bg-white/70 p-6 text-center shadow-soft"
+        className="glass-card relative overflow-hidden rounded-3xl p-6 text-center"
       >
-        <div className="font-serif text-sm text-teal-700">肾友笔记</div>
-        <p className="mt-1 text-xs text-teal-600/60">
-          一款专注透析患者健康管理的轻量应用
-        </p>
-        <p className="mt-3 text-[10px] text-teal-600/40">
-          所有数据均存储在本地浏览器，注重隐私保护
-        </p>
+        <div className="glass-orb -left-8 -bottom-8 h-24 w-24 bg-teal-300/20" style={{ animationDelay: '1s' }} />
+        <div className="glass-shimmer" />
+        <div className="relative z-10">
+          <div className="font-serif text-sm text-teal-700">肾友笔记</div>
+          <p className="mt-1 text-xs text-teal-600/60">
+            一款专注透析患者健康管理的轻量应用
+          </p>
+          <p className="mt-3 text-[10px] text-teal-600/40">
+            所有数据均存储在本地浏览器，注重隐私保护
+          </p>
+        </div>
       </motion.section>
 
       {/* 头像选择器（通过 Portal 渲染到 body） */}
@@ -505,12 +521,12 @@ function ExportButton({
       onClick={onClick}
       disabled={disabled || exporting !== null}
       className={cn(
-        'flex flex-col items-center justify-center gap-1 whitespace-nowrap rounded-xl px-2 py-2.5 text-xs font-medium transition',
+        'glass-tile flex flex-col items-center justify-center gap-1 whitespace-nowrap rounded-xl px-2 py-2.5 text-xs font-medium transition',
         isLoading
           ? 'border border-teal-300 bg-teal-100 text-teal-600'
           : isDone
           ? 'border border-sage-400 bg-sage-500 text-white'
-          : 'border border-teal-300 bg-white text-teal-600 hover:bg-teal-100 disabled:opacity-40'
+          : 'text-teal-600 hover:bg-teal-100/60 disabled:opacity-40'
       )}
     >
       {isLoading ? (
@@ -569,7 +585,7 @@ function NumberInput({
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex flex-1 items-center rounded-xl border border-cream-300 bg-white">
+      <div className="glass-tile flex flex-1 items-center rounded-xl">
         <button
           onClick={() => handleChange(value - step)}
           className="flex h-10 w-10 items-center justify-center text-teal-600 hover:bg-cream-100"

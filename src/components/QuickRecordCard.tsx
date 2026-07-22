@@ -45,23 +45,23 @@ function QuickRecordShell({ title, subtitle, icon, theme, children }: BaseProps)
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-[28px] border border-white/80 bg-white/70 backdrop-blur-xl transition-all',
-        'shadow-[0_4px_24px_-6px_rgba(0,0,0,0.06)]',
+        'glass-card relative overflow-hidden rounded-[28px] transition-all',
         open && 'shadow-[0_8px_32px_-8px_rgba(0,0,0,0.12)]'
       )}
     >
+      {/* 流动反光 */}
+      <div className="glass-shimmer" />
       {/* 顶部渐变条 */}
-      <div className={cn('h-1 w-full bg-gradient-to-r', themeMap.bar)} />
+      <div className={cn('relative z-10 h-1 w-full bg-gradient-to-r', themeMap.bar)} />
 
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between p-5 text-left"
+        className="relative z-10 flex w-full items-center justify-between p-5 text-left"
       >
         <div className="flex items-center gap-3">
           <div
             className={cn(
-              'flex h-11 w-11 items-center justify-center rounded-2xl',
-              themeMap.bg,
+              'glass-tile flex h-11 w-11 items-center justify-center rounded-2xl',
               themeMap.text
             )}
           >
@@ -75,7 +75,7 @@ function QuickRecordShell({ title, subtitle, icon, theme, children }: BaseProps)
         <motion.div
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.3 }}
-          className={cn('flex h-8 w-8 items-center justify-center rounded-full', themeMap.bg)}
+          className={cn('glass-tile flex h-8 w-8 items-center justify-center rounded-full', themeMap.text)}
         >
           <ChevronDown className={cn('h-4 w-4', themeMap.text)} />
         </motion.div>
@@ -88,7 +88,7 @@ function QuickRecordShell({ title, subtitle, icon, theme, children }: BaseProps)
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="overflow-hidden"
+            className="relative z-10 overflow-hidden"
           >
             <div className="border-t border-cream-200 p-5 pt-4">{children}</div>
           </motion.div>
