@@ -35,6 +35,9 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             if (project.hasProperty('KIDNEYNOTES_STORE_FILE')) {
                 signingConfig signingConfigs.release
+            } else {
+                // 未配置 release keystore 时，使用 debug 签名（保证 APK 可安装）
+                signingConfig signingConfigs.debug
             }
         }
     }

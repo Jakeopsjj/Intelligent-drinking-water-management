@@ -31,3 +31,7 @@ dist-ssr
 android/app/build
 android/.gradle
 android/capacitor-cordova-android-plugins/build
+
+# 例外：releases/ 目录下的 APK 需要提交到 GitHub 供下载
+!releases/
+!releases/*.apk
