@@ -12,12 +12,15 @@ import PermissionsGate, { hasAcceptedPermissions } from '@/components/Permission
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { migrateLocalStorageToNative } from '@/lib/nativeStorage';
 import { closeTopOverlay } from '@/lib/backHandler';
+import { useDataSync } from '@/hooks/useDataSync';
 
 type AppPhase = 'loading' | 'permissions' | 'ready';
 
 function AppRoutes() {
   const initialized = useSettingsStore((s) => s.settings.initialized);
   const navigate = useNavigate();
+  // 启用事件驱动数据同步：跨模块实时联动 + 配置热更新
+  useDataSync();
 
   // 监听 Android 硬件返回 / 侧滑手势
   useEffect(() => {

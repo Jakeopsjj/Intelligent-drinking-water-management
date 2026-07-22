@@ -4,6 +4,8 @@ import type { AnyRecord, WaterRecord, UltrafiltrationRecord, FruitRecord, Fruit,
 import { generateId, calculatePotassium, calculatePhosphorus, calculateSodium, calculateWater } from '@/utils/calc';
 import { getTodayKey, getDayRange } from '@/utils/date';
 import { nativeJSONStorage } from '@/lib/nativeStorage';
+import { eventBus } from '@/lib/eventBus';
+import { EVENT_NAMES } from '@/types/events';
 
 interface AddWaterInput {
   amount: number;
@@ -50,7 +52,16 @@ export const useRecordsStore = create<RecordsState>()(
           type: 'water',
           amount: Math.max(0, Math.round(amount)),
         };
-        set((state) => ({ records: [...state.records, record] }));
+        set((state) => {
+          const records = [...state.records, record];
+          // 数据事件广播：关联模块（今日页指标、记录页趋势图等）订阅后实时刷新
+          eventBus.emit(
+            EVENT_NAMES.RECORDS_WATER_ADDED,
+            { record, total: records.length },
+            'useRecordsStore.addWaterRecord'
+          );
+          return { records };
+        });
       },
 
       addUltrafiltrationRecord: ({ amount, timestamp = Date.now() }) => {
@@ -60,7 +71,15 @@ export const useRecordsStore = create<RecordsState>()(
           type: 'ultrafiltration',
           amount: Math.max(0, Math.round(amount)),
         };
-        set((state) => ({ records: [...state.records, record] }));
+        set((state) => {
+          const records = [...state.records, record];
+          eventBus.emit(
+            EVENT_NAMES.RECORDS_UF_ADDED,
+            { record, total: records.length },
+            'useRecordsStore.addUltrafiltrationRecord'
+          );
+          return { records };
+        });
       },
 
       addFruitRecord: ({ fruit, weight, timestamp = Date.now() }) => {
@@ -77,16 +96,39 @@ export const useRecordsStore = create<RecordsState>()(
           sodium: calculateSodium(fruit, weight),
           water: calculateWater(fruit, weight),
         };
-        set((state) => ({ records: [...state.records, record] }));
+        set((state) => {
+          const records = [...state.records, record];
+          eventBus.emit(
+            EVENT_NAMES.RECORDS_FRUIT_ADDED,
+            { record, total: records.length },
+            'useRecordsStore.addFruitRecord'
+          );
+          return { records };
+        });
       },
 
       deleteRecord: (id) => {
-        set((state) => ({ records: state.records.filter((r) => r.id !== id) }));
+        set((state) => {
+          const records = state.records.filter((r) => r.id !== id);
+          eventBus.emit(
+            EVENT_NAMES.RECORDS_DELETED,
+            { id, total: records.length },
+            'useRecordsStore.deleteRecord'
+          );
+          return { records };
+        });
       },
 
       replaceAll: (records) => {
         const sorted = [...records].sort((a, b) => a.timestamp - b.timestamp);
-        set({ records: sorted });
+        set(() => {
+          eventBus.emit(
+            EVENT_NAMES.RECORDS_REPLACED,
+            { total: sorted.length },
+            'useRecordsStore.replaceAll'
+          );
+          return { records: sorted };
+        });
       },
 
       mergeRecords: (incoming) => {
@@ -94,7 +136,15 @@ export const useRecordsStore = create<RecordsState>()(
         const existingIds = new Set(existing.map((r) => r.id));
         const newOnes = incoming.filter((r) => !existingIds.has(r.id));
         if (newOnes.length === 0) return 0;
-        set({ records: [...existing, ...newOnes].sort((a, b) => a.timestamp - b.timestamp) });
+        const merged = [...existing, ...newOnes].sort((a, b) => a.timestamp - b.timestamp);
+        set(() => {
+          eventBus.emit(
+            EVENT_NAMES.RECORDS_MERGED,
+            { added: newOnes.length, total: merged.length },
+            'useRecordsStore.mergeRecords'
+          );
+          return { records: merged };
+        });
         return newOnes.length;
       },
 
@@ -154,7 +204,15 @@ export const useRecordsStore = create<RecordsState>()(
         return hours;
       },
 
-      clearAll: () => set({ records: [] }),
+      clearAll: () =>
+        set(() => {
+          eventBus.emit(
+            EVENT_NAMES.RECORDS_CLEARED,
+            undefined,
+            'useRecordsStore.clearAll'
+          );
+          return { records: [] };
+        }),
     }),
     {
       name: 'dialysis_records',
