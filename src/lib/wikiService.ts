@@ -7,7 +7,7 @@
  *
  * 图片获取策略：
  * - 水果：搜索 Commons "{name} fruit"，获取真实水果照片
- * - 药物：搜索 Commons "{name} medicine" / "{name} tablet"，获取药品/药盒照片
+ * - 药物：搜索 Commons 多组关键词获取多张药盒图片（中文封面优先）
  * - Wikipedia 缩略图作为兜底
  *
  * 带内存缓存 + 并发去重，同一名称只请求一次。
@@ -16,8 +16,10 @@
 export type EntityKind = 'fruit' | 'medication';
 
 export interface EntityInfo {
-  /** 真实配图 URL */
+  /** 真实配图 URL（主图/封面） */
   image?: string;
+  /** 多张配图 URL（药物详情页展示多张药盒图） */
+  images?: string[];
   /** 维基百科摘要（介绍） */
   description?: string;
 }
@@ -53,17 +55,44 @@ const FRUIT_NAME_MAP: Record<string, string> = {
   '蓝莓': 'blueberry',
 };
 
-/** 常见药物中文名 → 英文名映射（提升 Commons 搜索精准度） */
-const MED_NAME_MAP: Record<string, string> = {
-  '碳酸钙': 'calcium carbonate tablet',
-  '司维拉姆': 'sevelamer tablet',
-  '碳酸镧': 'lanthanum carbonate tablet',
-  '骨化三醇': 'calcitriol capsule',
-  '碳酸氢钠': 'sodium bicarbonate tablet',
-  '氨氯地平': 'amlodipine tablet',
-  '缬沙坦': 'valsartan capsule',
-  '重组人促红素': 'epoetin injection',
-  '蔗糖铁': 'iron sucrose injection',
+/** 药物中文名 → 多组搜索词（获取不同国家/语言版本的药盒图） */
+const MED_SEARCH_TERMS: Record<string, { cn: string[]; en: string[] }> = {
+  '碳酸钙': {
+    cn: ['碳酸钙片 药盒', '碳酸钙咀嚼片 包装'],
+    en: ['calcium carbonate tablet box', 'calcium carbonate 1500mg packaging'],
+  },
+  '司维拉姆': {
+    cn: ['司维拉姆 药盒', '司维拉姆碳酸 盐片剂'],
+    en: ['sevelamer carbonate tablet', 'sevelamer 800mg renvela'],
+  },
+  '碳酸镧': {
+    cn: ['碳酸镧 药盒', '碳酸镧咀嚼片'],
+    en: ['lanthanum carbonate tablet', 'fosrenol lanthanum'],
+  },
+  '骨化三醇': {
+    cn: ['骨化三醇胶囊 药盒', '骨化三醇胶丸'],
+    en: ['calcitriol capsule', 'calcitriol 0.25 rocaltriol'],
+  },
+  '碳酸氢钠': {
+    cn: ['碳酸氢钠片 药盒', '碳酸氢钠片剂 包装'],
+    en: ['sodium bicarbonate tablet', 'sodium bicarbonate 500mg'],
+  },
+  '氨氯地平': {
+    cn: ['氨氯地平片 药盒', '苯磺酸氨氯地平片 包装'],
+    en: ['amlodipine tablet box', 'amlodipine besylate 5mg norvasc'],
+  },
+  '缬沙坦': {
+    cn: ['缬沙坦胶囊 药盒', '缬沙坦胶囊剂 包装'],
+    en: ['valsartan capsule', 'valsartan 80mg diovan'],
+  },
+  '重组人促红素': {
+    cn: ['重组人促红素 注射液', '促红素 注射'],
+    en: ['epoetin injection', 'erythropoietin injection vial'],
+  },
+  '蔗糖铁': {
+    cn: ['蔗糖铁 注射液', '蔗糖铁注射液'],
+    en: ['iron sucrose injection', 'iron sucrose 100mg vial'],
+  },
 };
 
 /**
@@ -96,19 +125,71 @@ export function fetchEntityInfo(name: string, kind: EntityKind = 'fruit'): Promi
 }
 
 async function doFetch(name: string, kind: EntityKind): Promise<EntityInfo> {
-  // 策略 1：维基共享资源搜索高质量真实配图（优先，按类型优化搜索词）
-  const commonsSearchTerm = kind === 'fruit'
-    ? (FRUIT_NAME_MAP[name] ?? `${name} fruit`)
-    : (MED_NAME_MAP[name] ?? `${name} medicine`);
+  if (kind === 'medication') {
+    return doFetchMedication(name);
+  }
+  return doFetchFruit(name);
+}
+
+/** 药物：获取多张药盒图片（中文优先作为封面）+ 介绍 */
+async function doFetchMedication(name: string): Promise<EntityInfo> {
+  const terms = MED_SEARCH_TERMS[name];
+  const allImages: string[] = [];
+
+  // 并发搜索中文和外文图片
+  const searchPromises: Promise<string[]>[] = [];
+  if (terms) {
+    for (const cn of terms.cn) {
+      searchPromises.push(tryWikimediaCommonsMulti(cn, 2));
+    }
+    for (const en of terms.en) {
+      searchPromises.push(tryWikimediaCommonsMulti(en, 2));
+    }
+  } else {
+    searchPromises.push(tryWikimediaCommonsMulti(`${name} 药盒`, 2));
+    searchPromises.push(tryWikimediaCommonsMulti(`${name} medicine`, 3));
+  }
+
+  // 同时获取维基百科图片
+  searchPromises.push(tryWikipediaImages(name, 'medication'));
+
+  const results = await Promise.all(searchPromises);
+  for (const urls of results) {
+    for (const url of urls) {
+      if (!allImages.includes(url)) allImages.push(url);
+    }
+  }
+
+  // 获取介绍
+  const desc = await tryWikipediaDescription(name, 'medication');
+
+  if (allImages.length > 0) {
+    return { image: allImages[0], images: allImages.slice(0, 5), description: desc };
+  }
+
+  // 兜底：维基百科 summary
+  const wikiInfo = await tryWikipediaSummary(name, 'medication');
+  if (wikiInfo.image || wikiInfo.description) {
+    return {
+      image: wikiInfo.image,
+      images: wikiInfo.image ? [wikiInfo.image] : undefined,
+      description: wikiInfo.description,
+    };
+  }
+
+  return {};
+}
+
+/** 水果：获取配图 + 介绍 */
+async function doFetchFruit(name: string): Promise<EntityInfo> {
+  const commonsSearchTerm = FRUIT_NAME_MAP[name] ?? `${name} fruit`;
   const commonsImage = await tryWikimediaCommons(commonsSearchTerm);
   if (commonsImage) {
-    // 拿到图片后仍尝试获取介绍
-    const desc = await tryWikipediaDescription(name, kind);
+    const desc = await tryWikipediaDescription(name, 'fruit');
     return { image: commonsImage, description: desc };
   }
 
-  // 策略 2：维基百科 REST summary（图片 + 摘要）
-  const wikiInfo = await tryWikipediaSummary(name, kind);
+  const wikiInfo = await tryWikipediaSummary(name, 'fruit');
   if (wikiInfo.image || wikiInfo.description) return wikiInfo;
 
   return {};
@@ -116,11 +197,8 @@ async function doFetch(name: string, kind: EntityKind): Promise<EntityInfo> {
 
 /** 维基百科 REST summary API —— 获取图片和摘要 */
 async function tryWikipediaSummary(name: string, kind: EntityKind): Promise<EntityInfo> {
-  // 水果优先用中文维基（中文"苹果"指向水果而非公司）
-  // 药物优先用中文维基（药品条目中文较全）
   for (const lang of ['zh', 'en'] as const) {
     try {
-      // 尝试消歧义标题：水果用"名称（水果）"，药物用"名称（药物）"
       const titles = kind === 'fruit'
         ? [name, `${name}（水果）`]
         : [name, `${name}（药物）`];
@@ -132,7 +210,6 @@ async function tryWikipediaSummary(name: string, kind: EntityKind): Promise<Enti
         );
         if (!res.ok) continue;
         const data = await res.json();
-        // 跳过消歧义页
         if (data.type === 'disambiguation') continue;
         const image: string | undefined = data?.thumbnail?.source || data?.originalimage?.source;
         const description: string | undefined =
@@ -152,15 +229,58 @@ async function tryWikipediaDescription(name: string, kind: EntityKind): Promise<
   return info.description;
 }
 
-/** 维基共享资源搜索 API —— 按关键词搜索图片（CORS: origin=*） */
+/** 从维基百科多个语言版本获取图片（用于药物多图） */
+async function tryWikipediaImages(name: string, kind: EntityKind): Promise<string[]> {
+  const images: string[] = [];
+  const seen = new Set<string>();
+
+  // 尝试消歧义标题
+  const titles = kind === 'medication'
+    ? [name, `${name}（药物）`, `${name}（药品）`]
+    : [name, `${name}（水果）`];
+
+  for (const lang of ['zh', 'en', 'ja', 'de'] as const) {
+    for (const title of titles) {
+      if (images.length >= 4) break;
+      try {
+        const encoded = encodeURIComponent(title);
+        const res = await fetch(
+          `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encoded}?redirect=true`,
+          { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(6000) }
+        );
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (data.type === 'disambiguation') continue;
+        const img: string | undefined = data?.originalimage?.source || data?.thumbnail?.source;
+        if (img && !seen.has(img)) {
+          seen.add(img);
+          images.push(img);
+        }
+      } catch {
+        // 继续
+      }
+    }
+    if (images.length >= 4) break;
+  }
+
+  return images;
+}
+
+/** 维基共享资源搜索 API —— 按关键词搜索单张图片 */
 async function tryWikimediaCommons(searchTerm: string): Promise<string | undefined> {
+  const urls = await tryWikimediaCommonsMulti(searchTerm, 1);
+  return urls[0];
+}
+
+/** 维基共享资源搜索 API —— 按关键词搜索多张图片 */
+async function tryWikimediaCommonsMulti(searchTerm: string, limit: number): Promise<string[]> {
   try {
     const params = new URLSearchParams({
       action: 'query',
       generator: 'search',
       gsrsearch: `${searchTerm} filemime:image`,
       gsrnamespace: '6',
-      gsrlimit: '3',
+      gsrlimit: String(Math.min(limit + 2, 6)),
       prop: 'imageinfo',
       iiprop: 'url|mime|size',
       iiurlwidth: '600',
@@ -171,19 +291,24 @@ async function tryWikimediaCommons(searchTerm: string): Promise<string | undefin
       `https://commons.wikimedia.org/w/api.php?${params.toString()}`,
       { signal: AbortSignal.timeout(8000) }
     );
-    if (!res.ok) return undefined;
+    if (!res.ok) return [];
     const data = await res.json();
     const pages = data?.query?.pages;
-    if (!pages) return undefined;
-    // 按搜索相关性排序，取第一张有效图片
+    if (!pages) return [];
     const sorted = Object.values(pages)
       .sort((a: any, b: any) => (a.index ?? 999) - (b.index ?? 999));
+    const results: string[] = [];
+    const seen = new Set<string>();
     for (const page of sorted) {
       const url: string | undefined = (page as any)?.imageinfo?.[0]?.thumburl;
-      if (url) return url;
+      if (url && !seen.has(url)) {
+        seen.add(url);
+        results.push(url);
+        if (results.length >= limit) break;
+      }
     }
-    return undefined;
+    return results;
   } catch {
-    return undefined;
+    return [];
   }
 }

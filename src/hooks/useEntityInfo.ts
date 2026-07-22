@@ -18,6 +18,8 @@ import { fetchEntityInfo, type EntityKind } from '@/lib/wikiService';
 export interface EntityInfoState {
   /** 最终使用的配图 URL（静态优先，否则联网获取） */
   image: string | undefined;
+  /** 多张配图 URL（药物详情页展示多张药盒图，静态优先） */
+  images: string[] | undefined;
   /** 最终使用的介绍（静态优先，否则联网获取） */
   description: string | undefined;
   /** 是否正在联网获取中 */
@@ -31,18 +33,21 @@ export function useEntityInfo(
   staticDescription?: string
 ): EntityInfoState {
   const [fetchedImage, setFetchedImage] = useState<string | undefined>(undefined);
+  const [fetchedImages, setFetchedImages] = useState<string[] | undefined>(undefined);
   const [fetchedDesc, setFetchedDesc] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (staticImage && staticDescription) {
       setFetchedImage(undefined);
+      setFetchedImages(undefined);
       setFetchedDesc(undefined);
       setLoading(false);
       return;
     }
     if (!name) {
       setFetchedImage(undefined);
+      setFetchedImages(undefined);
       setFetchedDesc(undefined);
       setLoading(false);
       return;
@@ -53,6 +58,7 @@ export function useEntityInfo(
     fetchEntityInfo(name, kind).then((info) => {
       if (cancelled) return;
       setFetchedImage(info.image);
+      setFetchedImages(info.images);
       setFetchedDesc(info.description);
       setLoading(false);
     }).catch(() => {
@@ -65,8 +71,19 @@ export function useEntityInfo(
     };
   }, [name, kind, staticImage, staticDescription]);
 
+  // 如果有静态图片，它作为封面，联网获取的图片补充在后面
+  const combinedImages = (() => {
+    if (staticImage) {
+      // 静态图片优先作为封面
+      const rest = fetchedImages?.filter((u) => u !== staticImage) ?? [];
+      return [staticImage, ...rest].slice(0, 5);
+    }
+    return fetchedImages;
+  })();
+
   return {
     image: staticImage || fetchedImage,
+    images: combinedImages,
     description: staticDescription || fetchedDesc,
     loading,
   };

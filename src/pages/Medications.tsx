@@ -9,7 +9,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, X, Clock, Beaker, AlertCircle, BookOpen, Pill as PillIcon, Check } from 'lucide-react';
+import { Search, Plus, X, Clock, Beaker, AlertCircle, BookOpen, Pill as PillIcon, Check, Activity, Baby, UserCheck, ShieldAlert, ClipboardList } from 'lucide-react';
 import { useMedicationsStore } from '@/store/useMedicationsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { MEDICATION_CATEGORIES } from '@/data/medications';
@@ -225,6 +225,41 @@ export default function Medications() {
             icon: <BookOpen className="h-3.5 w-3.5" />,
             label: '药物相互作用',
             content: selected.drugInteractions,
+          } : null,
+          selected?.indications ? {
+            icon: <ClipboardList className="h-3.5 w-3.5" />,
+            label: '适应症',
+            content: selected.indications,
+          } : null,
+          selected?.pharmacokinetics ? {
+            icon: <Activity className="h-3.5 w-3.5" />,
+            label: '药代动力学',
+            content: selected.pharmacokinetics,
+          } : null,
+          selected?.warnings ? {
+            icon: <ShieldAlert className="h-3.5 w-3.5" />,
+            label: '警告与注意事项',
+            content: selected.warnings,
+          } : null,
+          selected?.overdose ? {
+            icon: <AlertCircle className="h-3.5 w-3.5" />,
+            label: '药物过量',
+            content: selected.overdose,
+          } : null,
+          selected?.useInPregnancy ? {
+            icon: <Baby className="h-3.5 w-3.5" />,
+            label: '孕妇及哺乳期妇女用药',
+            content: selected.useInPregnancy,
+          } : null,
+          selected?.useInChildren ? {
+            icon: <Baby className="h-3.5 w-3.5" />,
+            label: '儿童用药',
+            content: selected.useInChildren,
+          } : null,
+          selected?.useInElderly ? {
+            icon: <UserCheck className="h-3.5 w-3.5" />,
+            label: '老年患者用药',
+            content: selected.useInElderly,
           } : null,
           selected?.storage || selected?.packaging || selected?.shelfLife ? {
             label: '贮藏 / 包装 / 有效期',

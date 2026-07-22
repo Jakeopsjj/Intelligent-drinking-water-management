@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, X, Info, Trash2, ChevronRight } from 'lucide-react';
+import { Search, Plus, X, Info, Trash2, ChevronRight, Globe, Sprout, Leaf, Heart, ShieldAlert, Snowflake, Apple } from 'lucide-react';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg } from '@/utils/calc';
@@ -194,7 +194,7 @@ export default function Fruits() {
           ...(selected?.usage
             ? [{
                 icon: FieldIcons.usage,
-                label: '食用方法 / 注意事项',
+                label: '推荐食用方法 / 注意事项',
                 content: selected.usage,
               }]
             : []),
@@ -216,6 +216,55 @@ export default function Fruits() {
               </div>
             ),
           },
+          ...(selected?.origin
+            ? [{
+                icon: <Globe className="h-3.5 w-3.5" />,
+                label: '起源与分布',
+                content: selected.origin,
+              }]
+            : []),
+          ...(selected?.varieties
+            ? [{
+                icon: <Apple className="h-3.5 w-3.5" />,
+                label: '主要品种',
+                content: selected.varieties,
+              }]
+            : []),
+          ...(selected?.cultivation
+            ? [{
+                icon: <Sprout className="h-3.5 w-3.5" />,
+                label: '栽培与生产',
+                content: selected.cultivation,
+              }]
+            : []),
+          ...(selected?.healthBenefits
+            ? [{
+                icon: <Heart className="h-3.5 w-3.5" />,
+                label: '健康益处',
+                content: selected.healthBenefits,
+              }]
+            : []),
+          ...(selected?.precautions
+            ? [{
+                icon: <ShieldAlert className="h-3.5 w-3.5" />,
+                label: '食用禁忌与注意事项',
+                content: selected.precautions,
+              }]
+            : []),
+          ...(selected?.storage
+            ? [{
+                icon: <Snowflake className="h-3.5 w-3.5" />,
+                label: '保存方法',
+                content: selected.storage,
+              }]
+            : []),
+          ...(selected?.culture
+            ? [{
+                icon: <Leaf className="h-3.5 w-3.5" />,
+                label: '文化与历史',
+                content: selected.culture,
+              }]
+            : []),
         ]}
         footer={
           selected && (

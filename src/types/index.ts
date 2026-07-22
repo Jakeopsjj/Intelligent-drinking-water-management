@@ -73,6 +73,14 @@ export interface Fruit {
   nutrients?: string; // 营养成分描述（自由文本）
   image?: string; // 真实配图 URL
   aliases?: string; // 别名（如 苹果·西洋苹果）
+  // 仿维基百科扩展字段
+  origin?: string; // 起源与分布
+  varieties?: string; // 主要品种
+  cultivation?: string; // 栽培与生产
+  culture?: string; // 文化与历史
+  healthBenefits?: string; // 健康益处
+  precautions?: string; // 食用禁忌与注意事项
+  storage?: string; // 保存方法
 }
 
 // 药物使用方法
@@ -107,6 +115,14 @@ export interface Medication {
   image?: string; // 真实配图 URL
   isCustom?: boolean;
   level?: PotassiumLevel; // 保留 level 字段以便复用 LEVEL_COLORS（默认 medium）
+  // 仿百度百科扩展字段（不删除现有字段）
+  indications?: string; // 适应症
+  pharmacokinetics?: string; // 药代动力学
+  overdose?: string; // 药物过量
+  warnings?: string; // 警告与注意事项
+  useInPregnancy?: string; // 孕妇及哺乳期妇女用药
+  useInChildren?: string; // 儿童用药
+  useInElderly?: string; // 老年患者用药
 }
 
 // 药物分类

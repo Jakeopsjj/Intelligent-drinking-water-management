@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet, Image as ImageIcon, Upload, Camera, Github, RefreshCw, Loader2, Info } from 'lucide-react';
+import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet, Image as ImageIcon, Upload, Camera, Github, RefreshCw, Loader2, Info, MessageSquare } from 'lucide-react';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useFruitsStore } from '@/store/useFruitsStore';
@@ -8,6 +8,7 @@ import { exportAsJSON, exportAsCSV, exportAsImage, parseBackupJSON, readFileAsTe
 import { cn } from '@/lib/utils';
 import AvatarPicker, { AvatarView } from '@/components/AvatarPicker';
 import UpdateModal from '@/components/UpdateModal';
+import FeedbackModal from '@/components/FeedbackModal';
 import {
   checkForUpdate,
   getCurrentVersion,
@@ -39,6 +40,7 @@ export default function Settings() {
   const [importing, setImporting] = useState(false);
   const [importInfo, setImportInfo] = useState<string | null>(null);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 更新检查
@@ -565,6 +567,14 @@ export default function Settings() {
             <Github className="h-4 w-4" /> GitHub 项目
           </button>
 
+          {/* 意见反馈 */}
+          <button
+            onClick={() => setShowFeedback(true)}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-teal-50 px-4 py-3 text-sm font-medium text-teal-600 transition hover:bg-teal-100"
+          >
+            <MessageSquare className="h-4 w-4" /> 意见反馈
+          </button>
+
           {/* 隐私说明 */}
           <p className="mt-3 text-center text-[10px] text-teal-600/40">
             所有数据均存储在本地，注重隐私保护
@@ -578,6 +588,12 @@ export default function Settings() {
         onClose={() => setShowUpdateModal(false)}
         mode="updateAvailable"
         release={updateRelease}
+      />
+
+      {/* 反馈弹窗 */}
+      <FeedbackModal
+        open={showFeedback}
+        onClose={() => setShowFeedback(false)}
       />
 
       {/* 头像选择器（通过 Portal 渲染到 body） */}
