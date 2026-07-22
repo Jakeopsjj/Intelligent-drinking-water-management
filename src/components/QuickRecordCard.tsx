@@ -397,9 +397,10 @@ export const FruitQuickRecord: FC = () => {
                       className="w-full rounded-xl border border-cream-300 bg-white py-2.5 pl-9 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-sage-400"
                     />
                   </div>
-                  <div className="max-h-[60vh] overflow-y-auto pr-1">
-                    <div className="grid grid-cols-2 gap-2">
-                      {filtered.map((f) => (
+                  <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+                    {filtered.map((f) => {
+                      const isHighK = f.potassiumPer100g >= 200;
+                      return (
                         <button
                           key={f.id}
                           onClick={() => {
@@ -407,25 +408,37 @@ export const FruitQuickRecord: FC = () => {
                             setShowPicker(false);
                             setSearch('');
                           }}
-                          className="flex items-center gap-2 rounded-xl border border-cream-200 bg-white px-3 py-2.5 text-left transition hover:border-sage-300 hover:bg-sage-50"
+                          className="flex w-full items-center gap-3 rounded-xl border border-cream-200 bg-white px-3 py-2.5 text-left transition hover:border-sage-300 hover:bg-sage-50"
                         >
-                          <span className="text-xl">{f.emoji}</span>
+                          <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-cream-100 text-xl">
+                            {f.emoji}
+                          </span>
                           <div className="min-w-0 flex-1">
-                            <div className="truncate text-sm font-medium text-teal-700">
-                              {f.name}
+                            <div className="flex items-center gap-1.5">
+                              <span className="truncate text-sm font-medium text-teal-700">
+                                {f.name}
+                              </span>
+                              {isHighK && (
+                                <span className="rounded-full bg-clay-100 px-1.5 py-0.5 text-[9px] font-medium text-clay-600">
+                                  高钾
+                                </span>
+                              )}
                             </div>
-                            <div className="whitespace-nowrap text-[10px] text-teal-600/60">
-                              钾 {f.potassiumPer100g}mg · 磷 {f.phosphorusPer100g}mg · 钠 {f.sodiumPer100g}mg · 水 {f.waterPer100g}ml
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              <NutrientBadge label="钾" value={f.potassiumPer100g} unit="mg" tone={isHighK ? 'high' : 'normal'} />
+                              <NutrientBadge label="磷" value={f.phosphorusPer100g} unit="mg" />
+                              <NutrientBadge label="钠" value={f.sodiumPer100g} unit="mg" />
+                              <NutrientBadge label="水" value={f.waterPer100g} unit="ml" />
                             </div>
                           </div>
                         </button>
-                      ))}
-                      {filtered.length === 0 && (
-                        <div className="col-span-2 py-8 text-center text-sm text-teal-600/60">
-                          未找到匹配的水果
-                        </div>
-                      )}
-                    </div>
+                      );
+                    })}
+                    {filtered.length === 0 && (
+                      <div className="py-8 text-center text-sm text-teal-600/60">
+                        未找到匹配的水果
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -439,3 +452,35 @@ export const FruitQuickRecord: FC = () => {
 };
 
 export default QuickRecordShell;
+
+// 元素含量小标签：清晰展示每个元素的具体数值
+function NutrientBadge({
+  label,
+  value,
+  unit,
+  tone = 'normal',
+}: {
+  label: string;
+  value: number;
+  unit: string;
+  tone?: 'normal' | 'high';
+}) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-baseline gap-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px]',
+        tone === 'high'
+          ? 'bg-clay-100 text-clay-700'
+          : 'bg-cream-100 text-teal-700'
+      )}
+    >
+      <span className={tone === 'high' ? 'text-clay-500' : 'text-teal-600/70'}>
+        {label}
+      </span>
+      <span className="font-semibold">{value}</span>
+      <span className={tone === 'high' ? 'text-clay-500' : 'text-teal-600/50'}>
+        {unit}
+      </span>
+    </span>
+  );
+}
