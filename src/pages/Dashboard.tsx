@@ -66,6 +66,8 @@ export default function Dashboard() {
     { label: '超滤', value: todayMetrics.ultrafiltration, unit: 'ml', icon: <Gauge className="h-3 w-3" /> },
     { label: '水果', value: gToKgNum(todayMetrics.fruit), unit: 'kg', icon: <Citrus className="h-3 w-3" /> },
     { label: '钾', value: todayMetrics.potassium, unit: 'mg', icon: <HeartPulse className="h-3 w-3" /> },
+    { label: '磷', value: todayMetrics.phosphorus, unit: 'mg', icon: <Bone className="h-3 w-3" /> },
+    { label: '钠', value: todayMetrics.sodium, unit: 'mg', icon: <Soup className="h-3 w-3" /> },
   ];
 
   return (
@@ -102,7 +104,7 @@ export default function Dashboard() {
         </div>
       </motion.section>
 
-      {/* 今日总览：4 个小方块 */}
+      {/* 今日总览：6 个指标，横向滑动查看 */}
       <motion.section
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
@@ -121,11 +123,12 @@ export default function Dashboard() {
             </span>
           )}
         </div>
-        <div className="mt-4 grid grid-cols-4 gap-2.5">
+        {/* 横向滑动区域：6 个指标卡片，超出可左右滑动 */}
+        <div className="mt-4 flex gap-2.5 overflow-x-auto pb-1 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {overviewItems.map((item) => (
             <div
               key={item.label}
-              className="rounded-2xl border border-white/60 bg-white/50 p-3 text-center backdrop-blur-sm"
+              className="flex w-[72px] flex-shrink-0 flex-col items-center rounded-2xl border border-white/60 bg-white/50 p-3 text-center backdrop-blur-sm"
             >
               <div className="flex items-center justify-center gap-1 text-[10px] text-teal-600/60">
                 {item.icon}
@@ -138,6 +141,7 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+        <p className="mt-1.5 text-[10px] text-teal-600/40">← 左右滑动查看全部 6 项指标 →</p>
       </motion.section>
 
       {/* 核心指标卡片：2 列，增加间距 */}
