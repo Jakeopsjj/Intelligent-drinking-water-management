@@ -9,7 +9,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, X, Clock, Beaker, AlertCircle, Pill as PillIcon, Check } from 'lucide-react';
+import { Search, Plus, X, Clock, Beaker, AlertCircle, BookOpen, Pill as PillIcon, Check } from 'lucide-react';
 import { useMedicationsStore } from '@/store/useMedicationsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { MEDICATION_CATEGORIES } from '@/data/medications';
@@ -168,6 +168,7 @@ export default function Medications() {
       <DetailDrawer
         open={!!selected}
         onClose={() => setSelected(null)}
+        kind="medication"
         image={selected?.image}
         name={selected?.name ?? ''}
         emoji={selected?.emoji ?? '💊'}
@@ -190,13 +191,13 @@ export default function Medications() {
         fields={[
           {
             icon: FieldIcons.usage,
-            label: '使用方法',
+            label: '用法用量',
             content: selected ? (
               <div className="space-y-1">
                 <div>剂量：每次 <span className="font-semibold">{selected.usage.defaultDose}</span> {selected.usage.unit}</div>
                 <div>频次：{selected.usage.frequency}</div>
                 <div>时间：{selected.usage.timing}</div>
-                {selected.usageNotes && <div className="pt-1">{selected.usageNotes}</div>}
+                {selected.usageNotes && <div className="pt-1 text-teal-600/60">{selected.usageNotes}</div>}
               </div>
             ) : null,
           },
@@ -205,10 +206,44 @@ export default function Medications() {
             label: '主要成分',
             content: selected.ingredients,
           } : null,
+          selected?.contraindications ? {
+            icon: <AlertCircle className="h-3.5 w-3.5" />,
+            label: '禁忌症',
+            content: selected.contraindications,
+          } : null,
           selected?.sideEffects ? {
             icon: FieldIcons.sideEffects,
-            label: '常见副作用',
+            label: '不良反应',
             content: selected.sideEffects,
+          } : null,
+          selected?.pharmacology ? {
+            icon: <Beaker className="h-3.5 w-3.5" />,
+            label: '药理毒理',
+            content: selected.pharmacology,
+          } : null,
+          selected?.drugInteractions ? {
+            icon: <BookOpen className="h-3.5 w-3.5" />,
+            label: '药物相互作用',
+            content: selected.drugInteractions,
+          } : null,
+          selected?.storage || selected?.packaging || selected?.shelfLife ? {
+            label: '贮藏 / 包装 / 有效期',
+            content: (
+              <div className="space-y-0.5">
+                {selected?.storage && <div>贮藏：{selected.storage}</div>}
+                {selected?.packaging && <div>包装：{selected.packaging}</div>}
+                {selected?.shelfLife && <div>有效期：{selected.shelfLife}</div>}
+              </div>
+            ),
+          } : null,
+          selected?.manufacturer || selected?.approvalNumber ? {
+            label: '生产企业 / 批准文号',
+            content: (
+              <div className="space-y-0.5">
+                {selected?.manufacturer && <div>{selected.manufacturer}</div>}
+                {selected?.approvalNumber && <div className="text-teal-600/60">{selected.approvalNumber}</div>}
+              </div>
+            ),
           } : null,
         ].filter(Boolean) as any}
         footer={

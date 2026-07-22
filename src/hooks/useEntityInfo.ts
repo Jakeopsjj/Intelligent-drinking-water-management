@@ -2,17 +2,18 @@
  * 联网获取水果/药物配图与介绍
  *
  * 使用场景：详情抽屉打开时，若该条目没有静态配图/介绍，
- * 自动通过维基百科联网获取真实配图和介绍文本。
+ * 自动通过维基百科 + 维基共享资源联网获取真实配图和介绍文本。
  *
  * 自定义水果/药物添加后无需手动填写，详情页会自动联网补全。
  *
  * @param name 条目名称
+ * @param kind 条目类型（'fruit' | 'medication'），影响搜索策略
  * @param staticImage 已有的静态配图（优先使用）
  * @param staticDescription 已有的静态介绍（优先使用）
  */
 
 import { useState, useEffect } from 'react';
-import { fetchEntityInfo } from '@/lib/wikiService';
+import { fetchEntityInfo, type EntityKind } from '@/lib/wikiService';
 
 export interface EntityInfoState {
   /** 最终使用的配图 URL（静态优先，否则联网获取） */
@@ -25,6 +26,7 @@ export interface EntityInfoState {
 
 export function useEntityInfo(
   name: string,
+  kind: EntityKind,
   staticImage?: string,
   staticDescription?: string
 ): EntityInfoState {
@@ -33,7 +35,6 @@ export function useEntityInfo(
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // 静态数据已齐全则无需联网
     if (staticImage && staticDescription) {
       setFetchedImage(undefined);
       setFetchedDesc(undefined);
@@ -49,7 +50,7 @@ export function useEntityInfo(
 
     let cancelled = false;
     setLoading(true);
-    fetchEntityInfo(name).then((info) => {
+    fetchEntityInfo(name, kind).then((info) => {
       if (cancelled) return;
       setFetchedImage(info.image);
       setFetchedDesc(info.description);
@@ -62,7 +63,7 @@ export function useEntityInfo(
     return () => {
       cancelled = true;
     };
-  }, [name, staticImage, staticDescription]);
+  }, [name, kind, staticImage, staticDescription]);
 
   return {
     image: staticImage || fetchedImage,

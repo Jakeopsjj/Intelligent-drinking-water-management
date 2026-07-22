@@ -17,6 +17,7 @@ import { X, Info, BookOpen, Beaker, AlertCircle, Sparkles, Loader2 } from 'lucid
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEntityInfo } from '@/hooks/useEntityInfo';
+import type { EntityKind } from '@/lib/wikiService';
 import type { ReactNode } from 'react';
 
 export interface DetailField {
@@ -44,6 +45,8 @@ interface DetailDrawerProps {
   fields?: DetailField[];
   /** 底部自定义区域（如快速记录按钮） */
   footer?: ReactNode;
+  /** 条目类型（影响联网搜索策略），默认 fruit */
+  kind?: EntityKind;
 }
 
 export default function DetailDrawer({
@@ -57,6 +60,7 @@ export default function DetailDrawer({
   description,
   fields = [],
   footer,
+  kind = 'fruit',
 }: DetailDrawerProps) {
   // 注册到浮层栈：侧滑 / 返回键可关闭
   useOverlayBackHandler(open, onClose);
@@ -66,6 +70,7 @@ export default function DetailDrawer({
   // 联网获取配图与介绍（静态数据已有时跳过请求）
   const { image: resolvedImage, description: resolvedDesc, loading } = useEntityInfo(
     name,
+    kind,
     image,
     description
   );

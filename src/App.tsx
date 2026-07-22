@@ -10,11 +10,13 @@ import Medications from '@/pages/Medications';
 import Settings from '@/pages/Settings';
 import Onboarding from '@/pages/Onboarding';
 import PermissionsGate, { hasAcceptedPermissions } from '@/components/PermissionsGate';
+import UpdateModal from '@/components/UpdateModal';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { migrateLocalStorageToNative } from '@/lib/nativeStorage';
 import { closeTopOverlay } from '@/lib/backHandler';
 import { useDataSync } from '@/hooks/useDataSync';
 import { registerModuleEffects, printDependencyGraph } from '@/modules';
+import { shouldShowChangelog } from '@/lib/updateChecker';
 
 type AppPhase = 'loading' | 'permissions' | 'ready';
 
@@ -80,6 +82,7 @@ function AppRoutes() {
 
 export default function App() {
   const [phase, setPhase] = useState<AppPhase>('loading');
+  const [showChangelog, setShowChangelog] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -102,6 +105,17 @@ export default function App() {
         // 检查失败默认放行，避免阻塞用户
         setPhase('ready');
       }
+
+      // 检查是否需要显示更新内容弹窗（更新后首次打开）
+      try {
+        const needChangelog = await shouldShowChangelog();
+        if (needChangelog) {
+          // 延迟一点显示，等主界面渲染完成
+          setTimeout(() => setShowChangelog(true), 800);
+        }
+      } catch (e) {
+        // 检查失败忽略，不影响正常使用
+      }
     })();
   }, []);
 
@@ -123,6 +137,12 @@ export default function App() {
   return (
     <Router>
       <AppRoutes />
+      {/* 更新后首次打开弹窗 */}
+      <UpdateModal
+        open={showChangelog}
+        onClose={() => setShowChangelog(false)}
+        mode="changelog"
+      />
     </Router>
   );
 }

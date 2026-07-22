@@ -170,6 +170,7 @@ export default function Fruits() {
       <DetailDrawer
         open={!!selected}
         onClose={() => setSelected(null)}
+        kind="fruit"
         image={selected?.image}
         name={selected?.name ?? ''}
         emoji={selected?.emoji ?? '🍇'}

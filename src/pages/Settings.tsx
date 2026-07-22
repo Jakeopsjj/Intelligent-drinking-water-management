@@ -1,12 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet, Image as ImageIcon, Upload, Camera } from 'lucide-react';
+import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet, Image as ImageIcon, Upload, Camera, Github, RefreshCw, Loader2, Info } from 'lucide-react';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { exportAsJSON, exportAsCSV, exportAsImage, parseBackupJSON, readFileAsText } from '@/utils/export';
 import { cn } from '@/lib/utils';
 import AvatarPicker, { AvatarView } from '@/components/AvatarPicker';
+import UpdateModal from '@/components/UpdateModal';
+import {
+  checkForUpdate,
+  getCurrentVersion,
+  GITHUB_REPO_URL,
+  type ReleaseInfo,
+} from '@/lib/updateChecker';
 
 type ExportKind = 'json' | 'csv' | 'image';
 
@@ -33,6 +40,41 @@ export default function Settings() {
   const [importInfo, setImportInfo] = useState<string | null>(null);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 更新检查
+  const [appVersion, setAppVersion] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateRelease, setUpdateRelease] = useState<ReleaseInfo | null>(null);
+  const [checkResult, setCheckResult] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCurrentVersion().then(setAppVersion);
+  }, []);
+
+  const handleCheckUpdate = async () => {
+    if (checking) return;
+    setChecking(true);
+    setCheckResult(null);
+    try {
+      const { hasUpdate, release } = await checkForUpdate();
+      if (hasUpdate && release) {
+        setUpdateRelease(release);
+        setShowUpdateModal(true);
+        setCheckResult(`发现新版本 v${release.version}`);
+      } else if (release) {
+        setUpdateRelease(release);
+        setShowUpdateModal(true);
+        setCheckResult('当前已是最新版本');
+      } else {
+        setCheckResult('检查失败，请稍后重试');
+      }
+    } catch {
+      setCheckResult('检查失败，请稍后重试');
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const handleSave = () => {
     updateSettings({ initialized: true });
@@ -463,25 +505,80 @@ export default function Settings() {
         </div>
       </motion.section>
 
-      {/* 关于 */}
+      {/* 关于 / 更新 */}
       <motion.section
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="glass-card relative overflow-hidden rounded-3xl p-6 text-center"
+        className="glass-card relative overflow-hidden rounded-3xl p-6"
       >
         <div className="glass-orb -left-8 -bottom-8 h-24 w-24 bg-teal-300/20" style={{ animationDelay: '1s' }} />
         <div className="glass-shimmer" />
         <div className="relative z-10">
-          <div className="font-serif text-sm text-teal-700">肾友笔记</div>
-          <p className="mt-1 text-xs text-teal-600/60">
-            一款专注透析患者健康管理的轻量应用
-          </p>
-          <p className="mt-3 text-[10px] text-teal-600/40">
-            所有数据均存储在本地浏览器，注重隐私保护
+          <div className="mb-4 flex items-center gap-2">
+            <Info className="h-4 w-4 text-teal-500" />
+            <h2 className="font-serif text-lg font-semibold text-teal-700">关于</h2>
+          </div>
+
+          {/* 应用信息 */}
+          <div className="glass-tile flex items-center justify-between rounded-2xl px-4 py-3">
+            <div>
+              <div className="text-sm font-medium text-teal-700">肾友笔记</div>
+              <div className="mt-0.5 text-xs text-teal-600/60">
+                专注透析患者健康管理
+              </div>
+            </div>
+            {appVersion && (
+              <span className="rounded-full bg-cream-100 px-2.5 py-1 text-[10px] font-medium text-teal-600">
+                v{appVersion}
+              </span>
+            )}
+          </div>
+
+          {/* 检查更新 */}
+          <button
+            onClick={handleCheckUpdate}
+            disabled={checking}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-teal-50 px-4 py-3 text-sm font-medium text-teal-600 transition hover:bg-teal-100 disabled:opacity-60"
+          >
+            {checking ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> 正在检查更新...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4" /> 检查更新
+              </>
+            )}
+          </button>
+          {checkResult && (
+            <p className="mt-2 text-center text-[10px] text-teal-600/50">
+              {checkResult}
+            </p>
+          )}
+
+          {/* GitHub 项目链接 */}
+          <button
+            onClick={() => window.open(GITHUB_REPO_URL, '_blank')}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-cream-300 bg-white px-4 py-3 text-sm font-medium text-teal-600 transition hover:bg-cream-100"
+          >
+            <Github className="h-4 w-4" /> GitHub 项目
+          </button>
+
+          {/* 隐私说明 */}
+          <p className="mt-3 text-center text-[10px] text-teal-600/40">
+            所有数据均存储在本地，注重隐私保护
           </p>
         </div>
       </motion.section>
+
+      {/* 更新弹窗 */}
+      <UpdateModal
+        open={showUpdateModal}
+        onClose={() => setShowUpdateModal(false)}
+        mode="updateAvailable"
+        release={updateRelease}
+      />
 
       {/* 头像选择器（通过 Portal 渲染到 body） */}
       {showAvatarPicker && (

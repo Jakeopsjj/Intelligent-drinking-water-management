@@ -95,7 +95,15 @@ export interface Medication {
   description?: string; // 药物介绍
   usageNotes?: string; // 使用说明/注意事项
   ingredients?: string; // 主要成分
-  sideEffects?: string; // 常见副作用
+  sideEffects?: string; // 常见不良反应
+  contraindications?: string; // 禁忌症
+  pharmacology?: string; // 药理毒理
+  drugInteractions?: string; // 药物相互作用
+  storage?: string; // 贮藏
+  packaging?: string; // 包装
+  shelfLife?: string; // 有效期
+  manufacturer?: string; // 生产企业
+  approvalNumber?: string; // 批准文号
   image?: string; // 真实配图 URL
   isCustom?: boolean;
   level?: PotassiumLevel; // 保留 level 字段以便复用 LEVEL_COLORS（默认 medium）
