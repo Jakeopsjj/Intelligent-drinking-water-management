@@ -107,7 +107,7 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
         className="absolute -left-6 top-0 w-[calc(100%+48px)]"
         viewBox="0 0 200 40"
         preserveAspectRatio="none"
-        style={{ height: '36px' }}
+        style={{ height: '36px', willChange: 'transform' }}
       >
         <path
           d="M0,28 C30,18 60,32 100,28 C140,24 170,16 200,28 L200,0 L0,0 Z"
@@ -122,7 +122,7 @@ const WaveFill: FC<WaveFillProps> = ({ ratio, status, theme = 'teal', inverse = 
         className="absolute -left-6 top-0 w-[calc(100%+48px)]"
         viewBox="0 0 200 40"
         preserveAspectRatio="none"
-        style={{ height: '30px' }}
+        style={{ height: '30px', willChange: 'transform' }}
       >
         <path
           d="M0,24 C25,16 50,28 100,24 C150,20 175,14 200,24 L200,0 L0,0 Z"

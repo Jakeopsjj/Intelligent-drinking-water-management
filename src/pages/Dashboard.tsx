@@ -77,8 +77,8 @@ export default function Dashboard() {
     <div className="space-y-5">
       {/* 顶部问候卡片 */}
       <motion.section
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         className="glass-card relative overflow-hidden rounded-[28px] p-6"
       >
@@ -114,9 +114,9 @@ export default function Dashboard() {
 
       {/* 今日总览：6 个指标，横向滑动查看 */}
       <motion.section
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         className="glass-card relative overflow-hidden rounded-[28px] p-5"
       >
         <div className="glass-orb -right-6 -top-6 h-24 w-24 bg-teal-300/20" />
@@ -155,9 +155,9 @@ export default function Dashboard() {
 
       {/* 核心指标卡片：2 列，增加间距 */}
       <motion.section
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         className="grid grid-cols-2 gap-4"
       >
         <MetricCard

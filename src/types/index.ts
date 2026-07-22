@@ -167,3 +167,18 @@ export interface HourlyDistribution {
   hour: string; // "08时"
   amount: number; // 该时段摄入量 ml
 }
+
+// 服药计划项
+export interface MedicationPlanItem {
+  id: string;
+  medicationId: string;   // 关联药物库的 ID（可选，也可手动输入）
+  medicationName: string;  // 药物名称
+  emoji: string;           // 药物 emoji
+  dosage: number;          // 每次剂量（数量）
+  unit: string;            // 剂量单位（片/粒/ml...）
+  times: string[];         // 服用时间列表 HH:mm（如 ["08:00", "20:00"]，每个时间点独立提醒）
+  daysOfWeek: number[];    // 每周哪几天 [0-6]，[] 表示每天
+  enabled: boolean;        // 是否启用
+  notes?: string;         // 备注（如"饭后服用"）
+  createdAt: number;      // 创建时间
+}

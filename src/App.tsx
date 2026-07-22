@@ -7,6 +7,7 @@ import Dashboard from '@/pages/Dashboard';
 import Records from '@/pages/Records';
 import Fruits from '@/pages/Fruits';
 import Medications from '@/pages/Medications';
+import MedicationPlan from '@/pages/MedicationPlan';
 import Settings from '@/pages/Settings';
 import Onboarding from '@/pages/Onboarding';
 import PermissionsGate, { hasAcceptedPermissions } from '@/components/PermissionsGate';
@@ -17,6 +18,8 @@ import { closeTopOverlay } from '@/lib/backHandler';
 import { useDataSync } from '@/hooks/useDataSync';
 import { registerModuleEffects, printDependencyGraph } from '@/modules';
 import { shouldShowChangelog } from '@/lib/updateChecker';
+import { initNotificationService, rescheduleAllReminders } from '@/lib/notificationService';
+import { useMedicationPlanStore } from '@/store/useMedicationPlanStore';
 
 type AppPhase = 'loading' | 'permissions' | 'ready';
 
@@ -66,12 +69,13 @@ function AppRoutes() {
 
   return (
     <AppLayout>
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/records" element={<Records />} />
           <Route path="/fruits" element={<Fruits />} />
           <Route path="/medications" element={<Medications />} />
+          <Route path="/medication-plan" element={<MedicationPlan />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -115,6 +119,16 @@ export default function App() {
         }
       } catch (e) {
         // 检查失败忽略，不影响正常使用
+      }
+
+      // 初始化服药提醒通知服务
+      try {
+        await initNotificationService();
+        // 重新调度所有启用的服药计划通知
+        const plans = useMedicationPlanStore.getState().plans;
+        await rescheduleAllReminders(plans);
+      } catch (e) {
+        // 通知初始化失败不阻塞 App
       }
     })();
   }, []);

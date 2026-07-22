@@ -6,7 +6,7 @@
  * 保障全域关联数据一致性。
  */
 
-import type { AnyRecord, Fruit, Medication, UserSettings } from './index';
+import type { AnyRecord, Fruit, Medication, MedicationPlanItem, UserSettings } from './index';
 
 /** 事件命名空间：`<板块>:<动作>`，便于按板块过滤订阅 */
 export const EVENT_NAMES = {
@@ -34,6 +34,11 @@ export const EVENT_NAMES = {
   MEDICATION_ADDED: 'medications:added',
   MEDICATION_DELETED: 'medications:deleted',
   MEDICATION_REPLACED: 'medications:replaced',
+
+  // 服药计划板块
+  MEDICATION_PLAN_ADDED: 'medication-plan:added',
+  MEDICATION_PLAN_UPDATED: 'medication-plan:updated',
+  MEDICATION_PLAN_DELETED: 'medication-plan:deleted',
 } as const;
 
 export type EventName = (typeof EVENT_NAMES)[keyof typeof EVENT_NAMES];
@@ -101,6 +106,19 @@ export interface EventPayloadMap {
     total: number;
   };
   [EVENT_NAMES.MEDICATION_REPLACED]: {
+    total: number;
+  };
+
+  [EVENT_NAMES.MEDICATION_PLAN_ADDED]: {
+    plan: MedicationPlanItem;
+    total: number;
+  };
+  [EVENT_NAMES.MEDICATION_PLAN_UPDATED]: {
+    id: string;
+    updates: Partial<MedicationPlanItem>;
+  };
+  [EVENT_NAMES.MEDICATION_PLAN_DELETED]: {
+    id: string;
     total: number;
   };
 }

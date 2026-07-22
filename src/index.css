@@ -290,3 +290,17 @@ input[type="number"] {
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-top: 1px solid rgba(255, 255, 255, 0.5);
 }
+
+/* ===== 性能优化工具类 ===== */
+
+/* GPU 加速：将元素提升到独立合成层，减少重绘 */
+.transform-gpu {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* 长列表内容可见性优化：跳过不可见区域的渲染 */
+.content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 200px;
+}

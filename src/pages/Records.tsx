@@ -63,8 +63,8 @@ export default function Records() {
     <div className="space-y-6">
       {/* 页头 */}
       <motion.header
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between"
       >
         <div>
@@ -93,9 +93,8 @@ export default function Records() {
 
       {/* 趋势图：摄水量 vs 超滤量 */}
       <motion.section
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         className="glass-card relative overflow-hidden rounded-3xl p-6"
       >
         <div className="glass-orb -right-8 -top-8 h-28 w-28 bg-teal-300/20" />
@@ -180,9 +179,8 @@ export default function Records() {
 
       {/* 历史记录列表 */}
       <motion.section
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         className="glass-card relative overflow-hidden rounded-3xl p-6"
       >
         <div className="glass-orb -left-8 -bottom-8 h-28 w-28 bg-sage-300/20" style={{ animationDelay: '2s' }} />
@@ -408,9 +406,8 @@ function ElementBarSection({
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.1 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="glass-card relative overflow-hidden rounded-3xl p-6"
     >
       <div className="glass-orb -right-6 -top-6 h-24 w-24 bg-clay-300/20" style={{ animationDelay: '4s' }} />

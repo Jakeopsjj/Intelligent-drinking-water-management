@@ -8,12 +8,16 @@
  */
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, X, Clock, Beaker, AlertCircle, BookOpen, Pill as PillIcon, Check, Activity, Baby, UserCheck, ShieldAlert, ClipboardList } from 'lucide-react';
+import { Search, Plus, X, Clock, Beaker, AlertCircle, BookOpen, Pill as PillIcon, Check, Activity, Baby, UserCheck, ShieldAlert, ClipboardList, Loader2, ChevronRight, BellRing } from 'lucide-react';
 import { useMedicationsStore } from '@/store/useMedicationsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
+import { useMedicationPlanStore } from '@/store/useMedicationPlanStore';
 import { MEDICATION_CATEGORIES } from '@/data/medications';
 import { cn } from '@/lib/utils';
+import { fetchBaikeDetail, type BaikeDetail } from '@/lib/baikeService';
+import { fetchWikiDetail, type WikiDetail } from '@/lib/wikiSearchService';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import DetailDrawer, { FieldIcons } from '@/components/DetailDrawer';
@@ -25,6 +29,8 @@ export default function Medications() {
   const addMedication = useMedicationsStore((s) => s.addMedication);
   const deleteMedication = useMedicationsStore((s) => s.deleteMedication);
   const addMedicationRecord = useRecordsStore((s) => s.addMedicationRecord);
+  const navigate = useNavigate();
+  const enabledPlans = useMedicationPlanStore((s) => s.getEnabledPlans().length);
 
   const allMedications = [...customMedications, ...builtinMedications];
 
@@ -33,6 +39,8 @@ export default function Medications() {
   const [showAdd, setShowAdd] = useState(false);
   const [selected, setSelected] = useState<Medication | null>(null);
   const [saved, setSaved] = useState(false);
+  const [baikeSearching, setBaikeSearching] = useState(false);
+  const [baikeError, setBaikeError] = useState<string | null>(null);
 
   useOverlayBackHandler(showAdd, () => setShowAdd(false));
 
@@ -62,12 +70,86 @@ export default function Medications() {
     setTimeout(() => setSaved(false), 1200);
   };
 
+  // 从百度百科搜索并自动添加药物（失败时回退到维基百科）
+  const handleBaikeSearch = async () => {
+    const keyword = query.trim();
+    if (!keyword) return;
+    setBaikeSearching(true);
+    setBaikeError(null);
+    try {
+      const baike: BaikeDetail | null = await fetchBaikeDetail(keyword);
+      let medName = '';
+      if (baike) {
+        medName = baike.title;
+        addMedication({
+          name: baike.title,
+          emoji: '💊',
+          category: 'other',
+          purpose: baike.description,
+          description: baike.summary,
+          image: baike.image,
+          indications: baike.indications,
+          pharmacokinetics: baike.pharmacokinetics,
+          contraindications: baike.contraindications,
+          sideEffects: baike.sideEffects,
+          warnings: baike.warnings,
+          useInPregnancy: baike.useInPregnancy,
+          useInChildren: baike.useInChildren,
+          useInElderly: baike.useInElderly,
+          drugInteractions: baike.drugInteractions,
+          storage: baike.storage,
+          overdose: baike.overdose,
+          usage: {
+            unit: '片',
+            defaultDose: 1,
+            frequency: '每日1次',
+            timing: '饭后',
+          },
+          level: 'medium',
+        });
+      } else {
+        // 回退到维基百科
+        const wiki: WikiDetail | null = await fetchWikiDetail(keyword);
+        if (!wiki) {
+          setBaikeError('未找到相关内容');
+          return;
+        }
+        medName = wiki.title;
+        addMedication({
+          name: wiki.title,
+          emoji: '💊',
+          category: 'other',
+          description: wiki.summary,
+          image: wiki.image,
+          usage: {
+            unit: '片',
+            defaultDose: 1,
+            frequency: '每日1次',
+            timing: '饭后',
+          },
+          level: 'medium',
+        });
+      }
+      // 从最新 store 状态中找到新添加的药物并打开详情抽屉
+      const latest = useMedicationsStore.getState().customMedications;
+      const newMed = [...latest].reverse().find((m) => m.name === medName);
+      if (newMed) {
+        setSelected(newMed);
+        setQuery('');
+      }
+    } catch {
+      setBaikeError('未找到相关内容');
+    } finally {
+      setBaikeSearching(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* 页头 */}
       <motion.header
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
       >
         <h1 className="font-serif text-3xl font-semibold text-teal-700">药物库</h1>
         <p className="mt-1 text-sm text-teal-600/60">
@@ -75,12 +157,35 @@ export default function Medications() {
         </p>
       </motion.header>
 
+      {/* 服药计划入口 */}
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        onClick={() => navigate('/medication-plan')}
+        className="glass-card relative w-full overflow-hidden rounded-3xl p-4 text-left transition hover:shadow-soft"
+      >
+        <div className="glass-orb -right-8 -top-8 h-28 w-28 bg-amber-300/20" />
+        <div className="glass-shimmer" />
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-400 text-white shadow-soft">
+            <BellRing className="h-6 w-6" />
+          </div>
+          <div className="flex-1">
+            <h2 className="font-serif text-lg font-semibold text-teal-700">服药计划</h2>
+            <p className="text-xs text-teal-600/60">
+              {enabledPlans > 0 ? `${enabledPlans} 个启用中的提醒` : '点击设置服药提醒'}
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-teal-600/40" />
+        </div>
+      </motion.button>
+
       {/* 搜索框 */}
       <div className="relative">
         <Search className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-teal-600/40" />
         <input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => { setQuery(e.target.value); setBaikeError(null); }}
           placeholder="搜索药物名称或作用"
           className="glass-tile w-full rounded-2xl py-3 pl-11 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
         />
@@ -118,8 +223,8 @@ export default function Medications() {
         return (
           <motion.section
             key={cat}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             className="glass-card relative overflow-hidden rounded-3xl p-6"
           >
             <div className="glass-orb -right-8 -top-8 h-28 w-28 bg-blue-300/20" />
@@ -144,14 +249,33 @@ export default function Medications() {
       })}
 
       {filtered.length === 0 && (
-        <div className="glass-card rounded-3xl py-16 text-center">
+        <div className="glass-card space-y-4 rounded-3xl py-12 text-center">
           <p className="text-sm text-teal-600/60">未找到匹配的药物</p>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="mt-3 text-sm font-medium text-teal-600 underline"
-          >
-            添加自定义药物
-          </button>
+          {query.trim() && !baikeSearching && !baikeError && (
+            <button
+              onClick={handleBaikeSearch}
+              className="inline-flex items-center gap-2 rounded-xl glass-tile px-4 py-2 text-sm font-medium text-teal-600 transition hover:bg-teal-50"
+            >
+              🌐 从百度百科搜索 '{query}'
+            </button>
+          )}
+          {baikeSearching && (
+            <div className="inline-flex items-center gap-2 text-sm text-teal-600">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              正在搜索百度百科...
+            </div>
+          )}
+          {baikeError && (
+            <p className="text-sm text-clay-500">{baikeError}</p>
+          )}
+          <div>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="text-sm font-medium text-teal-600 underline"
+            >
+              添加自定义药物
+            </button>
+          </div>
         </div>
       )}
 
@@ -358,6 +482,7 @@ function MedicationCard({ med, onClick }: { med: Medication; onClick: () => void
     <button
       onClick={onClick}
       className="glass-tile group relative overflow-hidden rounded-2xl p-4 text-left transition hover:shadow-soft"
+      style={{ contentVisibility: 'auto', containIntrinsicSize: '0 200px' }}
     >
       <div className="relative z-10 flex items-start gap-3">
         <div className="glass-tile flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl text-2xl">

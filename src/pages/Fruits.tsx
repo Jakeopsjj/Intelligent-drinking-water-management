@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, X, Info, Trash2, ChevronRight, Globe, Sprout, Leaf, Heart, ShieldAlert, Snowflake, Apple } from 'lucide-react';
+import { Search, Plus, X, Info, Loader2, Trash2, ChevronRight, Globe, Sprout, Leaf, Heart, ShieldAlert, Snowflake, Apple } from 'lucide-react';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
+import { fetchWikiDetail, type WikiDetail } from '@/lib/wikiSearchService';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import DetailDrawer, { FieldIcons } from '@/components/DetailDrawer';
@@ -22,6 +23,8 @@ export default function Fruits() {
   const [query, setQuery] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [selected, setSelected] = useState<Fruit | null>(null);
+  const [wikiSearching, setWikiSearching] = useState(false);
+  const [wikiError, setWikiError] = useState<string | null>(null);
 
   // 添加水果抽屉打开时，注册到返回处理栈，侧滑 / 返回键可关闭抽屉
   useOverlayBackHandler(showAdd, () => setShowAdd(false));
@@ -37,12 +40,56 @@ export default function Fruits() {
     high: filtered.filter((f) => f.level === 'high'),
   };
 
+  // 从维基百科搜索并自动添加水果
+  const handleWikiSearch = async () => {
+    const keyword = query.trim();
+    if (!keyword) return;
+    setWikiSearching(true);
+    setWikiError(null);
+    try {
+      const detail: WikiDetail | null = await fetchWikiDetail(keyword);
+      if (!detail) {
+        setWikiError('未在维基百科找到相关内容');
+        return;
+      }
+      addFruit({
+        name: detail.title,
+        emoji: '🍎',
+        potassiumPer100g: 0,
+        phosphorusPer100g: 0,
+        sodiumPer100g: 0,
+        waterPer100g: 0,
+        suggestion: '请根据医嘱适量食用',
+        description: detail.summary,
+        image: detail.image,
+        origin: detail.origin,
+        varieties: detail.varieties,
+        cultivation: detail.cultivation,
+        culture: detail.culture,
+        healthBenefits: detail.healthBenefits,
+        precautions: detail.precautions,
+        storage: detail.storage,
+      });
+      // 从最新 store 状态中找到新添加的水果并打开详情抽屉
+      const latest = useFruitsStore.getState().customFruits;
+      const newFruit = [...latest].reverse().find((f) => f.name === detail.title);
+      if (newFruit) {
+        setSelected(newFruit);
+        setQuery('');
+      }
+    } catch {
+      setWikiError('未在维基百科找到相关内容');
+    } finally {
+      setWikiSearching(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* 页头 */}
       <motion.header
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
       >
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -63,7 +110,7 @@ export default function Fruits() {
           <Search className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-teal-600/40" />
           <input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setWikiError(null); }}
             placeholder="搜索水果名称"
             className="glass-tile w-full rounded-2xl py-3 pl-11 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
           />
@@ -92,8 +139,8 @@ export default function Fruits() {
         return (
           <motion.section
             key={level}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             className="glass-card relative overflow-hidden rounded-3xl p-6"
           >
             <div className="glass-orb -right-8 -top-8 h-28 w-28 bg-sage-300/20" style={{ animationDelay: `${level === 'low' ? 0 : level === 'medium' ? 2 : 4}s` }} />
@@ -132,14 +179,33 @@ export default function Fruits() {
       })}
 
       {filtered.length === 0 && (
-        <div className="glass-card rounded-3xl py-16 text-center">
+        <div className="glass-card space-y-4 rounded-3xl py-12 text-center">
           <p className="text-sm text-teal-600/60">未找到匹配的水果</p>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="mt-3 text-sm font-medium text-teal-600 underline"
-          >
-            添加新水果
-          </button>
+          {query.trim() && !wikiSearching && !wikiError && (
+            <button
+              onClick={handleWikiSearch}
+              className="inline-flex items-center gap-2 rounded-xl glass-tile px-4 py-2 text-sm font-medium text-teal-600 transition hover:bg-teal-50"
+            >
+              🌐 从维基百科搜索 '{query}'
+            </button>
+          )}
+          {wikiSearching && (
+            <div className="inline-flex items-center gap-2 text-sm text-teal-600">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              正在搜索维基百科...
+            </div>
+          )}
+          {wikiError && (
+            <p className="text-sm text-clay-500">{wikiError}</p>
+          )}
+          <div>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="text-sm font-medium text-teal-600 underline"
+            >
+              添加新水果
+            </button>
+          </div>
         </div>
       )}
 
@@ -336,7 +402,10 @@ function FruitCard({
   };
 
   return (
-    <div className="glass-tile group relative overflow-hidden rounded-2xl p-4 transition hover:border-teal-300 hover:shadow-soft">
+    <div
+      className="glass-tile group relative overflow-hidden rounded-2xl p-4 transition hover:border-teal-300 hover:shadow-soft"
+      style={{ contentVisibility: 'auto', containIntrinsicSize: '0 200px' }}
+    >
       {/* 顶部可点击区域：查看详情 */}
       <button
         onClick={onSelectDetail}

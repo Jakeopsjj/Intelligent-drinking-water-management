@@ -147,14 +147,15 @@ fix_capacitor_java_version() {
 
     local changed=0
     for f in \
-        node_modules/@capacitor/android/capacitor/build.gradle \
-        node_modules/@capacitor/app/android/build.gradle \
-        node_modules/@capacitor/filesystem/android/build.gradle \
-        node_modules/@capacitor/preferences/android/build.gradle \
-        node_modules/@capacitor/share/android/build.gradle \
-        android/capacitor-cordova-android-plugins/build.gradle \
-        android/app/capacitor.build.gradle
-    do
+            node_modules/@capacitor/android/capacitor/build.gradle \
+            node_modules/@capacitor/app/android/build.gradle \
+            node_modules/@capacitor/filesystem/android/build.gradle \
+            node_modules/@capacitor/preferences/android/build.gradle \
+            node_modules/@capacitor/share/android/build.gradle \
+            node_modules/@capacitor/local-notifications/android/build.gradle \
+            android/capacitor-cordova-android-plugins/build.gradle \
+            android/app/capacitor.build.gradle
+        do
         if [ -f "$f" ] && grep -q 'jvmToolchain(21)' "$f" 2>/dev/null; then
             sed -i 's/jvmToolchain(21)/jvmToolchain(17)/g' "$f"
             info "  修复: $f"

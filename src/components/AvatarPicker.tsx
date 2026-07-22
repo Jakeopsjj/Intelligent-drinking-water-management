@@ -40,6 +40,7 @@ export function AvatarView({
       <img
         src={value as string}
         alt="头像"
+        loading="lazy"
         className={cn('h-full w-full object-cover', className)}
       />
     );

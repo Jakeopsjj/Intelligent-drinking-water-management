@@ -353,6 +353,7 @@ export default function DetailDrawer({
             <img
               src={currentImage}
               alt={name}
+              loading="lazy"
               className="max-h-[90dvh] max-w-full object-contain"
               onClick={(e) => e.stopPropagation()}
             />
