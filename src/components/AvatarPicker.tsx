@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, Check, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 // 内置 emoji 头像（与人无关，使用中性、物体类图标作为默认头像）
 const EMOJI_CHOICES = [
@@ -93,6 +94,8 @@ export default function AvatarPicker({ value, onChange, onClose }: AvatarPickerP
 
   // 头像选择器始终是打开状态（挂载即打开），注册关闭函数
   useOverlayBackHandler(true, onClose);
+  // 锁定背景滚动，避免浮层唤出时页面跳动
+  useLockBodyScroll(true);
 
   const handlePickFile = () => {
     if (processing) return;
@@ -140,7 +143,7 @@ export default function AvatarPicker({ value, onChange, onClose }: AvatarPickerP
           exit={{ y: 30, opacity: 0 }}
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           onClick={(e) => e.stopPropagation()}
-          className="max-h-[90vh] w-full max-w-lg overflow-hidden rounded-t-3xl bg-cream-50 sm:rounded-3xl"
+          className="max-h-[90dvh] w-full max-w-lg overflow-hidden rounded-t-3xl bg-cream-50 sm:rounded-3xl [will-change:transform] [transform:translateZ(0)]"
         >
           {/* 顶部标题栏 */}
           <div className="flex items-center justify-between border-b border-cream-200 p-4">
@@ -153,7 +156,7 @@ export default function AvatarPicker({ value, onChange, onClose }: AvatarPickerP
             </button>
           </div>
 
-          <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90vh - 64px)' }}>
+          <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(90dvh - 64px)' }}>
             {/* 当前预览 */}
             <div className="flex flex-col items-center justify-center rounded-2xl bg-white p-4">
               <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-cream-300 bg-cream-100">

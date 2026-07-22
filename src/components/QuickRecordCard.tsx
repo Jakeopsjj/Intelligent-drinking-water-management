@@ -8,6 +8,7 @@ import { useFruitsStore } from '@/store/useFruitsStore';
 import { formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import type { FC, ReactNode } from 'react';
 
 interface BaseProps {
@@ -255,6 +256,8 @@ export const FruitQuickRecord: FC = () => {
 
   // 水果选择器打开时，注册到返回处理栈，侧滑 / 返回键可关闭浮层
   useOverlayBackHandler(showPicker, () => setShowPicker(false));
+  // 锁定背景滚动，避免选择器唤出时页面跳动
+  useLockBodyScroll(showPicker);
 
   const handleSave = () => {
     if (!selectedFruit || !weight || Number(weight) <= 0) return;

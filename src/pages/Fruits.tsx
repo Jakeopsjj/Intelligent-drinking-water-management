@@ -6,6 +6,7 @@ import { useRecordsStore } from '@/store/useRecordsStore';
 import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import type { Fruit } from '@/types';
 
 export default function Fruits() {
@@ -333,6 +334,8 @@ function AddFruitDrawer({
   onAdd: (fruit: Omit<Fruit, 'id' | 'isCustom' | 'level'>) => void;
   customCount: number;
 }) {
+  // 锁定背景滚动，避免抽屉唤出时页面跳动
+  useLockBodyScroll(true);
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState('🍇');
   const [potassium, setPotassium] = useState('');
@@ -369,7 +372,7 @@ function AddFruitDrawer({
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="glass-card fixed bottom-0 left-0 right-0 z-50 max-h-[90vh] overflow-y-auto rounded-t-3xl p-6 shadow-soft-lg"
+        className="glass-card fixed bottom-0 left-0 right-0 z-50 max-h-[90dvh] overflow-y-auto rounded-t-3xl p-6 shadow-soft-lg [will-change:transform] [transform:translateZ(0)]"
       >
         <div className="glass-shimmer" />
         <div className="relative z-10 mx-auto max-w-lg">

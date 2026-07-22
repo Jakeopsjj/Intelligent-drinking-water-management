@@ -128,6 +128,12 @@ input[type="number"] {
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.6);
 }
 
+/* 动画进行中：禁用 backdrop-filter 避免逐帧重绘掉帧抖动 */
+.glass-card.glass-animating {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 /* 边缘折射高光：顶部 + 左侧渐变光带 */
 .glass-card::before {
   content: "";

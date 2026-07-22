@@ -10,6 +10,7 @@
  * - 轻量：纯内存实现，无第三方依赖
  * - 同步派发：emit 立即触发所有订阅者，便于副作用可预测
  * - 可观测：内置订阅日志（开发态），数据流可追溯
+ * - 弹性：单个订阅者异常不阻断其他订阅者（错误边界隔离）
  */
 
 import type { DomainEvent, EventName, EventPayloadMap } from '@/types/events';
@@ -32,6 +33,38 @@ class EventBus {
     }
     this.listeners.get(name)!.add(handler);
     return () => this.off(name, handler);
+  }
+
+  /**
+   * 订阅一次：触发后自动取消订阅
+   * 适用：等待某个状态达成后执行一次性副作用
+   */
+  once<T extends EventName>(name: T, handler: Handler<T>): () => void {
+    const unsub = this.on(name, (event) => {
+      unsub();
+      handler(event);
+    });
+    return unsub;
+  }
+
+  /**
+   * 等待某事件：返回 Promise，事件触发时 resolve
+   * 适用：跨模块异步流程编排
+   */
+  waitFor<T extends EventName>(
+    name: T,
+    timeoutMs = 5000
+  ): Promise<DomainEvent<T>> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        unsub();
+        reject(new Error(`[eventBus] waitFor "${name}" 超时（${timeoutMs}ms）`));
+      }, timeoutMs);
+      const unsub = this.once(name, (event) => {
+        clearTimeout(timer);
+        resolve(event);
+      });
+    });
   }
 
   /** 取消订阅 */
@@ -70,7 +103,7 @@ class EventBus {
       try {
         h(event);
       } catch (err) {
-        // 单个订阅者异常不应阻断其他订阅者
+        // 错误边界隔离：单个订阅者异常不阻断其他订阅者
         // eslint-disable-next-line no-console
         console.error(`[eventBus] handler error on "${name}":`, err);
       }
@@ -80,6 +113,24 @@ class EventBus {
   /** 获取最近事件流（调试/重放用） */
   getRecentEvents(): readonly DomainEvent<any>[] {
     return this.recentEvents;
+  }
+
+  /** 重放最近事件流（调试用，可指定数量） */
+  replayRecent(count?: number): void {
+    const events = count
+      ? this.recentEvents.slice(-count)
+      : this.recentEvents;
+    for (const event of events) {
+      const handlers = Array.from(this.listeners.get(event.name) ?? []);
+      for (const h of handlers) {
+        try {
+          h(event);
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error(`[eventBus] replay error on "${event.name}":`, err);
+        }
+      }
+    }
   }
 
   /** 清空所有订阅（仅在测试或应用销毁时调用） */

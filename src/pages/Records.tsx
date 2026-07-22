@@ -20,6 +20,7 @@ import { getRecentDays, formatDateFriendly, formatDateOnly } from '@/utils/date'
 import { getRangeMetrics as calcRangeMetrics, formatWeightKg } from '@/utils/calc';
 import RecordItem from '@/components/RecordItem';
 import { cn } from '@/lib/utils';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import type { DailyMetrics } from '@/types';
 
 type Range = 7 | 30;
@@ -292,6 +293,8 @@ function DayDetailDrawer({
   onClose: () => void;
   onDelete: (id: string) => void;
 }) {
+  // 锁定背景滚动，避免抽屉唤出时页面跳动
+  useLockBodyScroll(true);
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-teal-700/40 backdrop-blur-sm">
       <motion.div

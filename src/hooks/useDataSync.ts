@@ -5,11 +5,12 @@
  * - 统一订阅事件总线，集中处理跨模块副作用
  * - 副作用与组件解耦：组件无需 import 其他 store，仅订阅自己关心的事件
  * - 配置热更新确认：settings 变更时校验依赖模块是否收到
+ * - 开发态可观测：定期打印事件流统计，便于排查跨模块联动
  *
  * 在 App 根组件启用一次即可（全局唯一订阅点）。
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { eventBus, subscribeAll } from '@/lib/eventBus';
 import { EVENT_NAMES, type EventName } from '@/types/events';
 
@@ -29,6 +30,9 @@ const HOT_CONFIG_FIELDS: Record<string, string[]> = {
 const ALL_EVENT_NAMES: EventName[] = Object.values(EVENT_NAMES);
 
 export function useDataSync(): void {
+  // 事件计数器：开发态可观测数据流活跃度
+  const eventCounterRef = useRef<Record<string, number>>({});
+
   useEffect(() => {
     const unsubs: Array<() => void> = [];
 
@@ -54,15 +58,31 @@ export function useDataSync(): void {
 
     // 2. 数据变更广播：记录所有板块可订阅的"一处变更、全域联动"事件
     unsubs.push(
-      subscribeAll(ALL_EVENT_NAMES, () => {
-        // 这里是统一的可观测点：
-        // - 未来可在此扩展：远程同步、埋点分析、变更 Toast、数据校验等
-        // - 当前仅由 eventBus 内部 console.debug 输出，不重复打印
+      subscribeAll(ALL_EVENT_NAMES, (event) => {
+        eventCounterRef.current[event.name] =
+          (eventCounterRef.current[event.name] ?? 0) + 1;
       })
     );
 
+    // 3. 开发态统计：每 60s 打印一次事件流概况，便于排查跨模块联动
+    let statsTimer: ReturnType<typeof setInterval> | undefined;
+    if (import.meta.env.DEV) {
+      statsTimer = setInterval(() => {
+        const counter = eventCounterRef.current;
+        const total = Object.values(counter).reduce((a, b) => a + b, 0);
+        if (total === 0) return;
+        // eslint-disable-next-line no-console
+        console.info(
+          `[dataSync] 事件流统计（近 60s）：共 ${total} 次`,
+          counter
+        );
+        eventCounterRef.current = {};
+      }, 60000);
+    }
+
     return () => {
       unsubs.forEach((u) => u());
+      if (statsTimer) clearInterval(statsTimer);
     };
   }, []);
 }
@@ -72,10 +92,14 @@ export function useSubscribeEvent<T extends EventName>(
   name: T,
   handler: (payload: import('@/types/events').EventPayloadMap[T]) => void
 ): void {
+  // 持久化 handler，避免每次渲染重新订阅
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
+
   useEffect(() => {
-    const unsub = eventBus.on(name, (event) => handler(event.payload));
+    const unsub = eventBus.on(name, (event) => handlerRef.current(event.payload));
     return unsub;
-  }, [name, handler]);
+  }, [name]);
 }
 
 /** 暴露事件总线实例，便于非组件代码（如 utils、exporters）触发或订阅 */
