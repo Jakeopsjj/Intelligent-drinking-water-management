@@ -107,5 +107,40 @@ export function registerModuleEffects(): Unsubscribe {
     );
   }
 
+  // 5. 药物库变更 → 订阅方通知（今日页药物选择器、药物页列表）
+  const medicationEvents = [
+    EVENT_NAMES.MEDICATION_ADDED,
+    EVENT_NAMES.MEDICATION_DELETED,
+    EVENT_NAMES.MEDICATION_REPLACED,
+  ];
+  for (const evt of medicationEvents) {
+    unsubs.push(
+      eventBus.on(evt, (event) => {
+        const subs = getSubscribersOf(evt);
+        if (import.meta.env.DEV && subs.length) {
+          // eslint-disable-next-line no-console
+          console.debug(
+            `[effects] ${event.name} → 通知模块：${subs.join('、')}`,
+            `total=${(event.payload as any)?.total ?? '-'}`
+          );
+        }
+      })
+    );
+  }
+
+  // 6. 服药记录变更 → 通知今日页药物次数刷新
+  unsubs.push(
+    eventBus.on(EVENT_NAMES.RECORDS_MEDICATION_ADDED, (event) => {
+      const subs = getSubscribersOf(EVENT_NAMES.RECORDS_MEDICATION_ADDED);
+      if (import.meta.env.DEV && subs.length) {
+        // eslint-disable-next-line no-console
+        console.debug(
+          `[effects] ${event.name} → 通知模块：${subs.join('、')}`,
+          `total=${event.payload.total}`
+        );
+      }
+    })
+  );
+
   return () => unsubs.forEach((u) => u());
 }

@@ -19,6 +19,9 @@ export type { RecordsContract, RecordsExports } from './records';
 export { fruitsContract } from './fruits';
 export type { FruitsContract, FruitsExports } from './fruits';
 
+export { medicationsContract } from './medications';
+export type { MedicationsContract, MedicationsExports } from './medications';
+
 export { dashboardContract } from './dashboard';
 export type { DashboardContract } from './dashboard';
 

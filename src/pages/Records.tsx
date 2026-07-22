@@ -13,7 +13,7 @@ import {
   CartesianGrid,
   Cell,
 } from 'recharts';
-import { Calendar, TrendingUp, ChevronRight, X, Droplets, Activity } from 'lucide-react';
+import { Calendar, TrendingUp, ChevronRight, X, Droplets, Activity, Pill } from 'lucide-react';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { getRecentDays, formatDateFriendly, formatDateOnly } from '@/utils/date';
@@ -275,6 +275,12 @@ function DayHistoryCard({
           <span className={cn('flex whitespace-nowrap items-center gap-0.5', sodExceeded && 'text-red-500')}>
             钠 {metrics.sodium} mg
           </span>
+          {metrics.medicationCount > 0 && (
+            <span className="flex whitespace-nowrap items-center gap-0.5 text-teal-600/80">
+              <Pill className="h-3 w-3" />
+              服药 {metrics.medicationCount} 次
+            </span>
+          )}
         </div>
       </div>
 
@@ -325,6 +331,7 @@ function DayDetailDrawer({
           <SummaryItem label="摄水量" value={metrics.water} unit="ml" />
           <SummaryItem label="超滤量" value={metrics.ultrafiltration} unit="ml" />
           <SummaryItem label="水果摄入" value={formatWeightKg(metrics.fruit)} />
+          <SummaryItem label="服药次数" value={metrics.medicationCount} unit="次" />
           <SummaryItem label="钾摄入" value={metrics.potassium} unit="mg" />
           <SummaryItem label="磷摄入" value={metrics.phosphorus} unit="mg" />
           <SummaryItem label="钠摄入" value={metrics.sodium} unit="mg" />

@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Citrus, Settings as SettingsIcon, Droplets, Search } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Citrus, Pill, Settings as SettingsIcon, Droplets, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FC, ReactNode } from 'react';
 
@@ -13,6 +13,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/', label: '今日', icon: <LayoutDashboard className="h-5 w-5" /> },
   { to: '/records', label: '记录', icon: <BookOpen className="h-5 w-5" /> },
   { to: '/fruits', label: '水果', icon: <Citrus className="h-5 w-5" /> },
+  { to: '/medications', label: '药物', icon: <Pill className="h-5 w-5" /> },
   { to: '/settings', label: '设置', icon: <SettingsIcon className="h-5 w-5" /> },
 ];
 
@@ -21,7 +22,7 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
 
   return (
     <div
-      className="flex min-h-screen flex-col"
+      className="flex min-h-screen flex-col [scrollbar-gutter:stable]"
       style={{
         background:
           'linear-gradient(170deg, #f0f7f4 0%, #e8f4ef 30%, #f5f0e8 60%, #fdf6ee 100%)',
@@ -86,7 +87,7 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
       </header>
 
       {/* 主内容区 */}
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-2 md:px-6 md:py-8 md:pb-8">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-2 md:px-6 md:py-8 md:pb-8" style={{ minHeight: 'calc(100vh - 112px)' }}>{children}</main>
 
       {/* 移动端底部导航：毛玻璃效果 + 选中态绿色渐变 */}
       <nav
@@ -103,13 +104,13 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  'flex flex-1 flex-col items-center gap-1 py-1.5 text-[11px] font-medium transition',
+                  'flex flex-1 flex-col items-center gap-0.5 py-1.5 text-[10px] font-medium transition',
                   isActive ? 'text-teal-700' : 'text-gray-400'
                 )}
               >
                 <div
                   className={cn(
-                    'flex h-10 w-10 items-center justify-center rounded-2xl transition-all duration-300',
+                    'flex h-9 w-9 items-center justify-center rounded-2xl transition-all duration-300',
                     isActive
                       ? 'bg-gradient-to-br from-teal-400 to-green-500 text-white shadow-lg shadow-teal-500/30'
                       : 'glass-tile text-gray-400'

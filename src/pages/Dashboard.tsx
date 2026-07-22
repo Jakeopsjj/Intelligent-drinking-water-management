@@ -9,12 +9,14 @@ import {
   TrendingUp,
   Bone,
   Soup,
+  Pill,
 } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import {
   WaterQuickRecord,
   UltrafiltrationQuickRecord,
   FruitQuickRecord,
+  MedicationQuickRecord,
 } from '@/components/QuickRecordCard';
 import RecordItem from '@/components/RecordItem';
 import { useRecordsStore } from '@/store/useRecordsStore';
@@ -68,6 +70,7 @@ export default function Dashboard() {
     { label: '钾', value: todayMetrics.potassium, unit: 'mg', icon: <HeartPulse className="h-3 w-3" /> },
     { label: '磷', value: todayMetrics.phosphorus, unit: 'mg', icon: <Bone className="h-3 w-3" /> },
     { label: '钠', value: todayMetrics.sodium, unit: 'mg', icon: <Soup className="h-3 w-3" /> },
+    { label: '服药', value: todayMetrics.medicationCount, unit: '次', icon: <Pill className="h-3 w-3" /> },
   ];
 
   return (
@@ -147,7 +150,7 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
-        <p className="relative z-10 mt-1.5 text-[10px] text-teal-600/40">← 左右滑动查看全部 6 项指标 →</p>
+        <p className="relative z-10 mt-1.5 text-[10px] text-teal-600/40">← 左右滑动查看全部 7 项指标 →</p>
       </motion.section>
 
       {/* 核心指标卡片：2 列，增加间距 */}
@@ -220,6 +223,7 @@ export default function Dashboard() {
         <WaterQuickRecord />
         <UltrafiltrationQuickRecord />
         <FruitQuickRecord />
+        <MedicationQuickRecord />
       </section>
 
       {/* 今日记录列表 */}

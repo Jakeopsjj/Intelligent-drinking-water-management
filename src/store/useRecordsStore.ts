@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AnyRecord, WaterRecord, UltrafiltrationRecord, FruitRecord, Fruit, DailyMetrics, HourlyDistribution } from '@/types';
+import type { AnyRecord, WaterRecord, UltrafiltrationRecord, FruitRecord, MedicationRecord, Fruit, Medication, DailyMetrics, HourlyDistribution } from '@/types';
 import { generateId, calculatePotassium, calculatePhosphorus, calculateSodium, calculateWater } from '@/utils/calc';
 import { getTodayKey, getDayRange } from '@/utils/date';
 import { nativeJSONStorage } from '@/lib/nativeStorage';
@@ -23,11 +23,20 @@ interface AddFruitInput {
   timestamp?: number;
 }
 
+interface AddMedicationInput {
+  medication: Medication;
+  dose?: number;
+  timesOfDay?: string;
+  note?: string;
+  timestamp?: number;
+}
+
 interface RecordsState {
   records: AnyRecord[];
   addWaterRecord: (input: AddWaterInput) => void;
   addUltrafiltrationRecord: (input: AddUltrafiltrationInput) => void;
   addFruitRecord: (input: AddFruitInput) => void;
+  addMedicationRecord: (input: AddMedicationInput) => void;
   deleteRecord: (id: string) => void;
   replaceAll: (records: AnyRecord[]) => void;
   mergeRecords: (records: AnyRecord[]) => number;
@@ -37,6 +46,7 @@ interface RecordsState {
   getTodayMetrics: () => DailyMetrics;
   getRangeMetrics: (dateKeys: string[]) => DailyMetrics[];
   getHourlyDistribution: (dateKey: string) => HourlyDistribution[];
+  getTodayMedicationCount: () => number;
   clearAll: () => void;
 }
 
@@ -107,6 +117,36 @@ export const useRecordsStore = create<RecordsState>()(
         });
       },
 
+      addMedicationRecord: ({
+        medication,
+        dose,
+        timesOfDay,
+        note,
+        timestamp = Date.now(),
+      }) => {
+        const record: MedicationRecord = {
+          id: generateId(),
+          timestamp,
+          type: 'medication',
+          medicationId: medication.id,
+          medicationName: medication.name,
+          medicationEmoji: medication.emoji,
+          dose: dose ?? medication.usage.defaultDose,
+          unit: medication.usage.unit,
+          timesOfDay,
+          note: note ?? medication.usage.timing,
+        };
+        set((state) => {
+          const records = [...state.records, record];
+          eventBus.emit(
+            EVENT_NAMES.RECORDS_MEDICATION_ADDED,
+            { record, total: records.length },
+            'useRecordsStore.addMedicationRecord'
+          );
+          return { records };
+        });
+      },
+
       deleteRecord: (id) => {
         set((state) => {
           const records = state.records.filter((r) => r.id !== id);
@@ -168,6 +208,7 @@ export const useRecordsStore = create<RecordsState>()(
           phosphorus: 0,
           sodium: 0,
           fruitWater: 0,
+          medicationCount: 0,
           records,
         };
         for (const r of records) {
@@ -180,12 +221,16 @@ export const useRecordsStore = create<RecordsState>()(
             metrics.sodium += r.sodium;
             metrics.fruitWater += r.water;
             metrics.water += r.water;
+          } else if (r.type === 'medication') {
+            metrics.medicationCount += 1;
           }
         }
         return metrics;
       },
 
       getTodayMetrics: () => get().getDailyMetrics(getTodayKey()),
+
+      getTodayMedicationCount: () => get().getTodayMetrics().medicationCount,
 
       getRangeMetrics: (dateKeys) => {
         return dateKeys.map((k) => get().getDailyMetrics(k));

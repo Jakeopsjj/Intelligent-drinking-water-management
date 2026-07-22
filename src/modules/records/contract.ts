@@ -26,6 +26,13 @@ export interface RecordsExports {
       weight: number;
       timestamp?: number;
     }) => void;
+    addMedicationRecord: (input: {
+      medication: import('@/types').Medication;
+      dose?: number;
+      timesOfDay?: string;
+      note?: string;
+      timestamp?: number;
+    }) => void;
     deleteRecord: (id: string) => void;
     clearAll: () => void;
   };
@@ -34,6 +41,7 @@ export interface RecordsExports {
     getTodayMetrics: () => DailyMetrics;
     getDailyMetrics: (dateKey: string) => DailyMetrics;
     getHourlyDistribution: (dateKey: string) => HourlyDistribution[];
+    getTodayMedicationCount: () => number;
   };
 }
 
@@ -49,6 +57,8 @@ export const recordsContract = {
         useRecordsStore.getState().addUltrafiltrationRecord(input),
       addFruitRecord: (input) =>
         useRecordsStore.getState().addFruitRecord(input),
+      addMedicationRecord: (input) =>
+        useRecordsStore.getState().addMedicationRecord(input),
       deleteRecord: (id) => useRecordsStore.getState().deleteRecord(id),
       clearAll: () => useRecordsStore.getState().clearAll(),
     },
@@ -59,12 +69,15 @@ export const recordsContract = {
         useRecordsStore.getState().getDailyMetrics(dateKey),
       getHourlyDistribution: (dateKey) =>
         useRecordsStore.getState().getHourlyDistribution(dateKey),
+      getTodayMedicationCount: () =>
+        useRecordsStore.getState().getTodayMedicationCount(),
     },
   } satisfies RecordsExports,
   publishes: [
     EVENT_NAMES.RECORDS_WATER_ADDED,
     EVENT_NAMES.RECORDS_UF_ADDED,
     EVENT_NAMES.RECORDS_FRUIT_ADDED,
+    EVENT_NAMES.RECORDS_MEDICATION_ADDED,
     EVENT_NAMES.RECORDS_DELETED,
     EVENT_NAMES.RECORDS_CLEARED,
     EVENT_NAMES.RECORDS_REPLACED,

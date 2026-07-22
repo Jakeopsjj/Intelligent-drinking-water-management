@@ -6,6 +6,7 @@ import AppLayout from '@/components/AppLayout';
 import Dashboard from '@/pages/Dashboard';
 import Records from '@/pages/Records';
 import Fruits from '@/pages/Fruits';
+import Medications from '@/pages/Medications';
 import Settings from '@/pages/Settings';
 import Onboarding from '@/pages/Onboarding';
 import PermissionsGate, { hasAcceptedPermissions } from '@/components/PermissionsGate';
@@ -68,6 +69,7 @@ function AppRoutes() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/records" element={<Records />} />
           <Route path="/fruits" element={<Fruits />} />
+          <Route path="/medications" element={<Medications />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

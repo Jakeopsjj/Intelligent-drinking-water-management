@@ -1,5 +1,5 @@
 // 记录类型
-export type RecordType = 'water' | 'ultrafiltration' | 'fruit';
+export type RecordType = 'water' | 'ultrafiltration' | 'fruit' | 'medication';
 
 // 钾含量等级
 export type PotassiumLevel = 'low' | 'medium' | 'high';
@@ -36,8 +36,24 @@ export interface FruitRecord extends BaseRecord {
   water: number; // 自动计算所得的水分摄入量 ml（水果含水量）
 }
 
+// 服药记录
+export interface MedicationRecord extends BaseRecord {
+  type: 'medication';
+  medicationId: string;
+  medicationName: string;
+  medicationEmoji: string;
+  dose: number; // 本次剂量（单位按药物定义，如片/粒/ml）
+  unit: string; // 剂量单位（片/粒/ml/支...）
+  timesOfDay?: string; // 哪一次服用（早/中/晚/睡前）
+  note?: string; // 备注（如饭后/空腹等）
+}
+
 // 联合记录类型
-export type AnyRecord = WaterRecord | UltrafiltrationRecord | FruitRecord;
+export type AnyRecord =
+  | WaterRecord
+  | UltrafiltrationRecord
+  | FruitRecord
+  | MedicationRecord;
 
 // 水果定义
 export interface Fruit {
@@ -51,7 +67,48 @@ export interface Fruit {
   level: PotassiumLevel; // 钾含量等级（主参考）
   suggestion: string; // 食用建议
   isCustom?: boolean; // 是否自定义添加
+  // 详情扩展字段
+  description?: string; // 水果介绍
+  usage?: string; // 食用方法/注意事项
+  nutrients?: string; // 营养成分描述（自由文本）
+  image?: string; // 真实配图 URL
+  aliases?: string; // 别名（如 苹果·西洋苹果）
 }
+
+// 药物使用方法
+export interface MedicationUsage {
+  unit: string; // 剂量单位：片/粒/ml/支/喷...
+  defaultDose: number; // 单次默认剂量
+  frequency: string; // 频次说明：每日1次 / 每日2次(早晚) / 隔日1次...
+  timing: string; // 服用时间：饭后/空腹/睡前/随餐...
+  schedule?: string[]; // 推荐时段：['早','晚'] 等
+}
+
+// 药物定义
+export interface Medication {
+  id: string;
+  name: string;
+  emoji: string;
+  category: MedicationCategory; // 药物分类
+  usage: MedicationUsage; // 使用方法
+  purpose?: string; // 主要作用/适应症
+  description?: string; // 药物介绍
+  usageNotes?: string; // 使用说明/注意事项
+  ingredients?: string; // 主要成分
+  sideEffects?: string; // 常见副作用
+  image?: string; // 真实配图 URL
+  isCustom?: boolean;
+  level?: PotassiumLevel; // 保留 level 字段以便复用 LEVEL_COLORS（默认 medium）
+}
+
+// 药物分类
+export type MedicationCategory =
+  | 'phosphate-binder' // 磷结合剂
+  | 'vitamin' // 维生素/矿物质
+  | 'antihypertensive' // 降压药
+  | 'esa' // 促红细胞生成剂
+  | 'iron' // 铁剂
+  | 'other'; // 其他
 
 // 用户设置
 export interface UserSettings {
@@ -77,6 +134,7 @@ export interface DailyMetrics {
   phosphorus: number; // 当日磷摄入量 mg
   sodium: number; // 当日钠摄入量 mg
   fruitWater: number; // 当日水果水分摄入量 ml（water 的子集）
+  medicationCount: number; // 当日服药次数
   records: AnyRecord[]; // 当日所有记录
 }
 

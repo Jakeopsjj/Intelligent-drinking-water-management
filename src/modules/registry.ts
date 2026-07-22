@@ -13,6 +13,7 @@
 import { settingsContract } from './settings';
 import { recordsContract } from './records';
 import { fruitsContract } from './fruits';
+import { medicationsContract } from './medications';
 import { dashboardContract } from './dashboard';
 import type { ModuleContract } from './types';
 
@@ -21,6 +22,7 @@ const REGISTRY: Record<string, ModuleContract> = {
   [settingsContract.id]: settingsContract,
   [recordsContract.id]: recordsContract,
   [fruitsContract.id]: fruitsContract,
+  [medicationsContract.id]: medicationsContract,
   [dashboardContract.id]: dashboardContract,
 };
 

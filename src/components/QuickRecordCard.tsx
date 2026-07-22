@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Plus, Check, Search, X } from 'lucide-react';
+import { ChevronDown, Plus, Check, Search, X, Pill } from 'lucide-react';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useFruitsStore } from '@/store/useFruitsStore';
+import { useMedicationsStore } from '@/store/useMedicationsStore';
+import { MEDICATION_CATEGORIES } from '@/data/medications';
 import { formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
@@ -382,7 +384,7 @@ export const FruitQuickRecord: FC = () => {
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 30, opacity: 0 }}
                 transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-t-3xl bg-cream-50 sm:rounded-3xl"
+                className="max-h-[85dvh] w-full max-w-lg overflow-hidden rounded-t-3xl bg-cream-50 sm:rounded-3xl [will-change:transform] [transform:translateZ(0)]"
               >
                 <div className="flex items-center justify-between border-b border-cream-200 p-4">
                   <h3 className="font-medium text-teal-700">选择水果</h3>
@@ -400,11 +402,11 @@ export const FruitQuickRecord: FC = () => {
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="搜索水果名称"
-                      autoFocus
+                      autoFocus={false}
                       className="w-full rounded-xl border border-cream-300 bg-white py-2.5 pl-9 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-sage-400"
                     />
                   </div>
-                  <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+                  <div className="max-h-[60dvh] space-y-2 overflow-y-auto pr-1">
                     {filtered.map((f) => {
                       const isHighK = f.potassiumPer100g >= 200;
                       return (
@@ -459,6 +461,216 @@ export const FruitQuickRecord: FC = () => {
 };
 
 export default QuickRecordShell;
+
+// 药物快速记录
+export const MedicationQuickRecord: FC = () => {
+  const addMedicationRecord = useRecordsStore((s) => s.addMedicationRecord);
+  const customMedications = useMedicationsStore((s) => s.customMedications);
+  const builtinMedications = useMedicationsStore((s) => s.builtinMedications);
+  const allMedications = [...customMedications, ...builtinMedications];
+
+  const [selectedMedId, setSelectedMedId] = useState<string | null>(null);
+  const [timesOfDay, setTimesOfDay] = useState('早');
+  const [saved, setSaved] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const selectedMed = allMedications.find((m) => m.id === selectedMedId);
+  const filtered = search.trim()
+    ? allMedications.filter(
+        (m) =>
+          m.name.toLowerCase().includes(search.toLowerCase()) ||
+          m.purpose?.toLowerCase().includes(search.toLowerCase())
+      )
+    : allMedications;
+
+  useOverlayBackHandler(showPicker, () => setShowPicker(false));
+  useLockBodyScroll(showPicker);
+
+  const timeOptions = ['早', '中', '晚', '睡前'];
+
+  const handleSave = () => {
+    if (!selectedMed) return;
+    addMedicationRecord({ medication: selectedMed, timesOfDay });
+    setSelectedMedId(null);
+    setShowPicker(false);
+    setSearch('');
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1200);
+  };
+
+  return (
+    <Fragment>
+      <QuickRecordShell
+        title="服药记录"
+        subtitle="选择药物并记录服药"
+        icon={<Pill className="h-5 w-5" />}
+        theme="teal"
+      >
+        <div className="space-y-3">
+          {/* 已选药物展示 */}
+          {selectedMed && !showPicker && (
+            <div className="flex items-center justify-between rounded-xl border border-teal-200 bg-teal-50 px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{selectedMed.emoji}</span>
+                <div>
+                  <div className="text-sm font-medium text-teal-700">{selectedMed.name}</div>
+                  <div className="whitespace-nowrap text-[10px] text-teal-600/70">
+                    每次 {selectedMed.usage.defaultDose}{selectedMed.usage.unit} · {selectedMed.usage.frequency}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPicker(true)}
+                className="text-xs text-teal-600 underline"
+              >
+                更换
+              </button>
+            </div>
+          )}
+
+          {/* 药物选择器入口 */}
+          {(!selectedMed || showPicker) && (
+            <button
+              onClick={() => setShowPicker(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-teal-300 bg-teal-50/50 px-4 py-3 text-sm text-teal-600 hover:bg-teal-50"
+            >
+              <Search className="h-4 w-4" /> 选择药物
+            </button>
+          )}
+
+          {/* 时段选择 + 记录 */}
+          {selectedMed && (
+            <>
+              <div>
+                <div className="mb-1.5 text-xs font-medium text-teal-600">服药时段</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {timeOptions.map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setTimesOfDay(t)}
+                      className={cn(
+                        'whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-medium transition',
+                        timesOfDay === t
+                          ? 'border-teal-400 bg-teal-50 text-teal-700'
+                          : 'border-cream-300 bg-cream-50 text-teal-600 hover:border-teal-300 hover:bg-teal-50'
+                      )}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={handleSave}
+                className={cn(
+                  'flex w-full items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-medium transition',
+                  saved
+                    ? 'bg-sage-500 text-white'
+                    : 'bg-teal-500 text-white hover:bg-teal-600'
+                )}
+              >
+                {saved ? (
+                  <>
+                    <Check className="h-4 w-4" /> 已记录
+                  </>
+                ) : (
+                  `记录 ${selectedMed.usage.defaultDose}${selectedMed.usage.unit}`
+                )}
+              </button>
+            </>
+          )}
+        </div>
+      </QuickRecordShell>
+
+      {/* 药物选择浮层 */}
+      {createPortal(
+        <AnimatePresence>
+          {showPicker && (
+            <motion.div
+              className="fixed inset-0 z-[100] flex items-end justify-center bg-teal-700/40 backdrop-blur-sm sm:items-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <motion.div
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 30, opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                className="max-h-[85dvh] w-full max-w-lg overflow-hidden rounded-t-3xl bg-cream-50 sm:rounded-3xl [will-change:transform] [transform:translateZ(0)]"
+              >
+                <div className="flex items-center justify-between border-b border-cream-200 p-4">
+                  <h3 className="font-medium text-teal-700">选择药物</h3>
+                  <button
+                    onClick={() => setShowPicker(false)}
+                    className="rounded-full p-1.5 text-teal-600 hover:bg-cream-200"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="p-4">
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-teal-600/40" />
+                    <input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="搜索药物名称或作用"
+                      autoFocus={false}
+                      className="w-full rounded-xl border border-cream-300 bg-white py-2.5 pl-9 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
+                    />
+                  </div>
+                  <div className="max-h-[60dvh] space-y-2 overflow-y-auto pr-1">
+                    {filtered.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => {
+                          setSelectedMedId(m.id);
+                          setShowPicker(false);
+                          setSearch('');
+                        }}
+                        className="flex w-full items-center gap-3 rounded-xl border border-cream-200 bg-white px-3 py-2.5 text-left transition hover:border-teal-300 hover:bg-teal-50"
+                      >
+                        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-cream-100 text-xl">
+                          {m.emoji}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate text-sm font-medium text-teal-700">
+                              {m.name}
+                            </span>
+                            {m.isCustom && (
+                              <span className="rounded-full bg-sage-100 px-1.5 py-0.5 text-[9px] font-medium text-sage-600">
+                                自定义
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-0.5 truncate text-[10px] text-teal-600/60">
+                            {m.purpose ?? MEDICATION_CATEGORIES[m.category].name}
+                          </div>
+                          <div className="mt-0.5 whitespace-nowrap text-[10px] text-teal-600/50">
+                            每次 {m.usage.defaultDose}{m.usage.unit} · {m.usage.frequency}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                    {filtered.length === 0 && (
+                      <div className="py-8 text-center text-sm text-teal-600/60">
+                        未找到匹配的药物
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+    </Fragment>
+  );
+};
 
 // 元素含量小标签：清晰展示每个元素的具体数值
 function NutrientBadge({

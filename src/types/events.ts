@@ -6,7 +6,7 @@
  * 保障全域关联数据一致性。
  */
 
-import type { AnyRecord, Fruit, UserSettings } from './index';
+import type { AnyRecord, Fruit, Medication, UserSettings } from './index';
 
 /** 事件命名空间：`<板块>:<动作>`，便于按板块过滤订阅 */
 export const EVENT_NAMES = {
@@ -19,6 +19,7 @@ export const EVENT_NAMES = {
   RECORDS_WATER_ADDED: 'records:water-added',
   RECORDS_UF_ADDED: 'records:uf-added',
   RECORDS_FRUIT_ADDED: 'records:fruit-added',
+  RECORDS_MEDICATION_ADDED: 'records:medication-added',
   RECORDS_DELETED: 'records:deleted',
   RECORDS_CLEARED: 'records:cleared',
   RECORDS_REPLACED: 'records:replaced',
@@ -28,6 +29,11 @@ export const EVENT_NAMES = {
   FRUITS_ADDED: 'fruits:added',
   FRUITS_DELETED: 'fruits:deleted',
   FRUITS_REPLACED: 'fruits:replaced',
+
+  // 药物库板块（库存变更广播）
+  MEDICATION_ADDED: 'medications:added',
+  MEDICATION_DELETED: 'medications:deleted',
+  MEDICATION_REPLACED: 'medications:replaced',
 } as const;
 
 export type EventName = (typeof EVENT_NAMES)[keyof typeof EVENT_NAMES];
@@ -57,6 +63,10 @@ export interface EventPayloadMap {
     record: AnyRecord;
     total: number;
   };
+  [EVENT_NAMES.RECORDS_MEDICATION_ADDED]: {
+    record: AnyRecord;
+    total: number;
+  };
   [EVENT_NAMES.RECORDS_DELETED]: {
     id: string;
     total: number;
@@ -79,6 +89,18 @@ export interface EventPayloadMap {
     total: number;
   };
   [EVENT_NAMES.FRUITS_REPLACED]: {
+    total: number;
+  };
+
+  [EVENT_NAMES.MEDICATION_ADDED]: {
+    medication: Medication;
+    total: number;
+  };
+  [EVENT_NAMES.MEDICATION_DELETED]: {
+    id: string;
+    total: number;
+  };
+  [EVENT_NAMES.MEDICATION_REPLACED]: {
     total: number;
   };
 }

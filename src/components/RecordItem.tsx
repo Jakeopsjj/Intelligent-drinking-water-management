@@ -1,4 +1,4 @@
-import { Trash2, Droplets, Activity, Citrus } from 'lucide-react';
+import { Trash2, Droplets, Activity, Citrus, Pill } from 'lucide-react';
 import type { AnyRecord } from '@/types';
 import { formatDateTime } from '@/utils/date';
 import { formatWeightKg } from '@/utils/calc';
@@ -22,14 +22,21 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
       bg: 'bg-sage-100',
       text: 'text-sage-600',
     },
+    medication: {
+      icon: <Pill className="h-4 w-4" />,
+      bg: 'bg-teal-100',
+      text: 'text-teal-600',
+    },
   }[record.type];
 
   return (
     <div className="group flex items-center gap-3 rounded-xl border border-cream-200 bg-white/60 px-3 py-2.5 transition hover:border-cream-300 hover:bg-white">
       <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', iconMap.bg, iconMap.text)}>
-        {record.type === 'fruit' ? (
+        {record.type === 'fruit' || record.type === 'medication' ? (
           <span className="text-base">
-            {(record as any).fruitEmoji}
+            {record.type === 'fruit'
+              ? (record as any).fruitEmoji
+              : (record as any).medicationEmoji}
           </span>
         ) : (
           iconMap.icon
@@ -42,6 +49,8 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
               ? '饮水'
               : record.type === 'ultrafiltration'
               ? '超滤'
+              : record.type === 'medication'
+              ? (record as any).medicationName
               : (record as any).fruitName}
           </span>
           <span className="text-xs text-teal-600/60">{formatDateTime(record.timestamp)}</span>
@@ -52,6 +61,8 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
               ? `${record.amount} ml`
               : record.type === 'ultrafiltration'
               ? `${record.amount} ml`
+              : record.type === 'medication'
+              ? `${(record as any).dose} ${(record as any).unit}`
               : `${formatWeightKg((record as any).weight)}`}
           </span>
           {record.type === 'fruit' && (
@@ -64,6 +75,18 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
               <span className="whitespace-nowrap">钠 {(record as any).sodium} mg</span>
               <span className="text-cream-400">·</span>
               <span className="whitespace-nowrap text-sage-600/80">水 {(record as any).water} ml</span>
+            </>
+          )}
+          {record.type === 'medication' && (record as any).timesOfDay && (
+            <>
+              <span className="text-cream-400">·</span>
+              <span className="whitespace-nowrap">{(record as any).timesOfDay}</span>
+            </>
+          )}
+          {record.type === 'medication' && (record as any).note && (
+            <>
+              <span className="text-cream-400">·</span>
+              <span className="whitespace-nowrap">{(record as any).note}</span>
             </>
           )}
         </div>

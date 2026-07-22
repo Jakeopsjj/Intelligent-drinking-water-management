@@ -114,6 +114,7 @@ export function getDailyMetrics(records: AnyRecord[], dateKey: string): DailyMet
     phosphorus: 0,
     sodium: 0,
     fruitWater: 0,
+    medicationCount: 0,
     records: dayRecords,
   };
   for (const r of dayRecords) {
@@ -127,6 +128,8 @@ export function getDailyMetrics(records: AnyRecord[], dateKey: string): DailyMet
       // 水果水分计入总摄水量，并单独记录 fruitWater
       metrics.fruitWater += r.water;
       metrics.water += r.water;
+    } else if (r.type === 'medication') {
+      metrics.medicationCount += 1;
     }
   }
   return metrics;

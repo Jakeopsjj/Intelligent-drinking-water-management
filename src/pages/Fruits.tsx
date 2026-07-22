@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, X, Info, Trash2 } from 'lucide-react';
+import { Search, Plus, X, Info, Trash2, ChevronRight } from 'lucide-react';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import DetailDrawer, { FieldIcons } from '@/components/DetailDrawer';
 import type { Fruit } from '@/types';
 
 export default function Fruits() {
@@ -20,6 +21,7 @@ export default function Fruits() {
 
   const [query, setQuery] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [selected, setSelected] = useState<Fruit | null>(null);
 
   // 添加水果抽屉打开时，注册到返回处理栈，侧滑 / 返回键可关闭抽屉
   useOverlayBackHandler(showAdd, () => setShowAdd(false));
@@ -120,6 +122,7 @@ export default function Fruits() {
                   key={fruit.id}
                   fruit={fruit}
                   onQuickAdd={(w) => addFruitRecord({ fruit, weight: w })}
+                  onSelectDetail={() => setSelected(fruit)}
                   onDeleteCustom={fruit.isCustom ? () => deleteFruit(fruit.id) : undefined}
                 />
               ))}
@@ -162,6 +165,71 @@ export default function Fruits() {
           />
         )}
       </AnimatePresence>
+
+      {/* 水果详情抽屉 */}
+      <DetailDrawer
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        image={selected?.image}
+        name={selected?.name ?? ''}
+        emoji={selected?.emoji ?? '🍇'}
+        subtitle={selected?.aliases}
+        badges={
+          selected ? (
+            <span
+              className={cn(
+                'whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-medium ring-1',
+                LEVEL_COLORS[selected.level].bg,
+                LEVEL_COLORS[selected.level].text,
+                LEVEL_COLORS[selected.level].ring
+              )}
+            >
+              {LEVEL_TEXT[selected.level]}
+            </span>
+          ) : undefined
+        }
+        description={selected?.description}
+        fields={[
+          ...(selected?.usage
+            ? [{
+                icon: FieldIcons.usage,
+                label: '食用方法 / 注意事项',
+                content: selected.usage,
+              }]
+            : []),
+          ...(selected?.nutrients
+            ? [{
+                icon: FieldIcons.nutrients,
+                label: '营养成分',
+                content: selected.nutrients,
+              }]
+            : []),
+          {
+            label: '每 100g 元素含量',
+            content: (
+              <div className="flex flex-wrap gap-1.5">
+                <NutrientTag label="钾" value={selected?.potassiumPer100g ?? 0} unit="mg" />
+                <NutrientTag label="磷" value={selected?.phosphorusPer100g ?? 0} unit="mg" />
+                <NutrientTag label="钠" value={selected?.sodiumPer100g ?? 0} unit="mg" />
+                <NutrientTag label="水" value={selected?.waterPer100g ?? 0} unit="ml" />
+              </div>
+            ),
+          },
+        ]}
+        footer={
+          selected && (
+            <button
+              onClick={() => {
+                addFruitRecord({ fruit: selected, weight: 100 });
+                setSelected(null);
+              }}
+              className="w-full rounded-xl bg-sage-500 py-3 text-sm font-medium text-white shadow-soft transition hover:bg-sage-600"
+            >
+              快速记录 100g
+            </button>
+          )
+        }
+      />
     </div>
   );
 }
@@ -197,10 +265,12 @@ function NutrientTag({ label, value, unit }: { label: string; value: number; uni
 function FruitCard({
   fruit,
   onQuickAdd,
+  onSelectDetail,
   onDeleteCustom,
 }: {
   fruit: Fruit;
   onQuickAdd: (weight: number) => void;
+  onSelectDetail: () => void;
   onDeleteCustom?: () => void;
 }) {
   const [showAdd, setShowAdd] = useState(false);
@@ -217,12 +287,21 @@ function FruitCard({
 
   return (
     <div className="glass-tile group relative overflow-hidden rounded-2xl p-4 transition hover:border-teal-300 hover:shadow-soft">
-      {/* 顶部 */}
-      <div className="relative z-10 flex items-start justify-between">
+      {/* 顶部可点击区域：查看详情 */}
+      <button
+        onClick={onSelectDetail}
+        className="relative z-10 flex w-full items-start justify-between text-left transition"
+      >
         <div className="flex items-center gap-3">
-          <div className="glass-tile flex h-12 w-12 items-center justify-center rounded-2xl text-2xl">
-            {fruit.emoji}
-          </div>
+          {fruit.image ? (
+            <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl bg-cream-100">
+              <img src={fruit.image} alt={fruit.name} loading="lazy" className="h-full w-full object-cover" />
+            </div>
+          ) : (
+            <div className="glass-tile flex h-12 w-12 items-center justify-center rounded-2xl text-2xl">
+              {fruit.emoji}
+            </div>
+          )}
           <div>
             <div className="flex items-center gap-1.5">
               <h3 className="font-medium text-teal-700">{fruit.name}</h3>
@@ -231,8 +310,9 @@ function FruitCard({
                   自定义
                 </span>
               )}
+              <ChevronRight className="h-3 w-3 text-teal-600/40" />
             </div>
-            <div className="mt-0.5 text-[9px] text-teal-600/40">每 100g 含</div>
+            <div className="mt-0.5 text-[9px] text-teal-600/40">每 100g 含 · 点击查看详情</div>
             <div className="mt-1 flex flex-wrap gap-1.5">
               <NutrientTag label="钾" value={fruit.potassiumPer100g} unit="mg" />
               <NutrientTag label="磷" value={fruit.phosphorusPer100g} unit="mg" />
@@ -251,7 +331,7 @@ function FruitCard({
         >
           {LEVEL_TEXT[fruit.level]}
         </span>
-      </div>
+      </button>
 
       {/* 建议 */}
       <div className="relative z-10 mt-3 flex items-start gap-1.5 rounded-xl bg-cream-50/70 px-3 py-2 text-xs text-teal-600/70">

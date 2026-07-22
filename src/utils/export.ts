@@ -132,7 +132,20 @@ export async function exportAsCSV(records: AnyRecord[]): Promise<void> {
       rows.push([dateStr, timeStr, '饮水', '饮水', r.amount, 'ml', '', '', '', '']);
     } else if (r.type === 'ultrafiltration') {
       rows.push([dateStr, timeStr, '超滤', '超滤量', r.amount, 'ml', '', '', '', '']);
-    } else {
+    } else if (r.type === 'medication') {
+      rows.push([
+        dateStr,
+        timeStr,
+        '服药',
+        `${r.medicationEmoji} ${r.medicationName}`,
+        r.dose,
+        r.unit,
+        '',
+        '',
+        '',
+        '',
+      ]);
+    } else if (r.type === 'fruit') {
       // 水果重量换算为 kg（4 位小数保证精度，如 0.1 kg）
       const kgVal = (r.weight / 1000).toFixed(3).replace(/\.?0+$/, '');
       rows.push([
@@ -270,11 +283,13 @@ function buildReportSVG(ctx: ExportContext): string {
     water: '#0d9488',
     ultrafiltration: '#0ea5e9',
     fruit: '#84cc16',
+    medication: '#6366f1',
   };
   const typeLabel: Record<string, string> = {
     water: '饮水',
     ultrafiltration: '超滤',
     fruit: '水果',
+    medication: '服药',
   };
 
   const rowsEl = recent.map((r, idx) => {
@@ -290,7 +305,11 @@ function buildReportSVG(ctx: ExportContext): string {
     let wV = '';
     if (r.type === 'water') { name = '饮水'; amount = `${r.amount} ml`; }
     else if (r.type === 'ultrafiltration') { name = '超滤量'; amount = `${r.amount} ml`; }
-    else {
+    else if (r.type === 'medication') {
+      name = `${r.medicationEmoji} ${r.medicationName}`;
+      amount = `${r.dose} ${r.unit}`;
+    }
+    else if (r.type === 'fruit') {
       name = `${r.fruitEmoji} ${r.fruitName}`;
       // 水果重量换算为 kg 显示
       const kg = r.weight / 1000;
