@@ -52,7 +52,7 @@ export default function Fruits() {
       const offlineBaike = findFruitBaike(keyword);
       if (offlineBaike) {
         addFruit({
-          name: offlineBaike.name,
+          name: keyword,
           emoji: offlineBaike.emoji,
           potassiumPer100g: offlineBaike.potassiumPer100g,
           phosphorusPer100g: offlineBaike.phosphorusPer100g,
@@ -71,7 +71,7 @@ export default function Fruits() {
           image: offlineBaike.image,
         });
         const latest = useFruitsStore.getState().customFruits;
-        const newFruit = [...latest].reverse().find((f) => f.name === offlineBaike.name);
+        const newFruit = [...latest].reverse().find((f) => f.name === keyword);
         if (newFruit) {
           setSelected(newFruit);
           setQuery('');
@@ -86,8 +86,8 @@ export default function Fruits() {
         return;
       }
       addFruit({
-        name: detail.title,
-        emoji: '🍎',
+        name: keyword,
+        emoji: '🍇',
         potassiumPer100g: 0,
         phosphorusPer100g: 0,
         sodiumPer100g: 0,
@@ -104,7 +104,7 @@ export default function Fruits() {
         storage: detail.storage,
       });
       const latest = useFruitsStore.getState().customFruits;
-      const newFruit = [...latest].reverse().find((f) => f.name === detail.title);
+      const newFruit = [...latest].reverse().find((f) => f.name === keyword);
       if (newFruit) {
         setSelected(newFruit);
         setQuery('');
@@ -587,20 +587,22 @@ function AddFruitDrawer({
   const isVaild = name.trim() && potassium && Number(potassium) > 0;
 
   return (
-    <>
-      <div
-        className="fixed inset-0 z-40 bg-teal-700/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
+    <motion.div
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-teal-700/40"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
       <motion.div
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="glass-card fixed bottom-0 left-0 right-0 z-50 max-h-[90dvh] overflow-y-auto rounded-t-3xl p-6 shadow-soft-lg [will-change:transform]"
+        onClick={(e) => e.stopPropagation()}
+        className="relative max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white/90 p-6 shadow-soft-lg backdrop-blur-xl"
       >
-        <div className="glass-shimmer" />
-        <div className="relative z-10 mx-auto max-w-lg">
+        <div className="relative z-10">
           <div className="flex items-center justify-between">
             <h3 className="font-serif text-lg font-semibold text-teal-700">添加自定义水果</h3>
             <button
@@ -752,6 +754,6 @@ function AddFruitDrawer({
           </div>
         </div>
       </motion.div>
-    </>
+    </motion.div>
   );
 }

@@ -40,7 +40,11 @@ export const useMedicationsStore = create<MedicationsState>()(
           isCustom: true,
         };
         set((state) => {
-          const customMedications = [...state.customMedications, newMed];
+          // 去重：同名药物先删旧的，再加新的（避免 persist 旧数据干扰）
+          const filtered = state.customMedications.filter(
+            (m) => m.name !== med.name
+          );
+          const customMedications = [...filtered, newMed];
           eventBus.emit(
             EVENT_NAMES.MEDICATION_ADDED,
             { medication: newMed, total: customMedications.length },

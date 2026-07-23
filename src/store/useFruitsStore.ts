@@ -33,7 +33,11 @@ export const useFruitsStore = create<FruitsState>()(
           isCustom: true,
         };
         set((state) => {
-          const customFruits = [...state.customFruits, newFruit];
+          // 去重：同名水果先删旧的，再加新的（避免 persist 旧数据干扰）
+          const filtered = state.customFruits.filter(
+            (f) => f.name !== fruit.name
+          );
+          const customFruits = [...filtered, newFruit];
           // 库存变更广播：水果选择器、水果页列表等订阅后即时刷新
           eventBus.emit(
             EVENT_NAMES.FRUITS_ADDED,

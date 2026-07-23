@@ -83,9 +83,9 @@ export default function Medications() {
       // 1. 先查离线百科数据库
       const offlineBaike = findMedicationBaike(keyword);
       if (offlineBaike) {
-        medName = offlineBaike.name;
+        medName = keyword;
         addMedication({
-          name: offlineBaike.name,
+          name: keyword,
           emoji: offlineBaike.emoji,
           category: offlineBaike.category,
           description: offlineBaike.description,
@@ -113,9 +113,9 @@ export default function Medications() {
         // 2. 离线库没有，联网搜索百度百科（CORS 代理）
         const baike: BaikeDetail | null = await fetchBaikeDetail(keyword);
         if (baike) {
-          medName = baike.title;
+          medName = keyword;
           addMedication({
-            name: baike.title,
+            name: keyword,
             emoji: '💊',
             category: 'other',
             purpose: baike.description,
@@ -147,9 +147,9 @@ export default function Medications() {
             setBaikeError('未找到相关内容');
             return;
           }
-          medName = wiki.title;
+          medName = keyword;
           addMedication({
-            name: wiki.title,
+            name: keyword,
             emoji: '💊',
             category: 'other',
             description: wiki.summary,
@@ -590,20 +590,21 @@ function AddMedicationDrawer({
 
   return (
     <motion.div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-teal-700/40 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-teal-700/40"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      onClick={onClose}
     >
       <motion.div
-        initial={{ y: 30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 30, opacity: 0 }}
-        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="glass-card relative max-h-[90dvh] w-full max-w-lg overflow-hidden rounded-t-3xl sm:rounded-3xl [will-change:transform] [transform:translateZ(0)]"
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative max-h-[90dvh] w-full max-w-lg overflow-hidden rounded-t-3xl bg-white/90 p-4 shadow-soft-lg backdrop-blur-xl"
       >
-        <div className="glass-shimmer" />
-        <div className="relative z-10 flex items-center justify-between border-b border-cream-200 p-4">
+        <div className="relative z-10 flex items-center justify-between border-b border-cream-200 p-1 pb-3">
           <h3 className="font-medium text-teal-700">添加自定义药物</h3>
           <button onClick={onClose} className="glass-tile rounded-full p-1.5 text-teal-600">
             <X className="h-4 w-4" />
