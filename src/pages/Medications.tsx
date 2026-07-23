@@ -20,6 +20,7 @@ import { MEDICATION_CATEGORIES } from '@/data/medications';
 import { cn } from '@/lib/utils';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useEntityInfo } from '@/hooks/useEntityInfo';
 import type { Medication, MedicationCategory } from '@/types';
 
 export default function Medications() {
@@ -313,6 +314,12 @@ function MedicationDetail({
   saved: boolean;
 }) {
   const cat = MEDICATION_CATEGORIES[med.category];
+  const { images, description, loading } = useEntityInfo(
+    med.name,
+    'medication',
+    med.image,
+    med.description
+  );
   const fields: { label: string; value?: string }[] = [
     { label: '主要作用', value: med.purpose },
     { label: '药物介绍', value: med.description },
@@ -365,6 +372,34 @@ function MedicationDetail({
         </div>
 
         <div className="space-y-4 px-6 pb-6 pt-4">
+          {/* 药盒配图 */}
+          {images && images.length > 0 ? (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {images.map((img, i) => (
+                <motion.img
+                  key={i}
+                  src={img}
+                  alt={`${med.name} ${i + 1}`}
+                  className="h-20 w-20 flex-shrink-0 rounded-xl object-cover"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                />
+              ))}
+            </div>
+          ) : loading ? (
+            <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-cream-100">
+              <Loader2 className="h-5 w-5 animate-spin text-teal-600/40" />
+            </div>
+          ) : null}
+
+          {/* 介绍（联网获取；静态介绍由下方"药物介绍"字段展示，避免重复） */}
+          {description && !med.description && (
+            <div className="rounded-2xl border border-cream-200 p-4">
+              <h4 className="mb-1.5 text-sm font-medium text-teal-700">介绍</h4>
+              <p className="text-sm leading-relaxed text-teal-600/80">{description}</p>
+            </div>
+          )}
+
           {/* 用法用量 */}
           <div className="rounded-2xl bg-cream-50 p-4">
             <h4 className="mb-3 flex items-center gap-1.5 text-sm font-medium text-teal-700">

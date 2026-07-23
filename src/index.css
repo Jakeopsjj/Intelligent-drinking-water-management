@@ -23,13 +23,9 @@ body,
 
 body {
   margin: 0;
-  background-color: #f8f5f0;
+  /* 背景透明：露出底层 LiquidGlassBackground（GLSL 纹理 + 气泡粒子） */
+  background-color: transparent;
   color: #234a48;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(122, 155, 126, 0.08) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(45, 95, 93, 0.05) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(217, 119, 87, 0.04) 0px, transparent 50%);
-  background-attachment: fixed;
 }
 
 /* 自定义滚动条 */
@@ -303,4 +299,167 @@ input[type="number"] {
 .content-auto {
   content-visibility: auto;
   contain-intrinsic-size: 0 200px;
+}
+
+/* ============================================================
+   液态玻璃材质统一参数（PBR 风格的 CSS 变量化管理）
+   - 透光率 transmittance：决定基底可见度
+   - 粗糙度 roughness：决定磨砂模糊强度
+   - 折射率 ior：决定边缘折射偏移程度
+   - 菲涅尔强度 fresnel：决定边缘高光亮度
+   统一在此调参，全应用 glass-* 控件自动跟随。
+   ============================================================ */
+:root {
+  --glass-transmittance: 0.55;        /* 基底透光率 */
+  --glass-roughness: 20px;            /* 磨砂模糊半径 */
+  --glass-roughness-tile: 10px;       /* 小块控件磨砂模糊半径 */
+  --glass-roughness-bar: 24px;        /* 导航栏磨砂模糊半径 */
+  --glass-ior: 1.33;                  /* 水的折射率，控制折射形变 */
+  --glass-fresnel: 0.35;              /* 菲涅尔边缘高光强度 */
+  --glass-saturation: 180%;           /* 饱和度提升 */
+}
+
+/* 增强 glass-card：菲涅尔边缘高光亮度跟随参数 */
+.glass-card::before {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, calc(0.9 * var(--glass-fresnel) / 0.35)) 0%,
+    rgba(255, 255, 255, 0.1) 30%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.05) 70%,
+    rgba(255, 255, 255, calc(0.4 * var(--glass-fresnel) / 0.35)) 100%
+  );
+}
+
+/* ============================================================
+   全应用液态玻璃背景层
+   ============================================================ */
+.liquid-bg-root {
+  position: fixed;
+  inset: 0;
+  z-index: -1;            /* 永远在最底层，不遮挡任何控件 */
+  pointer-events: none;   /* 绝不影响点击响应 */
+  overflow: hidden;
+}
+
+/* WebGL 静态纹理 canvas：拉伸全屏 + 模糊，CSS 动画缓慢漂移产生流动感 */
+.liquid-bg-canvas {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  object-fit: cover;
+  filter: blur(28px) saturate(140%);
+  opacity: 0.85;
+  /* 缓慢漂移，让静态纹理产生液态流动错觉，无 GLSL 每帧重绘开销 */
+  animation: liquid-drift 32s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes liquid-drift {
+  0%   { transform: translate3d(-2%, -1%, 0) scale(1.02); }
+  50%  { transform: translate3d(1%, 1.5%, 0) scale(1.05); }
+  100% { transform: translate3d(2%, -2%, 0) scale(1.03); }
+}
+
+/* CSS 降级背景（WebGL 不可用时的兜底） */
+.liquid-bg-fallback {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(at 20% 30%, rgba(122, 155, 126, 0.25) 0%, transparent 45%),
+    radial-gradient(at 80% 20%, rgba(45, 95, 93, 0.18) 0%, transparent 45%),
+    radial-gradient(at 60% 80%, rgba(217, 119, 87, 0.12) 0%, transparent 45%),
+    linear-gradient(170deg, #f0f7f4 0%, #e8f4ef 30%, #f5f0e8 60%, #fdf6ee 100%);
+  animation: liquid-drift 40s ease-in-out infinite alternate;
+}
+
+/* 透明气泡粒子层 */
+.liquid-bubble-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.liquid-bubble {
+  position: absolute;
+  bottom: -30px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.3);
+  animation-name: bubble-rise;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes bubble-rise {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.6);
+    opacity: 0;
+  }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.4; }
+  100% {
+    transform: translate3d(20px, -110vh, 0) scale(1.1);
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+   点击径向水波纹涟漪
+   ============================================================ */
+.ripple-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;          /* 高于一切，但不拦截任何事件 */
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* 单个涟漪：以点击坐标为中心径向扩散 */
+.ripple-dot {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(180, 220, 210, 0.35) 35%,
+    rgba(255, 255, 255, 0.1) 60%,
+    transparent 80%
+  );
+  animation: ripple-spread 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: width, height, opacity;
+}
+
+@keyframes ripple-spread {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0.9;
+  }
+  60% {
+    opacity: 0.4;
+  }
+  100% {
+    width: 220px;
+    height: 220px;
+    opacity: 0;
+  }
+}
+
+/* 尊重用户「减少动态」系统偏好：关闭所有装饰性动画 */
+@media (prefers-reduced-motion: reduce) {
+  .liquid-bg-canvas,
+  .liquid-bg-fallback,
+  .liquid-bubble,
+  .ripple-dot,
+  .glass-shimmer {
+    animation: none !important;
+  }
 }

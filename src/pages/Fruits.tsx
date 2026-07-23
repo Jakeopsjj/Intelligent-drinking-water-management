@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { fetchFoodNutrition, type FoodNutrition } from '@/lib/foodNutritionService';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useEntityInfo } from '@/hooks/useEntityInfo';
 import type { Fruit } from '@/types';
 
 export default function Fruits() {
@@ -260,6 +261,12 @@ function FruitDetail({
   onClose: () => void;
 }) {
   const w = Number(weight) || 0;
+  const { image, description, loading } = useEntityInfo(
+    fruit.name,
+    'fruit',
+    fruit.image,
+    fruit.description
+  );
 
   return (
     <>
@@ -307,6 +314,29 @@ function FruitDetail({
         </div>
 
         <div className="space-y-4 px-6 pb-6 pt-4">
+          {/* 水果配图 */}
+          {image ? (
+            <motion.img
+              src={image}
+              alt={fruit.name}
+              className="h-40 w-full rounded-2xl object-cover"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            />
+          ) : loading ? (
+            <div className="flex h-40 w-full items-center justify-center rounded-2xl bg-cream-100">
+              <Loader2 className="h-6 w-6 animate-spin text-teal-600/40" />
+            </div>
+          ) : null}
+
+          {/* 介绍（联网获取；静态介绍由下方"详细营养成分"展示，避免重复） */}
+          {description && !fruit.description && (
+            <div className="rounded-2xl border border-cream-200 p-4">
+              <h4 className="mb-1.5 text-sm font-medium text-teal-700">介绍</h4>
+              <p className="text-sm leading-relaxed text-teal-600/80">{description}</p>
+            </div>
+          )}
+
           {/* 核心：每100g元素含量 */}
           <div className="rounded-2xl bg-cream-50 p-4">
             <h4 className="mb-3 text-sm font-medium text-teal-700">每 100g 元素含量</h4>

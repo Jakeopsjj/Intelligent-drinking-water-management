@@ -40,6 +40,50 @@ warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # ============================================================
+# 0. 自动递增版本号
+#    - patch 位 +1（如 2.15.0 → 2.15.1，2.15.9 → 2.16.0）
+#    - 同步更新 package.json 的 version、build.gradle 的 versionName/versionCode
+#    - 纯 bash/sed 实现，不依赖 node/python
+# ============================================================
+bump_version() {
+    local pkg="$PROJECT_ROOT/package.json"
+    local gradle="$ANDROID_DIR/app/build.gradle"
+
+    # 读取当前版本号（package.json 的 "version" 字段）
+    local cur
+    cur=$(grep '"version"' "$pkg" | head -1 | sed 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+
+    # 拆分为 major.minor.patch
+    local major minor patch rest
+    major=${cur%%.*}
+    rest=${cur#*.}
+    minor=${rest%%.*}
+    patch=${rest#*.}
+
+    # patch +1，超过 9 则归零并进位到 minor
+    patch=$((patch + 1))
+    if [ "$patch" -gt 9 ]; then
+        patch=0
+        minor=$((minor + 1))
+    fi
+
+    local new="$major.$minor.$patch"
+    info "版本递增: $cur → $new"
+
+    # 1. 同步 package.json 的 version 字段
+    sed -i "s/\"version\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"version\": \"$new\"/" "$pkg"
+
+    # 2. 同步 build.gradle 的 versionName（双引号字符串）
+    sed -i "s/versionName[[:space:]]*\"[^\"]*\"/versionName \"$new\"/" "$gradle"
+
+    # 3. 同步 build.gradle 的 versionCode（+1）
+    local cur_code new_code
+    cur_code=$(grep 'versionCode' "$gradle" | head -1 | sed 's/.*versionCode[[:space:]]*\([0-9][0-9]*\).*/\1/')
+    new_code=$((cur_code + 1))
+    sed -i "s/versionCode[[:space:]]*[0-9][0-9]*/versionCode $new_code/" "$gradle"
+}
+
+# ============================================================
 # 1. 检查并安装 Android SDK
 # ============================================================
 ensure_android_sdk() {
@@ -347,6 +391,8 @@ host=github.com" 2>/dev/null | grep "^password=" | cut -d= -f2-)
 # 主流程
 # ============================================================
 main() {
+    bump_version
+
     echo "=============================================="
     echo "  肾友笔记 APK 自动构建"
     echo "=============================================="
