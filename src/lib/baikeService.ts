@@ -27,6 +27,14 @@
 
 import { PersistentCache } from './persistentCache';
 
+/** 百度百科正文章节（按词条内二级/三级标题划分） */
+export interface BaikeSection {
+  /** 章节标题（如「不良反应」「禁忌」「注意事项」「用法用量」「形态特征」） */
+  title: string;
+  /** 该章节下的段落文本列表（已去标签） */
+  paragraphs: string[];
+}
+
 export interface BaikeInfo {
   /** 词条标题 */
   title: string;
@@ -34,12 +42,26 @@ export interface BaikeInfo {
   summary: string;
   /** 正文详细内容（多段纯文本，用 \n\n 分隔） */
   content: string;
+  /** 结构化章节列表（药物覆盖适应症/用法用量/不良反应/禁忌/注意事项等全字段） */
+  sections?: BaikeSection[];
   /** 主图 URL */
   image?: string;
   /** 多图 URL */
   images?: string[];
   /** 信息框键值对（如「别名」「英文名称」「分子式」等） */
   infobox?: Record<string, string>;
+}
+
+/** 百度百科「检索」候选条目（searchBaike 返回） */
+export interface BaikeSearchItem {
+  /** 词条标题 */
+  title: string;
+  /** 简短描述（搜索结果摘要 / 词条摘要） */
+  description?: string;
+  /** 词条 URL（/item/{title}/{id} 或绝对 URL） */
+  url?: string;
+  /** 缩略图（如有） */
+  image?: string;
 }
 
 /** 请求超时（毫秒）—— 提升至 15s 应对 CORS 代理慢响应 */
@@ -159,6 +181,12 @@ async function doFetchBaike(keyword: string): Promise<BaikeInfo | null> {
   if (!title && !summary && !content) return null;
 
   const info: BaikeInfo = { title, summary, content };
+
+  // 结构化章节：按词条内 H2/H3/para-title 标题划分，
+  // 药物词条可覆盖「适应症/用法用量/不良反应/禁忌/注意事项/药理毒理/药代动力学」等全字段；
+  // 水果词条可覆盖「形态特征/分布范围/主要价值/栽培技术」等。解析失败不影响 content 兜底。
+  const sections = safe(() => parseSections(doc)) ?? [];
+  if (sections.length > 0) info.sections = sections;
 
   const image = safe(() => parseMainImage(doc));
   if (image) info.image = image;
@@ -309,6 +337,88 @@ function parseContent(doc: Document): string {
   return paras.join('\n\n');
 }
 
+/**
+ * 解析正文章节：按词条内 H2/H3/para-title 标题划分结构化章节。
+ *
+ * 百度百科 DOM 结构：
+ * - 章节标题：`<h2><span class="title-1">不良反应</span></h2>`、`<h3 class="title-2">`、
+ *   `<div class="para-title level-2"><span class="title-content">禁忌</span></div>` 等多种变体
+ * - 章节段落：`<div class="para">` / `<p class="para">` / `<p>`
+ *
+ * 策略：在正文容器内按文档顺序遍历「标题 + 段落」节点序列，遇标题开启新章节，
+ * 遇段落追加到当前章节。跳过「参考文献/参考资料/扩展阅读/外部链接/参见」等元章节。
+ *
+ * 药物词条由此可结构化输出：适应症、用法用量、不良反应、禁忌、注意事项、孕妇及哺乳期妇女用药、
+ * 儿童用药、老年患者用药、药物相互作用、药物过量、药理毒理、药代动力学、贮藏、包装等全字段。
+ */
+function parseSections(doc: Document): BaikeSection[] {
+  const container =
+    doc.querySelector('.J-lemma-content') ||
+    doc.querySelector('.main-content') ||
+    doc.querySelector('.lemma-content') ||
+    doc.querySelector('#bodyContent') ||
+    doc.body;
+  if (!container) return [];
+
+  /** 非正文章节标题（参考资料/扩展阅读等），命中后丢弃当前章节上下文 */
+  const SKIP_TITLES = /参考文献|参考资料|扩展阅读|外部链接|外部連接|参见|相關條目|相关条目|注释|词条编辑|词条标签|目录|免责声明/;
+  /** 标题前缀序号清理：如「1、适应症」「2.用法用量」 */
+  const LEADING_INDEX = /^[\d\s]+[、.．)]*\s*/;
+
+  const sections: BaikeSection[] = [];
+  let current: BaikeSection | null = null;
+  const seen = new Set<string>();
+
+  const nodes = container.querySelectorAll(
+    'h2, h3, h4, .para-title, [class*="title-1"], [class*="title-2"], [class*="title-content"], .para, p'
+  );
+
+  for (const el of nodes) {
+    const tag = el.tagName.toLowerCase();
+    const cls = typeof el.className === 'string' ? el.className : '';
+    const isHeading =
+      tag === 'h2' ||
+      tag === 'h3' ||
+      tag === 'h4' ||
+      /para-title|title-1|title-2|title-content|headline/i.test(cls);
+
+    if (isHeading) {
+      const rawTitle = elText(el);
+      const title = rawTitle.replace(LEADING_INDEX, '').trim();
+      if (!title || title.length > 24) {
+        current = null;
+        continue;
+      }
+      if (SKIP_TITLES.test(title)) {
+        current = null;
+        continue;
+      }
+      current = { title, paragraphs: [] };
+      sections.push(current);
+      continue;
+    }
+
+    if (!current) continue;
+    const text = elText(el);
+    if (!text || text.length < 2 || seen.has(text)) continue;
+    seen.add(text);
+    current.paragraphs.push(text);
+  }
+
+  // 过滤空章节 + 合并同名相邻章节（不同标题级别可能重复出现）
+  const merged: BaikeSection[] = [];
+  for (const s of sections) {
+    if (s.paragraphs.length === 0) continue;
+    const last = merged[merged.length - 1];
+    if (last && last.title === s.title) {
+      last.paragraphs.push(...s.paragraphs);
+    } else {
+      merged.push({ title: s.title, paragraphs: [...s.paragraphs] });
+    }
+  }
+  return merged;
+}
+
 /** 解析主图：扩展选择器适配新版百度百科 DOM，覆盖 .summary-img / .summary-pic / .J-summary-img 等 */
 function parseMainImage(doc: Document): string {
   // 1. 摘要配图（多版本选择器）
@@ -405,4 +515,158 @@ function toAbsoluteUrl(url: string): string {
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
   if (trimmed.startsWith('/')) return `https://baike.baidu.com${trimmed}`;
   return trimmed;
+}
+
+// ============================================================
+// 百度百科「检索」服务
+//
+// 背景：百度百科搜索结果页（/search?word=）的候选列表为前端 JS 渲染，
+// 服务端 HTML 可能不含候选链接，且 baike 对服务端抓取有风控（百度安全验证）。
+// 因此采用多策略 + 兜底，确保「检索有结果」：
+//   策略1：解析 /search?word= 结果页 HTML 中的 /item/ 候选链接（命中即返回多候选）
+//   策略2（兜底）：直接抓取 /item/{keyword}（baike 会 302 重定向到最佳匹配词条），
+//                 解析其标题 + 摘要作为单条候选返回 —— 修复「检索无结果」异常
+//
+// 缓存 + 并发去重，模式同 fetchBaikeInfo。
+// ============================================================
+
+const baikeSearchCache = new PersistentCache<BaikeSearchItem[]>({ prefix: 'baike_search_cache_', maxEntries: 60 });
+const baikeSearchMemoryCache = new Map<string, BaikeSearchItem[]>();
+const baikeSearchPending = new Map<string, Promise<BaikeSearchItem[]>>();
+
+/**
+ * 检索百度百科词条。
+ * @param keyword 关键词（中文水果/药物名）
+ * @returns 候选列表（标题 + 描述 + URL）；完全失败返回空数组
+ */
+export function searchBaike(keyword: string): Promise<BaikeSearchItem[]> {
+  const key = keyword.trim().toLowerCase();
+  if (!key) return Promise.resolve([]);
+
+  if (baikeSearchCache.has(key)) {
+    return Promise.resolve(baikeSearchCache.get(key) ?? []);
+  }
+  if (baikeSearchMemoryCache.has(key)) {
+    return Promise.resolve(baikeSearchMemoryCache.get(key) ?? []);
+  }
+
+  const inflight = baikeSearchPending.get(key);
+  if (inflight) return inflight;
+
+  const p = doSearchBaike(keyword.trim())
+    .then((items) => {
+      // 成功（含空数组，但只有解析到候选才视为成功持久化）才落 localStorage
+      if (items.length > 0) baikeSearchCache.set(key, items);
+      else baikeSearchMemoryCache.set(key, items);
+      baikeSearchPending.delete(key);
+      return items;
+    })
+    .catch(() => {
+      baikeSearchMemoryCache.set(key, []);
+      baikeSearchPending.delete(key);
+      return [];
+    });
+
+  baikeSearchPending.set(key, p);
+  return p;
+}
+
+/** 实际检索流程：搜索结果页解析 → 兜底直接词条解析 */
+async function doSearchBaike(keyword: string): Promise<BaikeSearchItem[]> {
+  // 策略1：搜索结果页
+  const searchUrl = `https://baike.baidu.com/search?word=${encodeURIComponent(keyword)}`;
+  const html = await fetchHtml(searchUrl);
+  if (html && !isBlockedPage(html)) {
+    const items = safe(() => parseSearchResults(html)) ?? [];
+    if (items.length > 0) return items;
+  }
+
+  // 策略2（兜底）：直接词条解析，确保「检索有结果」
+  // baike 会把 /item/{keyword} 302 重定向到最佳匹配词条（含数字 ID）
+  const item = await fetchBaikeInfo(keyword);
+  if (item && item.title) {
+    return [
+      {
+        title: item.title,
+        description: item.summary || item.content?.slice(0, 120),
+        url: `https://baike.baidu.com/item/${encodeURIComponent(item.title)}`,
+        image: item.image,
+      },
+    ];
+  }
+
+  return [];
+}
+
+/**
+ * 解析百度百科搜索结果页 HTML，提取候选词条。
+ *
+ * 候选链接形如 `<a href="/item/呋塞米片/5574234">呋塞米片</a>`。
+ * 优先在结果容器（.searchResult / .search-list / .result）内查找，避免误抓页脚热门词条；
+ * 容器未命中时退化为全页 /item/ 链接扫描。
+ */
+function parseSearchResults(html: string): BaikeSearchItem[] {
+  let doc: Document;
+  try {
+    doc = new DOMParser().parseFromString(html, 'text/html');
+  } catch {
+    return [];
+  }
+
+  /** 从 /item/{titleSeg}/{id?} 链接中提取标题（优先链接文本，否则解码路径段） */
+  const extractFromAnchor = (a: Element): BaikeSearchItem | null => {
+    const href = a.getAttribute('href') || '';
+    const match = href.match(/\/item\/([^/?#]+)/);
+    if (!match) return null;
+    // 过滤页脚/帮助/编辑服务类链接
+    if (/bk_fr=pcFooter|\/item\/百度百科[:%]|help|usercenter|\/user\//i.test(href)) return null;
+
+    let title = (a.textContent || '').trim();
+    const url = toAbsoluteUrl(href);
+    // 链接文本可能是「百度百科：本人词条编辑服务」之类，需过滤
+    if (!title || title.length > 30 || /^百度百科[:：]/.test(title)) {
+      try {
+        title = decodeURIComponent(match[1]);
+      } catch {
+        title = match[1];
+      }
+    }
+    if (!title || title.length > 30) return null;
+
+    // 描述：向上找最近的结果容器，再找其中的摘要文本
+    let description: string | undefined;
+    const container = a.closest('.result, .search-result, .search-list, dl, li');
+    if (container) {
+      const abs = container.querySelector(
+        '.result-abstract, .c-gap-top-small, .abstract, dd, .result-c_abstract, [class*="abstract"]'
+      );
+      const absText = elText(abs);
+      if (absText && absText.length > 4) description = absText.slice(0, 160);
+    }
+
+    return { title, description, url };
+  };
+
+  const items: BaikeSearchItem[] = [];
+  const seen = new Set<string>();
+
+  // 1. 结果容器内链接
+  let anchors = doc.querySelectorAll(
+    '.searchResult a[href*="/item/"], .search-list a[href*="/item/"], .result a[href*="/item/"], .search-result a[href*="/item/"]'
+  );
+  // 2. 容器未命中 → 全页扫描
+  if (anchors.length === 0) {
+    anchors = doc.querySelectorAll('a[href*="/item/"]');
+  }
+
+  for (const a of anchors) {
+    if (items.length >= 12) break;
+    const item = extractFromAnchor(a);
+    if (!item) continue;
+    if (seen.has(item.title)) continue;
+    seen.add(item.title);
+    items.push(item);
+  }
+
+  return items;
 }
