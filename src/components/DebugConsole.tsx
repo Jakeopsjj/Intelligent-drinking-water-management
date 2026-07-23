@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Terminal, X, Filter, Trash2, Copy, ChevronDown, ChevronUp, Check } from 'lucide-react';
-import { useDebugStore, type LogLevel } from '@/store/useDebugStore';
+import { useDebugStore, type LogLevel, type LogEntry } from '@/store/useDebugStore';
 import { cn } from '@/lib/utils';
 
 const LOG_LEVEL_COLORS: Record<LogLevel, { bg: string; text: string; border: string }> = {
@@ -25,10 +25,16 @@ export default function DebugConsole() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const logs = useDebugStore((s) => s.getFilteredLogs());
+  const allLogs = useDebugStore((s) => s.logs);
   const filter = useDebugStore((s) => s.filter);
   const setFilter = useDebugStore((s) => s.setFilter);
   const clearLogs = useDebugStore((s) => s.clearLogs);
+
+  // 在组件内根据 filter 计算过滤后的日志（响应式，logs 和 filter 任一变化都会触发重算）
+  const logs = useMemo<LogEntry[]>(() => {
+    if (filter === 'all') return allLogs;
+    return allLogs.filter((log) => log.level === filter);
+  }, [allLogs, filter]);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -64,16 +70,21 @@ export default function DebugConsole() {
 
       <AnimatePresence>
         {isOpen && (
-          <>
-            <motion.div
-              className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+          <motion.div
+            key="debug-console"
+            className="fixed inset-0 z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {/* 遮罩层 */}
+            <div
+              className="absolute inset-0 bg-black/30 backdrop-blur-sm"
               onClick={() => setIsOpen(false)}
             />
+            {/* 面板 */}
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-white shadow-2xl"
+              className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white shadow-2xl"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -208,7 +219,7 @@ export default function DebugConsole() {
                 )}
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
     </>
