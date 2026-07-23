@@ -7,6 +7,7 @@ import Dashboard from '@/pages/Dashboard';
 import Records from '@/pages/Records';
 import Fruits from '@/pages/Fruits';
 import Medications from '@/pages/Medications';
+import Diet from '@/pages/Diet';
 import MedicationPlan from '@/pages/MedicationPlan';
 import Settings from '@/pages/Settings';
 import Onboarding from '@/pages/Onboarding';
@@ -76,6 +77,7 @@ function AppRoutes() {
           <Route path="/records" element={<Records />} />
           <Route path="/fruits" element={<Fruits />} />
           <Route path="/medications" element={<Medications />} />
+          <Route path="/diet" element={<Diet />} />
           <Route path="/medication-plan" element={<MedicationPlan />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />

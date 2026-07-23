@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AnyRecord, WaterRecord, UltrafiltrationRecord, FruitRecord, MedicationRecord, Fruit, Medication, DailyMetrics, HourlyDistribution } from '@/types';
+import type { AnyRecord, WaterRecord, UltrafiltrationRecord, FruitRecord, MedicationRecord, Fruit, Medication, DailyMetrics, HourlyDistribution, MealType } from '@/types';
 import { generateId, calculatePotassium, calculatePhosphorus, calculateSodium, calculateWater } from '@/utils/calc';
 import { getTodayKey, getDayRange } from '@/utils/date';
 import { nativeJSONStorage } from '@/lib/nativeStorage';
@@ -21,6 +21,7 @@ interface AddFruitInput {
   fruit: Fruit;
   weight: number;
   timestamp?: number;
+  mealType?: MealType;
 }
 
 interface AddMedicationInput {
@@ -92,7 +93,7 @@ export const useRecordsStore = create<RecordsState>()(
         });
       },
 
-      addFruitRecord: ({ fruit, weight, timestamp = Date.now() }) => {
+      addFruitRecord: ({ fruit, weight, timestamp = Date.now(), mealType }) => {
         const record: FruitRecord = {
           id: generateId(),
           timestamp,
@@ -105,6 +106,7 @@ export const useRecordsStore = create<RecordsState>()(
           phosphorus: calculatePhosphorus(fruit, weight),
           sodium: calculateSodium(fruit, weight),
           water: calculateWater(fruit, weight),
+          mealType,
         };
         set((state) => {
           const records = [...state.records, record];

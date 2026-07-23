@@ -1,6 +1,9 @@
 // 记录类型
 export type RecordType = 'water' | 'ultrafiltration' | 'fruit' | 'medication';
 
+// 餐次类型
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
 // 钾含量等级
 export type PotassiumLevel = 'low' | 'medium' | 'high';
 
@@ -34,6 +37,7 @@ export interface FruitRecord extends BaseRecord {
   phosphorus: number; // 自动计算所得的磷摄入量 mg
   sodium: number; // 自动计算所得的钠摄入量 mg
   water: number; // 自动计算所得的水分摄入量 ml（水果含水量）
+  mealType?: MealType; // 餐次分类
 }
 
 // 服药记录
