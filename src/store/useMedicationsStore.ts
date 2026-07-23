@@ -13,7 +13,6 @@ import { generateId } from '@/utils/calc';
 import { nativeJSONStorage } from '@/lib/nativeStorage';
 import { eventBus } from '@/lib/eventBus';
 import { EVENT_NAMES } from '@/types/events';
-import { findMedicationBaike } from '@/data/baikeDatabase';
 
 interface MedicationsState {
   builtinMedications: Medication[];
@@ -103,32 +102,16 @@ export const useMedicationsStore = create<MedicationsState>()(
     {
       name: 'dialysis_medications',
       storage: nativeJSONStorage,
-      // 只持久化自定义药物，内置药物每次从代码加载
       partialize: (state) => ({ customMedications: state.customMedications }),
-      // merge 在 rehydrate 时执行，可以修改合并后的 state
       merge: (persistedState, currentState) => {
         const oldCustomMeds = (persistedState as Partial<MedicationsState>)?.customMedications ?? [];
-        // 数据迁移：修正旧版本 persist 中 category='other' 的药物
-        const fixed = oldCustomMeds.map((m) => {
-          const baike = findMedicationBaike(m.name);
-          if (!baike) return m;
-          if (m.category === 'other' && baike.category !== 'other') {
-            return {
-              ...m,
-              emoji: baike.emoji,
-              category: baike.category,
-              description: m.description || baike.description,
-            };
-          }
-          return m;
-        });
         // 去重：同名保留最新
         const seen = new Set<string>();
         const deduped: Medication[] = [];
-        for (let i = fixed.length - 1; i >= 0; i--) {
-          if (!seen.has(fixed[i].name)) {
-            seen.add(fixed[i].name);
-            deduped.unshift(fixed[i]);
+        for (let i = oldCustomMeds.length - 1; i >= 0; i--) {
+          if (!seen.has(oldCustomMeds[i].name)) {
+            seen.add(oldCustomMeds[i].name);
+            deduped.unshift(oldCustomMeds[i]);
           }
         }
         return { ...currentState, customMedications: deduped };

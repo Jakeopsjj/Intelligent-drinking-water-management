@@ -18,7 +18,6 @@ import { MEDICATION_CATEGORIES } from '@/data/medications';
 import { cn } from '@/lib/utils';
 import { fetchBaikeDetail, type BaikeDetail } from '@/lib/baikeService';
 import { fetchWikiDetail, type WikiDetail } from '@/lib/wikiSearchService';
-import { findMedicationBaike } from '@/data/baikeDatabase';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import DetailDrawer, { FieldIcons } from '@/components/DetailDrawer';
@@ -71,7 +70,23 @@ export default function Medications() {
     setTimeout(() => setSaved(false), 1200);
   };
 
-  // 从离线百科或百度百科搜索并自动添加药物
+  // 根据药物名称关键词自动判断分类
+  const guessCategory = (name: string): MedicationCategory => {
+    const n = name.toLowerCase();
+    // 磷结合剂
+    if (/碳酸钙|醋酸钙|司维拉姆|碳酸镧|氢氧化铝|磷结合|降磷/.test(n)) return 'phosphate-binder';
+    // 降压药
+    if (/硝苯地平|氨氯地平|缬沙坦|氯沙坦|厄贝沙坦|替米沙坦|美托洛尔|比索洛尔|卡托普利|依那普利|培哚普利|降压|地平|沙坦|洛尔|普利/.test(n)) return 'antihypertensive';
+    // 促红素
+    if (/促红|红细胞生成素|达依泊汀|epo|esa/.test(n)) return 'esa';
+    // 铁剂
+    if (/蔗糖铁|多糖铁|硫酸亚铁|琥珀酸亚铁|富马酸亚铁|铁剂|补铁/.test(n)) return 'iron';
+    // 维生素
+    if (/维生素|叶酸|骨化三醇|维生素d|vitamin|叶酸|b族/.test(n)) return 'vitamin';
+    return 'other';
+  };
+
+  // 联网搜索百度百科/维基百科并自动添加药物
   const handleBaikeSearch = async () => {
     const keyword = query.trim();
     if (!keyword) return;
@@ -79,28 +94,30 @@ export default function Medications() {
     setBaikeError(null);
     try {
       let medName = '';
+      const category = guessCategory(keyword);
 
-      // 1. 先查离线百科数据库
-      const offlineBaike = findMedicationBaike(keyword);
-      if (offlineBaike) {
+      // 1. 联网搜索百度百科（CORS 代理）
+      const baike: BaikeDetail | null = await fetchBaikeDetail(keyword);
+      if (baike) {
         medName = keyword;
         addMedication({
           name: keyword,
-          emoji: offlineBaike.emoji,
-          category: offlineBaike.category,
-          description: offlineBaike.description,
-          indications: offlineBaike.indications,
-          pharmacokinetics: offlineBaike.pharmacokinetics,
-          contraindications: offlineBaike.contraindications,
-          sideEffects: offlineBaike.sideEffects,
-          warnings: offlineBaike.warnings,
-          useInPregnancy: offlineBaike.useInPregnancy,
-          useInChildren: offlineBaike.useInChildren,
-          useInElderly: offlineBaike.useInElderly,
-          drugInteractions: offlineBaike.drugInteractions,
-          storage: offlineBaike.storage,
-          overdose: offlineBaike.overdose,
-          image: offlineBaike.image,
+          emoji: '💊',
+          category,
+          purpose: baike.description,
+          description: baike.summary,
+          image: baike.image,
+          indications: baike.indications,
+          pharmacokinetics: baike.pharmacokinetics,
+          contraindications: baike.contraindications,
+          sideEffects: baike.sideEffects,
+          warnings: baike.warnings,
+          useInPregnancy: baike.useInPregnancy,
+          useInChildren: baike.useInChildren,
+          useInElderly: baike.useInElderly,
+          drugInteractions: baike.drugInteractions,
+          storage: baike.storage,
+          overdose: baike.overdose,
           usage: {
             unit: '片',
             defaultDose: 1,
@@ -110,59 +127,27 @@ export default function Medications() {
           level: 'medium',
         });
       } else {
-        // 2. 离线库没有，联网搜索百度百科（CORS 代理）
-        const baike: BaikeDetail | null = await fetchBaikeDetail(keyword);
-        if (baike) {
-          medName = keyword;
-          addMedication({
-            name: keyword,
-            emoji: '💊',
-            category: 'other',
-            purpose: baike.description,
-            description: baike.summary,
-            image: baike.image,
-            indications: baike.indications,
-            pharmacokinetics: baike.pharmacokinetics,
-            contraindications: baike.contraindications,
-            sideEffects: baike.sideEffects,
-            warnings: baike.warnings,
-            useInPregnancy: baike.useInPregnancy,
-            useInChildren: baike.useInChildren,
-            useInElderly: baike.useInElderly,
-            drugInteractions: baike.drugInteractions,
-            storage: baike.storage,
-            overdose: baike.overdose,
-            usage: {
-              unit: '片',
-              defaultDose: 1,
-              frequency: '每日1次',
-              timing: '饭后',
-            },
-            level: 'medium',
-          });
-        } else {
-          // 3. 百度百科也失败，回退到维基百科
-          const wiki: WikiDetail | null = await fetchWikiDetail(keyword);
-          if (!wiki) {
-            setBaikeError('未找到相关内容');
-            return;
-          }
-          medName = keyword;
-          addMedication({
-            name: keyword,
-            emoji: '💊',
-            category: 'other',
-            description: wiki.summary,
-            image: wiki.image,
-            usage: {
-              unit: '片',
-              defaultDose: 1,
-              frequency: '每日1次',
-              timing: '饭后',
-            },
-            level: 'medium',
-          });
+        // 2. 百度百科失败，回退到维基百科
+        const wiki: WikiDetail | null = await fetchWikiDetail(keyword);
+        if (!wiki) {
+          setBaikeError('未找到相关内容');
+          return;
         }
+        medName = keyword;
+        addMedication({
+          name: keyword,
+          emoji: '💊',
+          category,
+          description: wiki.summary,
+          image: wiki.image,
+          usage: {
+            unit: '片',
+            defaultDose: 1,
+            frequency: '每日1次',
+            timing: '饭后',
+          },
+          level: 'medium',
+        });
       }
       // 从最新 store 状态中找到新添加的药物并打开详情抽屉
       const latest = useMedicationsStore.getState().customMedications;

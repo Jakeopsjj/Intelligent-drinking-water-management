@@ -6,7 +6,6 @@ import { generateId, getLevelFromPotassium } from '@/utils/calc';
 import { nativeJSONStorage } from '@/lib/nativeStorage';
 import { eventBus } from '@/lib/eventBus';
 import { EVENT_NAMES } from '@/types/events';
-import { findFruitBaike } from '@/data/baikeDatabase';
 
 interface FruitsState {
   // 内置水果（仅用于展示，不可修改）
@@ -92,35 +91,15 @@ export const useFruitsStore = create<FruitsState>()(
       name: 'dialysis_fruits',
       partialize: (state) => ({ customFruits: state.customFruits }),
       storage: nativeJSONStorage,
-      // merge 在 rehydrate 时执行，可以修改合并后的 state
       merge: (persistedState, currentState) => {
         const oldCustomFruits = (persistedState as Partial<FruitsState>)?.customFruits ?? [];
-        // 数据迁移：修正旧版本 persist 中的错误数据（emoji=彩色方块且营养为0）
-        const BAD_EMOJI = /🟢|🟥|🟣|🟠|🐉|🟡|🟧|🟤|🔴|🟪|🟨|⭐|🟫/;
-        const fixed = oldCustomFruits.map((f) => {
-          const baike = findFruitBaike(f.name);
-          if (!baike) return f;
-          const needsFix = f.potassiumPer100g === 0 || BAD_EMOJI.test(f.emoji);
-          if (!needsFix) return f;
-          return {
-            ...f,
-            emoji: baike.emoji,
-            potassiumPer100g: baike.potassiumPer100g,
-            phosphorusPer100g: baike.phosphorusPer100g,
-            sodiumPer100g: baike.sodiumPer100g,
-            waterPer100g: baike.waterPer100g,
-            level: getLevelFromPotassium(baike.potassiumPer100g),
-            description: f.description || baike.description,
-            aliases: f.aliases || baike.aliases,
-          };
-        });
         // 去重：同名保留最新
         const seen = new Set<string>();
         const deduped: Fruit[] = [];
-        for (let i = fixed.length - 1; i >= 0; i--) {
-          if (!seen.has(fixed[i].name)) {
-            seen.add(fixed[i].name);
-            deduped.unshift(fixed[i]);
+        for (let i = oldCustomFruits.length - 1; i >= 0; i--) {
+          if (!seen.has(oldCustomFruits[i].name)) {
+            seen.add(oldCustomFruits[i].name);
+            deduped.unshift(oldCustomFruits[i]);
           }
         }
         return { ...currentState, customFruits: deduped };

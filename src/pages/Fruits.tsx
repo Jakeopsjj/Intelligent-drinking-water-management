@@ -6,7 +6,6 @@ import { useRecordsStore } from '@/store/useRecordsStore';
 import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 import { fetchWikiDetail, type WikiDetail } from '@/lib/wikiSearchService';
-import { findFruitBaike } from '@/data/baikeDatabase';
 import { fetchFoodNutrition } from '@/lib/foodNutritionService';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
@@ -42,51 +41,20 @@ export default function Fruits() {
     high: filtered.filter((f) => f.level === 'high'),
   };
 
-  // 从离线百科或维基百科搜索并自动添加水果
+  // 联网搜索并自动添加水果（营养API + 维基百科）
   const handleWikiSearch = async () => {
     const keyword = query.trim();
     if (!keyword) return;
     setWikiSearching(true);
     setWikiError(null);
     try {
-      // 1. 先查离线百科数据库（自带完整营养数据）
-      const offlineBaike = findFruitBaike(keyword);
-      if (offlineBaike) {
-        addFruit({
-          name: keyword,
-          emoji: offlineBaike.emoji,
-          potassiumPer100g: offlineBaike.potassiumPer100g,
-          phosphorusPer100g: offlineBaike.phosphorusPer100g,
-          sodiumPer100g: offlineBaike.sodiumPer100g,
-          waterPer100g: offlineBaike.waterPer100g,
-          suggestion: '请根据医嘱适量食用',
-          description: offlineBaike.description,
-          aliases: offlineBaike.aliases,
-          origin: offlineBaike.origin,
-          varieties: offlineBaike.varieties,
-          cultivation: offlineBaike.cultivation,
-          culture: offlineBaike.culture,
-          healthBenefits: offlineBaike.healthBenefits,
-          precautions: offlineBaike.precautions,
-          storage: offlineBaike.storage,
-          image: offlineBaike.image,
-        });
-        const latest = useFruitsStore.getState().customFruits;
-        const newFruit = [...latest].reverse().find((f) => f.name === keyword);
-        if (newFruit) {
-          setSelected(newFruit);
-          setQuery('');
-        }
-        return;
-      }
-
-      // 2. 离线库没有，先从食物营养API获取钾/磷/钠/水分
+      // 1. 从食物营养API获取钾/磷/钠/水分
       const nutrition = await fetchFoodNutrition(keyword);
 
-      // 3. 同时从维基百科获取百科内容（介绍/图片/段落）
+      // 2. 同时从维基百科获取百科内容（介绍/图片/段落）
       const detail: WikiDetail | null = await fetchWikiDetail(keyword);
 
-      // 4. 合并数据：营养API的数值 + 维基百科的文案
+      // 3. 合并数据：营养API的数值 + 维基百科的文案
       if (nutrition || detail) {
         addFruit({
           name: keyword,
