@@ -53,11 +53,11 @@ export default function Fruits() {
       if (offlineBaike) {
         addFruit({
           name: offlineBaike.name,
-          emoji: '🍎',
-          potassiumPer100g: 0,
-          phosphorusPer100g: 0,
-          sodiumPer100g: 0,
-          waterPer100g: 0,
+          emoji: offlineBaike.emoji,
+          potassiumPer100g: offlineBaike.potassiumPer100g,
+          phosphorusPer100g: offlineBaike.phosphorusPer100g,
+          sodiumPer100g: offlineBaike.sodiumPer100g,
+          waterPer100g: offlineBaike.waterPer100g,
           suggestion: '请根据医嘱适量食用',
           description: offlineBaike.description,
           aliases: offlineBaike.aliases,
@@ -597,7 +597,7 @@ function AddFruitDrawer({
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="glass-card fixed bottom-0 left-0 right-0 z-50 max-h-[90dvh] overflow-y-auto rounded-t-3xl p-6 shadow-soft-lg [will-change:transform] [transform:translateZ(0)]"
+        className="glass-card fixed bottom-0 left-0 right-0 z-50 max-h-[90dvh] overflow-y-auto rounded-t-3xl p-6 shadow-soft-lg [will-change:transform]"
       >
         <div className="glass-shimmer" />
         <div className="relative z-10 mx-auto max-w-lg">

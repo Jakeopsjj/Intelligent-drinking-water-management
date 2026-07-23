@@ -86,8 +86,8 @@ export default function Medications() {
         medName = offlineBaike.name;
         addMedication({
           name: offlineBaike.name,
-          emoji: '💊',
-          category: 'other',
+          emoji: offlineBaike.emoji,
+          category: offlineBaike.category,
           description: offlineBaike.description,
           indications: offlineBaike.indications,
           pharmacokinetics: offlineBaike.pharmacokinetics,

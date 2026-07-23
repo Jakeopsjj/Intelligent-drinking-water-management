@@ -10,9 +10,16 @@
  * 药物内容仅为科普与参考，具体用药请遵医嘱。
  */
 
+import type { MedicationCategory } from '@/types';
+
 // 水果百科（扩展字段）
 export interface FruitBaike {
   name: string; // 水果名称
+  emoji: string; // 水果图标 emoji
+  potassiumPer100g: number; // 每 100g 钾含量 (mg)
+  phosphorusPer100g: number; // 每 100g 磷含量 (mg)
+  sodiumPer100g: number; // 每 100g 钠含量 (mg)
+  waterPer100g: number; // 每 100g 水分含量 (ml/g)
   aliases?: string; // 别名
   description: string; // 简介
   origin: string; // 起源与分布
@@ -28,6 +35,8 @@ export interface FruitBaike {
 // 药物百科（扩展字段）
 export interface MedicationBaike {
   name: string; // 药物名称
+  emoji: string; // 药物图标 emoji
+  category: MedicationCategory; // 药物分类
   description: string; // 简介
   indications: string; // 适应症
   pharmacokinetics: string; // 药代动力学
@@ -50,6 +59,11 @@ export interface MedicationBaike {
 export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   苹果: {
     name: '苹果',
+    emoji: '🍎',
+    potassiumPer100g: 107,
+    phosphorusPer100g: 11,
+    sodiumPer100g: 1,
+    waterPer100g: 86,
     aliases: '苹果·西洋苹果',
     description:
       '苹果为蔷薇科苹果属水果，富含果胶、维生素C和少量矿物质，是全球最常见的温带水果之一。其钾含量较低，是透析患者较为安全的水果选择。',
@@ -69,6 +83,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   梨: {
     name: '梨',
+    emoji: '🍐',
+    potassiumPer100g: 119,
+    phosphorusPer100g: 11,
+    sodiumPer100g: 2,
+    waterPer100g: 84,
     aliases: '梨·雪梨·鸭梨',
     description:
       '梨为蔷薇科梨属水果，水分高、性凉，有润肺生津作用。钾含量较低，适合透析患者适量食用。',
@@ -86,6 +105,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   香蕉: {
     name: '香蕉',
+    emoji: '🍌',
+    potassiumPer100g: 256,
+    phosphorusPer100g: 22,
+    sodiumPer100g: 1,
+    waterPer100g: 75,
     aliases: '香蕉·甘蕉',
     description:
       '香蕉为芭蕉科芭蕉属水果，富含钾元素和碳水。钾含量极高，透析患者应严格限制或避免食用。',
@@ -101,6 +125,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   橙子: {
     name: '橙子',
+    emoji: '🍊',
+    potassiumPer100g: 181,
+    phosphorusPer100g: 14,
+    sodiumPer100g: 1,
+    waterPer100g: 87,
     aliases: '橙子·甜橙·脐橙',
     description:
       '橙子为芸香科柑橘属水果，富含维生素C和水分。钾含量中等，需控制摄入量。',
@@ -116,6 +145,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   西瓜: {
     name: '西瓜',
+    emoji: '🍉',
+    potassiumPer100g: 112,
+    phosphorusPer100g: 11,
+    sodiumPer100g: 3,
+    waterPer100g: 93,
     aliases: '西瓜·寒瓜',
     description:
       '西瓜为葫芦科西瓜属水果，水分高达93%，是夏季解暑佳品。钾含量虽低，但水分极高，透析患者需严格计入摄水量。',
@@ -131,6 +165,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   葡萄: {
     name: '葡萄',
+    emoji: '🍇',
+    potassiumPer100g: 191,
+    phosphorusPer100g: 13,
+    sodiumPer100g: 1,
+    waterPer100g: 88,
     aliases: '葡萄·蒲桃·草龙珠',
     description:
       '葡萄为葡萄科葡萄属水果，富含多酚类与白藜芦醇，钾含量中等偏高，需控制摄入。',
@@ -148,6 +187,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   芒果: {
     name: '芒果',
+    emoji: '🥭',
+    potassiumPer100g: 168,
+    phosphorusPer100g: 12,
+    sodiumPer100g: 3,
+    waterPer100g: 83,
     aliases: '芒果·蜜望·望果',
     description:
       '芒果为漆树科芒果属热带水果，富含β-胡萝卜素与维生素A，钾含量中等，需控制摄入。',
@@ -164,6 +208,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   桃子: {
     name: '桃子',
+    emoji: '🍑',
+    potassiumPer100g: 190,
+    phosphorusPer100g: 12,
+    sodiumPer100g: 2,
+    waterPer100g: 88,
     aliases: '桃子·水蜜桃·毛桃',
     description:
       '桃子为蔷薇科桃属水果，富含膳食纤维与维生素A，钾含量中等，需控制摄入。',
@@ -180,6 +229,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   草莓: {
     name: '草莓',
+    emoji: '🍓',
+    potassiumPer100g: 153,
+    phosphorusPer100g: 24,
+    sodiumPer100g: 4,
+    waterPer100g: 91,
     aliases: '草莓·洋莓·红莓',
     description:
       '草莓为蔷薇科草莓属水果，富含维生素C与花青素，钾含量中等，磷含量稍高，需适量食用。',
@@ -198,6 +252,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   猕猴桃: {
     name: '猕猴桃',
+    emoji: '🥝',
+    potassiumPer100g: 312,
+    phosphorusPer100g: 26,
+    sodiumPer100g: 3,
+    waterPer100g: 83,
     aliases: '猕猴桃·奇异果·羊桃',
     description:
       '猕猴桃为猕猴桃科猕猴桃属水果，富含维生素C与膳食纤维，钾含量极高，透析患者应避免食用。',
@@ -216,6 +275,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   樱桃: {
     name: '樱桃',
+    emoji: '🍒',
+    potassiumPer100g: 222,
+    phosphorusPer100g: 20,
+    sodiumPer100g: 8,
+    waterPer100g: 80,
     aliases: '樱桃·车厘子·莺桃',
     description:
       '樱桃为蔷薇科李属水果，富含花青素与铁元素，钾含量较高，需控制摄入。',
@@ -232,6 +296,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   菠萝: {
     name: '菠萝',
+    emoji: '🍍',
+    potassiumPer100g: 113,
+    phosphorusPer100g: 8,
+    sodiumPer100g: 1,
+    waterPer100g: 87,
     aliases: '菠萝·凤梨·黄梨',
     description:
       '菠萝为凤梨科凤梨属热带水果，含菠萝蛋白酶助消化，钾含量较低，适合透析患者适量食用。',
@@ -249,6 +318,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   木瓜: {
     name: '木瓜',
+    emoji: '🍈',
+    potassiumPer100g: 182,
+    phosphorusPer100g: 10,
+    sodiumPer100g: 28,
+    waterPer100g: 89,
     aliases: '木瓜·番木瓜·万寿果',
     description:
       '木瓜为番木瓜科番木瓜属热带水果，含木瓜蛋白酶助消化，钾含量中等，钠含量偏高需注意。',
@@ -265,6 +339,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   柠檬: {
     name: '柠檬',
+    emoji: '🍋',
+    potassiumPer100g: 138,
+    phosphorusPer100g: 16,
+    sodiumPer100g: 1,
+    waterPer100g: 89,
     aliases: '柠檬·洋柠檬·益母果',
     description:
       '柠檬为芸香科柑橘属水果，富含维生素C与有机酸，钾含量低，适合透析患者少量泡水饮用。',
@@ -282,6 +361,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   石榴: {
     name: '石榴',
+    emoji: '🟥',
+    potassiumPer100g: 231,
+    phosphorusPer100g: 11,
+    sodiumPer100g: 1,
+    waterPer100g: 79,
     aliases: '石榴·安石榴·丹若',
     description:
       '石榴为千屈菜科石榴属水果，富含多酚与花青素，钾含量较高，透析患者应避免食用。',
@@ -299,6 +383,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   火龙果: {
     name: '火龙果',
+    emoji: '🐉',
+    potassiumPer100g: 141,
+    phosphorusPer100g: 21,
+    sodiumPer100g: 3,
+    waterPer100g: 83,
     aliases: '火龙果·红龙果·青龙果',
     description:
       '火龙果为仙人掌科量天尺属热带水果，富含花青素与膳食纤维，钾含量低，磷含量稍高需注意。',
@@ -316,6 +405,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   李子: {
     name: '李子',
+    emoji: '🟣',
+    potassiumPer100g: 144,
+    phosphorusPer100g: 13,
+    sodiumPer100g: 2,
+    waterPer100g: 90,
     aliases: '李子·嘉庆子·玉皇李',
     description:
       '李子为蔷薇科李属水果，含有机酸与膳食纤维，钾含量较低，适合透析患者适量食用。',
@@ -333,6 +427,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   杏子: {
     name: '杏子',
+    emoji: '🟠',
+    potassiumPer100g: 226,
+    phosphorusPer100g: 14,
+    sodiumPer100g: 3,
+    waterPer100g: 86,
     aliases: '杏子·杏·甜梅',
     description:
       '杏子为蔷薇科杏属水果，富含β-胡萝卜素与维生素A，钾含量较高，透析患者应避免食用。',
@@ -350,6 +449,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   椰子: {
     name: '椰子',
+    emoji: '🥥',
+    potassiumPer100g: 291,
+    phosphorusPer100g: 90,
+    sodiumPer100g: 55,
+    waterPer100g: 47,
     aliases: '椰子·越王头·胥余',
     description:
       '椰子为棕榈科椰子属热带水果，椰肉富含脂肪与磷，椰子水含极高电解质，对透析患者属高危水果。',
@@ -367,6 +471,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   牛油果: {
     name: '牛油果',
+    emoji: '🥑',
+    potassiumPer100g: 599,
+    phosphorusPer100g: 52,
+    sodiumPer100g: 7,
+    waterPer100g: 73,
     aliases: '牛油果·鳄梨·油梨',
     description:
       '牛油果为樟科鳄梨属热带水果，富含单不饱和脂肪酸，钾含量极高（599mg/100g），透析患者应严格避免。',
@@ -384,6 +493,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   榴莲: {
     name: '榴莲',
+    emoji: '🟡',
+    potassiumPer100g: 436,
+    phosphorusPer100g: 39,
+    sodiumPer100g: 3,
+    waterPer100g: 65,
     aliases: '榴莲·麝香猫果·果中之王',
     description:
       '榴莲为木棉科榴莲属热带水果，富含脂肪与碳水，钾含量极高（436mg/100g），透析患者应严格避免。',
@@ -400,6 +514,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   柿子: {
     name: '柿子',
+    emoji: '🟧',
+    potassiumPer100g: 151,
+    phosphorusPer100g: 17,
+    sodiumPer100g: 1,
+    waterPer100g: 82,
     aliases: '柿子·朱果·红嘟',
     description:
       '柿子为柿科柿属水果，富含β-胡萝卜素与维生素C，钾含量中等，需控制摄入。',
@@ -416,6 +535,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   哈密瓜: {
     name: '哈密瓜',
+    emoji: '🍈',
+    potassiumPer100g: 190,
+    phosphorusPer100g: 14,
+    sodiumPer100g: 27,
+    waterPer100g: 90,
     aliases: '哈密瓜·雪瓜·甘瓜',
     description:
       '哈密瓜为葫芦科甜瓜属水果，含β-胡萝卜素与维生素C，水分高、钠含量偏高，需控制摄入。',
@@ -432,6 +556,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   蓝莓: {
     name: '蓝莓',
+    emoji: '🫐',
+    potassiumPer100g: 77,
+    phosphorusPer100g: 12,
+    sodiumPer100g: 1,
+    waterPer100g: 84,
     aliases: '蓝莓·蓝浆果·都柿',
     description:
       '蓝莓为杜鹃花科越橘属水果，富含花青素与抗氧化物，钾含量低（77mg/100g），是透析患者较安全的水果。',
@@ -450,6 +579,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   柚子: {
     name: '柚子',
+    emoji: '🟢',
+    potassiumPer100g: 216,
+    phosphorusPer100g: 24,
+    sodiumPer100g: 2,
+    waterPer100g: 88,
     aliases: '柚子·文旦·沙田柚',
     description:
       '柚子为芸香科柑橘属水果，富含维生素C与柚皮苷，钾含量中等偏高，需控制摄入。注意西柚（葡萄柚）与多种药物有显著相互作用。',
@@ -467,6 +601,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   枣: {
     name: '枣',
+    emoji: '🟤',
+    potassiumPer100g: 375,
+    phosphorusPer100g: 23,
+    sodiumPer100g: 1,
+    waterPer100g: 80,
     aliases: '枣·红枣·大枣',
     description:
       '枣为鼠李科枣属水果，鲜枣富含维生素C，干枣富含糖分与铁，钾含量极高（鲜枣约375mg/100g），透析患者应严格限制。',
@@ -484,6 +623,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   山楂: {
     name: '山楂',
+    emoji: '🔴',
+    potassiumPer100g: 299,
+    phosphorusPer100g: 14,
+    sodiumPer100g: 4,
+    waterPer100g: 73,
     aliases: '山楂·山里红·红果',
     description:
       '山楂为蔷薇科山楂属水果，富含有机酸与黄酮类，钾含量较高（约299mg/100g），有消食化积之效，透析患者需限制食用。',
@@ -500,6 +644,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   无花果: {
     name: '无花果',
+    emoji: '🟪',
+    potassiumPer100g: 232,
+    phosphorusPer100g: 15,
+    sodiumPer100g: 1,
+    waterPer100g: 82,
     aliases: '无花果·映日果·蜜果',
     description:
       '无花果为桑科榕属水果，富含膳食纤维与多种酶，钾含量较高（约232mg/100g），需控制摄入。',
@@ -517,6 +666,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   百香果: {
     name: '百香果',
+    emoji: '🟨',
+    potassiumPer100g: 248,
+    phosphorusPer100g: 37,
+    sodiumPer100g: 18,
+    waterPer100g: 73,
     aliases: '百香果·西番莲·热情果',
     description:
       '百香果为西番莲科西番莲属热带水果，富含维生素C与芳香物质，钾含量较高（约248mg/100g），需控制摄入。',
@@ -534,6 +688,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   杨桃: {
     name: '杨桃',
+    emoji: '⭐',
+    potassiumPer100g: 143,
+    phosphorusPer100g: 18,
+    sodiumPer100g: 1,
+    waterPer100g: 91,
     aliases: '杨桃·阳桃·五敛子',
     description:
       '杨桃为酢浆草科五敛子属热带水果，富含草酸与杨桃毒素，钾含量较高，对肾功能不全患者可致神经毒性，透析患者应严格避免。',
@@ -551,6 +710,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   桑葚: {
     name: '桑葚',
+    emoji: '🟫',
+    potassiumPer100g: 297,
+    phosphorusPer100g: 33,
+    sodiumPer100g: 2,
+    waterPer100g: 83,
     aliases: '桑葚·桑果·桑枣',
     description:
       '桑葚为桑科桑属聚花果，富含花青素与白藜芦醇，钾含量较高（约297mg/100g），需控制摄入。',
@@ -568,6 +732,11 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   枇杷: {
     name: '枇杷',
+    emoji: '🟧',
+    potassiumPer100g: 266,
+    phosphorusPer100g: 16,
+    sodiumPer100g: 1,
+    waterPer100g: 89,
     aliases: '枇杷·卢桔·金丸',
     description:
       '枇杷为蔷薇科枇杷属亚热带水果，富含β-胡萝卜素与有机酸，钾含量中等（约266mg/100g），需控制摄入。',
@@ -592,6 +761,8 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
 export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   碳酸钙: {
     name: '碳酸钙',
+    emoji: '💊',
+    category: 'phosphate-binder',
     description:
       '碳酸钙是透析患者最常用的磷结合剂之一，与食物同服可在肠道与磷酸根结合，减少磷的吸收，同时补充钙质。',
     indications:
@@ -617,6 +788,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   司维拉姆: {
     name: '司维拉姆',
+    emoji: '💊',
+    category: 'phosphate-binder',
     description:
       '司维拉姆为非钙非铝的磷结合剂，适合高血钙或血管钙化风险高的患者，通过离子交换在肠道结合磷酸根，不增加钙负荷。',
     indications:
@@ -642,6 +815,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   碳酸镧: {
     name: '碳酸镧',
+    emoji: '💊',
+    category: 'phosphate-binder',
     description:
       '碳酸镧是一种高效的非钙磷结合剂，与磷结合力强，剂量小，适合不能耐受大剂量药片者，不增加钙负荷。',
     indications:
@@ -666,6 +841,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   骨化三醇: {
     name: '骨化三醇',
+    emoji: '💊',
+    category: 'vitamin',
     description:
       '骨化三醇（1,25-二羟维生素D3）是活性维生素D，无需肝肾羟化即可直接发挥作用，用于慢性肾衰竭继发性甲旁亢及肾性骨病。',
     indications:
@@ -690,6 +867,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   碳酸氢钠: {
     name: '碳酸氢钠',
+    emoji: '💊',
+    category: 'vitamin',
     description:
       '碳酸氢钠片用于纠正慢性肾衰竭患者的代谢性酸中毒，维持血碳酸氢根在22mmol/L以上，是CKD患者延缓肾功能恶化、改善营养和骨代谢的辅助治疗。',
     indications:
@@ -715,6 +894,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   氨氯地平: {
     name: '氨氯地平',
+    emoji: '💊',
+    category: 'antihypertensive',
     description:
       '氨氯地平为二氢吡啶类钙通道阻滞剂，长效降压，透析患者常用，对容量依赖性高血压效果好，半衰期长降压平稳。',
     indications:
@@ -739,6 +920,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   缬沙坦: {
     name: '缬沙坦',
+    emoji: '💊',
+    category: 'antihypertensive',
     description:
       '缬沙坦为血管紧张素II受体拮抗剂（ARB），降压同时可减少尿蛋白，保护残余肾功能，干咳发生率低于ACEI。',
     indications:
@@ -764,6 +947,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   '重组人促红素': {
     name: '重组人促红素',
+    emoji: '💉',
+    category: 'esa',
     description:
       '重组人促红细胞生成素（EPO）用于慢性肾衰竭所致肾性贫血，刺激骨髓红系造血，提升血红蛋白（Hb）至目标范围（100-120g/L）。',
     indications:
@@ -789,6 +974,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   蔗糖铁: {
     name: '蔗糖铁',
+    emoji: '💉',
+    category: 'iron',
     description:
       '蔗糖铁为静脉用铁剂，用于口服铁剂不耐受或无效的透析患者，与EPO协同维持铁储备和血红蛋白。',
     indications:
@@ -814,6 +1001,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   叶酸: {
     name: '叶酸',
+    emoji: '💊',
+    category: 'vitamin',
     description:
       '叶酸（维生素B9）是一种水溶性维生素，参与嘌呤和嘧啶合成及一碳单位代谢，是细胞增殖和红细胞生成所必需的营养素。透析患者因透析丢失及饮食限制常需补充。',
     indications:
@@ -840,6 +1029,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   '维生素B12': {
     name: '维生素B12',
+    emoji: '💊',
+    category: 'vitamin',
     description:
       '维生素B12（氰钴胺）是含钴的水溶性维生素，参与造血、神经髓鞘合成及一碳单位代谢。透析患者因胃酸缺乏、内因子不足及透析丢失，易发生B12缺乏。',
     indications:
@@ -866,6 +1057,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   '维生素D3': {
     name: '维生素D3',
+    emoji: '💊',
+    category: 'vitamin',
     description:
       '维生素D3（胆骨化醇）是脂溶性维生素，需经肝脏25-羟化和肾脏1α-羟化转化为活性形式骨化三醇发挥作用。透析患者因肾脏1α-羟化障碍常需活性形式，但营养性维生素D3仍用于纠正维生素D缺乏。',
     indications:
@@ -892,6 +1085,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   琥珀酸亚铁: {
     name: '琥珀酸亚铁',
+    emoji: '💊',
+    category: 'iron',
     description:
       '琥珀酸亚铁为口服有机酸铁剂，含元素铁约35%，较硫酸亚铁胃肠道刺激小、吸收好，用于缺铁性贫血的治疗。透析患者肾性贫血口服补铁的常用选择之一。',
     indications:
@@ -918,6 +1113,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   左卡尼汀: {
     name: '左卡尼汀',
+    emoji: '💊',
+    category: 'other',
     description:
       '左卡尼汀（左旋肉碱）是长链脂肪酸进入线粒体进行β氧化所必需的物质，参与能量代谢。血液透析患者因透析丢失和内源性合成不足，常出现卡尼汀缺乏，可表现为乏力、肌无力、贫血纠正不佳。',
     indications:
@@ -943,6 +1140,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   '复方α酮酸': {
     name: '复方α酮酸',
+    emoji: '💊',
+    category: 'other',
     description:
       '复方α酮酸（开同）含4种酮氨基酸钙、1种羟氨基酸钙和5种必需氨基酸，利用非蛋白氮再利用原理，在低蛋白饮食基础上补充必需氨基酸，减少氮负荷，延缓肾功能恶化。',
     indications:
@@ -969,6 +1168,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   硝苯地平: {
     name: '硝苯地平',
+    emoji: '💊',
+    category: 'antihypertensive',
     description:
       '硝苯地平为二氢吡啶类钙通道阻滞剂（CCB），通过抑制L型钙通道松弛血管平滑肌降压。普通片起效快、半衰期短，控释片/缓释片长效平稳，是CKD及透析患者常用降压药。',
     indications:
@@ -995,6 +1196,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   美托洛尔: {
     name: '美托洛尔',
+    emoji: '💊',
+    category: 'antihypertensive',
     description:
       '美托洛尔为选择性β1受体阻滞剂，通过减慢心率、降低心肌收缩力和肾素分泌发挥降压作用，广泛用于高血压、心绞痛、心肌梗死后及心力衰竭。透析患者合并冠心病、心衰时常选用。',
     indications:
@@ -1021,6 +1224,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   呋塞米: {
     name: '呋塞米',
+    emoji: '💊',
+    category: 'other',
     description:
       '呋塞米为袢利尿剂，抑制肾小管髓袢升支粗段Na⁺-K⁺-2Cl⁻同向转运体，产生强大快速的利尿作用，用于水肿和高血压。CKD患者常需较高剂量，已开始透析者利尿作用常消失。',
     indications:
@@ -1047,6 +1252,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   阿法骨化醇: {
     name: '阿法骨化醇',
+    emoji: '💊',
+    category: 'vitamin',
     description:
       '阿法骨化醇（1α-羟维生素D3）是活性维生素D的前体，经肝脏25-羟化即转化为活性形式骨化三醇，用于CKD继发性甲旁亢和肾性骨病的治疗，无需肾脏1α-羟化。',
     indications:
@@ -1072,6 +1279,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   西那卡塞: {
     name: '西那卡塞',
+    emoji: '💊',
+    category: 'other',
     description:
       '西那卡塞是拟钙剂，通过激活甲状旁腺钙敏感受体（CaSR）抑制甲状旁腺激素（PTH）分泌，同时降低血钙和血磷，用于透析患者继发性甲旁亢的治疗。',
     indications:
@@ -1097,6 +1306,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   贝那普利: {
     name: '贝那普利',
+    emoji: '💊',
+    category: 'antihypertensive',
     description:
       '贝那普利为血管紧张素转换酶抑制剂（ACEI），通过抑制AngII生成和缓激肽降解发挥降压、减少尿蛋白、保护残余肾功能的作用，是CKD及非透析患者降压和肾保护的常用药物。',
     indications:
@@ -1123,6 +1334,8 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
   },
   非洛地平: {
     name: '非洛地平',
+    emoji: '💊',
+    category: 'antihypertensive',
     description:
       '非洛地平为二氢吡啶类钙通道阻滞剂（CCB），选择性扩张外周动脉降压，对血管选择性高、对心肌收缩力影响小，缓释片长效平稳，是CKD及透析患者常用降压药。',
     indications:
