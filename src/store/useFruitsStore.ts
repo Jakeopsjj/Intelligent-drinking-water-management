@@ -92,20 +92,15 @@ export const useFruitsStore = create<FruitsState>()(
       name: 'dialysis_fruits',
       partialize: (state) => ({ customFruits: state.customFruits }),
       storage: nativeJSONStorage,
-      onRehydrateStorage: () => (state) => {
-        if (!state) return;
-        // 数据迁移：修正旧版本 persist 中的错误数据（emoji=🍎且营养为0）
-        const fixed = state.customFruits.map((f) => {
+      // merge 在 rehydrate 时执行，可以修改合并后的 state
+      merge: (persistedState, currentState) => {
+        const oldCustomFruits = (persistedState as Partial<FruitsState>)?.customFruits ?? [];
+        // 数据迁移：修正旧版本 persist 中的错误数据（emoji=彩色方块且营养为0）
+        const BAD_EMOJI = /🟢|🟥|🟣|🟠|🐉|🟡|🟧|🟤|🔴|🟪|🟨|⭐|🟫/;
+        const fixed = oldCustomFruits.map((f) => {
           const baike = findFruitBaike(f.name);
           if (!baike) return f;
-          // 如果数据看起来是旧的错误数据（emoji为通用🍎/🟢等且营养为0），用离线库覆盖
-          const needsFix =
-            f.potassiumPer100g === 0 ||
-            f.emoji === '🟢' || f.emoji === '🟥' || f.emoji === '🟣' ||
-            f.emoji === '🟠' || f.emoji === '🐉' || f.emoji === '🟡' ||
-            f.emoji === '🟧' || f.emoji === '🟤' || f.emoji === '🔴' ||
-            f.emoji === '🟪' || f.emoji === '🟨' || f.emoji === '⭐' ||
-            f.emoji === '🟫';
+          const needsFix = f.potassiumPer100g === 0 || BAD_EMOJI.test(f.emoji);
           if (!needsFix) return f;
           return {
             ...f,
@@ -121,14 +116,14 @@ export const useFruitsStore = create<FruitsState>()(
         });
         // 去重：同名保留最新
         const seen = new Set<string>();
-        const deduped = [];
+        const deduped: Fruit[] = [];
         for (let i = fixed.length - 1; i >= 0; i--) {
           if (!seen.has(fixed[i].name)) {
             seen.add(fixed[i].name);
             deduped.unshift(fixed[i]);
           }
         }
-        state.customFruits = deduped;
+        return { ...currentState, customFruits: deduped };
       },
     }
   )

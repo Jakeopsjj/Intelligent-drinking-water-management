@@ -105,13 +105,13 @@ export const useMedicationsStore = create<MedicationsState>()(
       storage: nativeJSONStorage,
       // 只持久化自定义药物，内置药物每次从代码加载
       partialize: (state) => ({ customMedications: state.customMedications }),
-      onRehydrateStorage: () => (state) => {
-        if (!state) return;
+      // merge 在 rehydrate 时执行，可以修改合并后的 state
+      merge: (persistedState, currentState) => {
+        const oldCustomMeds = (persistedState as Partial<MedicationsState>)?.customMedications ?? [];
         // 数据迁移：修正旧版本 persist 中 category='other' 的药物
-        const fixed = state.customMedications.map((m) => {
+        const fixed = oldCustomMeds.map((m) => {
           const baike = findMedicationBaike(m.name);
           if (!baike) return m;
-          // 如果分类是 other 且离线库有正确分类，更新
           if (m.category === 'other' && baike.category !== 'other') {
             return {
               ...m,
@@ -124,14 +124,14 @@ export const useMedicationsStore = create<MedicationsState>()(
         });
         // 去重：同名保留最新
         const seen = new Set<string>();
-        const deduped = [];
+        const deduped: Medication[] = [];
         for (let i = fixed.length - 1; i >= 0; i--) {
           if (!seen.has(fixed[i].name)) {
             seen.add(fixed[i].name);
             deduped.unshift(fixed[i]);
           }
         }
-        state.customMedications = deduped;
+        return { ...currentState, customMedications: deduped };
       },
     }
   )
