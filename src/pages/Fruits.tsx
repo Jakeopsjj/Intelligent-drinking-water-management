@@ -22,7 +22,11 @@ import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import type { Fruit } from '@/types';
 
 export default function Fruits() {
-  const allFruits = useFruitsStore((s) => s.allFruits());
+  // 注意：不能用 useFruitsStore((s) => s.allFruits())
+  // 因为 allFruits() 每次返回新数组引用，会触发 Zustand 无限重渲染 → 白屏
+  const customFruits = useFruitsStore((s) => s.customFruits);
+  const builtinFruits = useFruitsStore((s) => s.fruits);
+  const allFruits = [...customFruits, ...builtinFruits];
   const addFruit = useFruitsStore((s) => s.addFruit);
   const deleteFruit = useFruitsStore((s) => s.deleteFruit);
   const addFruitRecord = useRecordsStore((s) => s.addFruitRecord);
