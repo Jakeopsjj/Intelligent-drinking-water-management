@@ -1,569 +1,265 @@
-import { useState } from 'react';
+/**
+ * 水果板块（重构版）
+ *
+ * 流程：
+ * 1. 顶部搜索框，输入水果名称
+ * 2. 调用 apihz.cn 食物营养API 获取钾/磷/钠/水分
+ * 3. 搜索成功 → 自动添加到列表，打开详情
+ * 4. 卡片展示：名称 + 钾/磷/钠/水 标签 + 钾等级
+ * 5. 详情页：完整营养信息
+ */
+
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, X, Info, Loader2, Trash2, ChevronRight, Globe, Sprout, Leaf, Heart, ShieldAlert, Snowflake, Apple } from 'lucide-react';
+import { Search, X, Loader2, Droplet, FlaskConical, Beaker, Atom, ChevronRight, Info } from 'lucide-react';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
-import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg } from '@/utils/calc';
+import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg, getLevelFromPotassium } from '@/utils/calc';
 import { cn } from '@/lib/utils';
-import { fetchFoodNutrition } from '@/lib/foodNutritionService';
+import { fetchFoodNutrition, type FoodNutrition } from '@/lib/foodNutritionService';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
-import DetailDrawer, { FieldIcons } from '@/components/DetailDrawer';
 import type { Fruit } from '@/types';
 
 export default function Fruits() {
-  const customFruits = useFruitsStore((s) => s.customFruits);
-  const builtinFruits = useFruitsStore((s) => s.fruits);
+  const allFruits = useFruitsStore((s) => s.allFruits());
   const addFruit = useFruitsStore((s) => s.addFruit);
   const deleteFruit = useFruitsStore((s) => s.deleteFruit);
   const addFruitRecord = useRecordsStore((s) => s.addFruitRecord);
 
-  const allFruits = [...customFruits, ...builtinFruits];
-
   const [query, setQuery] = useState('');
-  const [showAdd, setShowAdd] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Fruit | null>(null);
-  const [wikiSearching, setWikiSearching] = useState(false);
-  const [wikiError, setWikiError] = useState<string | null>(null);
+  const [weight, setWeight] = useState('100');
 
-  // 添加水果抽屉打开时，注册到返回处理栈，侧滑 / 返回键可关闭抽屉
-  useOverlayBackHandler(showAdd, () => setShowAdd(false));
+  useOverlayBackHandler(!!selected, () => setSelected(null));
+  useLockBodyScroll(!!selected);
 
-  const filtered = query.trim()
-    ? allFruits.filter((f) => f.name.toLowerCase().includes(query.toLowerCase()))
-    : allFruits;
-
-  // 分组
-  const grouped = {
-    low: filtered.filter((f) => f.level === 'low'),
-    medium: filtered.filter((f) => f.level === 'medium'),
-    high: filtered.filter((f) => f.level === 'high'),
-  };
-
-  // 联网搜索并自动添加水果（食物营养API）
-  const handleWikiSearch = async () => {
+  const handleSearch = useCallback(async () => {
     const keyword = query.trim();
-    if (!keyword) return;
-    setWikiSearching(true);
-    setWikiError(null);
+    if (!keyword || searching) return;
+    setSearching(true);
+    setError(null);
     try {
-      // 从食物营养API获取钾/磷/钠/水分等营养数据
       const nutrition = await fetchFoodNutrition(keyword);
-
-      if (nutrition) {
-        // 构建完整营养描述
-        const parts: string[] = [];
-        if (nutrition.energy) parts.push(`能量 ${nutrition.energy} kcal`);
-        if (nutrition.protein) parts.push(`蛋白质 ${nutrition.protein} g`);
-        if (nutrition.fat) parts.push(`脂肪 ${nutrition.fat} g`);
-        if (nutrition.carbohydrate) parts.push(`碳水 ${nutrition.carbohydrate} g`);
-        if (nutrition.fiber) parts.push(`膳食纤维 ${nutrition.fiber} g`);
-        if (nutrition.calcium) parts.push(`钙 ${nutrition.calcium} mg`);
-        if (nutrition.magnesium) parts.push(`镁 ${nutrition.magnesium} mg`);
-        if (nutrition.iron) parts.push(`铁 ${nutrition.iron} mg`);
-        if (nutrition.zinc) parts.push(`锌 ${nutrition.zinc} mg`);
-        if (nutrition.vitaminC) parts.push(`维生素C ${nutrition.vitaminC} mg`);
-        const nutritionDesc = parts.length > 0 ? `每100g营养成分：${parts.join('，')}` : undefined;
-
-        addFruit({
-          name: keyword,
-          emoji: '🍇',
-          potassiumPer100g: nutrition.potassium,
-          phosphorusPer100g: nutrition.phosphorus,
-          sodiumPer100g: nutrition.sodium,
-          waterPer100g: nutrition.water,
-          suggestion: '请根据医嘱适量食用',
-          description: nutritionDesc,
-        });
-        const latest = useFruitsStore.getState().customFruits;
-        const newFruit = [...latest].reverse().find((f) => f.name === keyword);
-        if (newFruit) {
-          setSelected(newFruit);
-          setQuery('');
-        }
+      if (!nutrition) {
+        setError('未找到该食物的营养数据');
         return;
       }
 
-      setWikiError('未找到相关内容');
+      // 构建完整营养描述
+      const parts: string[] = [];
+      if (nutrition.energy) parts.push(`能量 ${nutrition.energy} kcal`);
+      if (nutrition.protein) parts.push(`蛋白质 ${nutrition.protein} g`);
+      if (nutrition.fat) parts.push(`脂肪 ${nutrition.fat} g`);
+      if (nutrition.carbohydrate) parts.push(`碳水 ${nutrition.carbohydrate} g`);
+      if (nutrition.fiber) parts.push(`膳食纤维 ${nutrition.fiber} g`);
+      if (nutrition.calcium) parts.push(`钙 ${nutrition.calcium} mg`);
+      if (nutrition.magnesium) parts.push(`镁 ${nutrition.magnesium} mg`);
+      if (nutrition.iron) parts.push(`铁 ${nutrition.iron} mg`);
+      if (nutrition.zinc) parts.push(`锌 ${nutrition.zinc} mg`);
+      if (nutrition.vitaminC) parts.push(`维生素C ${nutrition.vitaminC} mg`);
+
+      addFruit({
+        name: keyword,
+        emoji: '🍇',
+        potassiumPer100g: nutrition.potassium,
+        phosphorusPer100g: nutrition.phosphorus,
+        sodiumPer100g: nutrition.sodium,
+        waterPer100g: nutrition.water,
+        suggestion: '请根据医嘱适量食用',
+        description: parts.length > 0 ? `每100g营养成分：${parts.join('，')}` : undefined,
+      });
+
+      // 找到刚添加的水果并打开详情
+      const latest = useFruitsStore.getState().customFruits;
+      const newFruit = [...latest].reverse().find((f) => f.name === keyword);
+      if (newFruit) {
+        setSelected(newFruit);
+        setQuery('');
+      }
     } catch {
-      setWikiError('未找到相关内容');
+      setError('搜索失败，请重试');
     } finally {
-      setWikiSearching(false);
+      setSearching(false);
     }
+  }, [query, searching, addFruit]);
+
+  // 按等级分组
+  const grouped = {
+    low: allFruits.filter((f) => f.level === 'low'),
+    medium: allFruits.filter((f) => f.level === 'medium'),
+    high: allFruits.filter((f) => f.level === 'high'),
+  };
+
+  const handleRecord = () => {
+    if (!selected) return;
+    const w = Number(weight) || 0;
+    if (w <= 0) return;
+    addFruitRecord({ fruit: selected, weight: w });
+    setSelected(null);
   };
 
   return (
-    <div className="space-y-6">
-      {/* 页头 */}
-      <motion.header
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h1 className="font-serif text-3xl font-semibold text-teal-700">水果元素含量库</h1>
-            <p className="mt-1 text-sm text-teal-600/60">
-              共 {allFruits.length} 种水果，可添加自定义水果
-            </p>
-          </div>
-          <div className="hidden items-center gap-2 sm:flex">
-            <LegendBadge level="low" />
-            <LegendBadge level="medium" />
-            <LegendBadge level="high" />
-          </div>
-        </div>
-
-        {/* 搜索框 */}
-        <div className="relative mt-5">
-          <Search className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-teal-600/40" />
+    <div className="space-y-4">
+      {/* 搜索栏 */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-teal-600/40" />
           <input
             value={query}
-            onChange={(e) => { setQuery(e.target.value); setWikiError(null); }}
-            placeholder="搜索水果名称"
-            className="glass-tile w-full rounded-2xl py-3 pl-11 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            placeholder="搜索水果名称（如：苹果、香蕉）"
+            className="w-full rounded-xl border border-cream-300 bg-white py-2.5 pl-10 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
           />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full p-1 text-teal-600/40 hover:bg-cream-200"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
         </div>
+        <button
+          onClick={handleSearch}
+          disabled={searching || !query.trim()}
+          className="flex-shrink-0 rounded-xl bg-teal-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-600 disabled:opacity-40"
+        >
+          {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : '搜索'}
+        </button>
+      </div>
 
-        {/* 移动端图例 */}
-        <div className="mt-3 flex items-center gap-2 sm:hidden">
-          <LegendBadge level="low" />
-          <LegendBadge level="medium" />
-          <LegendBadge level="high" />
-        </div>
-      </motion.header>
+      {error && (
+        <div className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</div>
+      )}
 
-      {/* 分组列表 */}
+      {/* 水果列表 */}
       {(['low', 'medium', 'high'] as const).map((level) => {
-        const list = grouped[level];
-        if (list.length === 0) return null;
+        const fruits = grouped[level];
+        if (fruits.length === 0) return null;
         return (
-          <motion.section
-            key={level}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="glass-card relative overflow-hidden rounded-3xl p-6"
-          >
-            <div className="glass-orb -right-8 -top-8 h-28 w-28 bg-sage-300/20" style={{ animationDelay: `${level === 'low' ? 0 : level === 'medium' ? 2 : 4}s` }} />
-            <div className="glass-shimmer" />
-            <div className="relative z-10 mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span
-                  className={cn(
-                    'whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium',
-                    LEVEL_COLORS[level].bg,
-                    LEVEL_COLORS[level].text
-                  )}
-                >
-                  {LEVEL_TEXT[level]}
-                </span>
-                <h2 className="font-serif text-lg font-semibold text-teal-700">
-                  {level === 'low' ? '可食用' : level === 'medium' ? '适量食用' : '应避免'}
-                </h2>
-              </div>
-              <span className="text-xs text-teal-600/60">{list.length} 种</span>
+          <div key={level}>
+            <div className="mb-2 flex items-center gap-2">
+              <span
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-xs font-medium',
+                  LEVEL_COLORS[level].bg,
+                  LEVEL_COLORS[level].text
+                )}
+              >
+                {LEVEL_TEXT[level]}
+              </span>
+              <span className="text-xs text-teal-600/50">{fruits.length} 种</span>
             </div>
-
-            <div className="relative z-10 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {list.map((fruit) => (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {fruits.map((fruit) => (
                 <FruitCard
                   key={fruit.id}
                   fruit={fruit}
-                  onQuickAdd={(w) => addFruitRecord({ fruit, weight: w })}
-                  onSelectDetail={() => setSelected(fruit)}
-                  onDeleteCustom={fruit.isCustom ? () => deleteFruit(fruit.id) : undefined}
+                  onClick={() => setSelected(fruit)}
+                  onDelete={fruit.isCustom ? () => deleteFruit(fruit.id) : undefined}
                 />
               ))}
             </div>
-          </motion.section>
+          </div>
         );
       })}
 
-      {filtered.length === 0 && (
-        <div className="glass-card space-y-4 rounded-3xl py-12 text-center">
-          <p className="text-sm text-teal-600/60">未找到匹配的水果</p>
-          {query.trim() && !wikiSearching && !wikiError && (
-            <button
-              onClick={handleWikiSearch}
-              className="inline-flex items-center gap-2 rounded-xl glass-tile px-4 py-2 text-sm font-medium text-teal-600 transition hover:bg-teal-50"
-            >
-              🌐 搜索百科 '{query}'
-            </button>
-          )}
-          {wikiSearching && (
-            <div className="inline-flex items-center gap-2 text-sm text-teal-600">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              正在搜索百科...
-            </div>
-          )}
-          {wikiError && (
-            <p className="text-sm text-clay-500">{wikiError}</p>
-          )}
-          <div>
-            <button
-              onClick={() => setShowAdd(true)}
-              className="text-sm font-medium text-teal-600 underline"
-            >
-              添加新水果
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 浮动添加按钮 */}
-      <button
-        onClick={() => setShowAdd(true)}
-        className="glass-btn fixed bottom-24 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-sage-500 text-white shadow-soft-lg transition hover:scale-105 hover:shadow-soft-lg active:scale-95 md:bottom-8"
-        aria-label="添加水果"
-      >
-        <Plus className="h-6 w-6" />
-      </button>
-
-      {/* 添加水果抽屉 */}
+      {/* 详情弹层 */}
       <AnimatePresence>
-        {showAdd && (
-          <AddFruitDrawer
-            onClose={() => setShowAdd(false)}
-            onAdd={(f) => {
-              addFruit(f);
-              setShowAdd(false);
-            }}
-            customCount={customFruits.length}
+        {selected && (
+          <FruitDetail
+            fruit={selected}
+            weight={weight}
+            setWeight={setWeight}
+            onRecord={handleRecord}
+            onClose={() => setSelected(null)}
           />
         )}
       </AnimatePresence>
-
-      {/* 水果详情抽屉 */}
-      <DetailDrawer
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        kind="fruit"
-        image={selected?.image}
-        name={selected?.name ?? ''}
-        emoji={selected?.emoji ?? '🍇'}
-        subtitle={selected?.aliases}
-        badges={
-          selected ? (
-            <span
-              className={cn(
-                'whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-medium ring-1',
-                LEVEL_COLORS[selected.level].bg,
-                LEVEL_COLORS[selected.level].text,
-                LEVEL_COLORS[selected.level].ring
-              )}
-            >
-              {LEVEL_TEXT[selected.level]}
-            </span>
-          ) : undefined
-        }
-        description={selected?.description}
-        fields={[
-          ...(selected?.usage
-            ? [{
-                icon: FieldIcons.usage,
-                label: '推荐食用方法 / 注意事项',
-                content: selected.usage,
-              }]
-            : []),
-          ...(selected?.nutrients
-            ? [{
-                icon: FieldIcons.nutrients,
-                label: '营养成分',
-                content: selected.nutrients,
-              }]
-            : []),
-          {
-            label: '每 100g 元素含量',
-            content: (
-              <div className="flex flex-wrap gap-1.5">
-                <NutrientTag label="钾" value={selected?.potassiumPer100g ?? 0} unit="mg" />
-                <NutrientTag label="磷" value={selected?.phosphorusPer100g ?? 0} unit="mg" />
-                <NutrientTag label="钠" value={selected?.sodiumPer100g ?? 0} unit="mg" />
-                <NutrientTag label="水" value={selected?.waterPer100g ?? 0} unit="ml" />
-              </div>
-            ),
-          },
-          ...(selected?.origin
-            ? [{
-                icon: <Globe className="h-3.5 w-3.5" />,
-                label: '起源与分布',
-                content: selected.origin,
-              }]
-            : []),
-          ...(selected?.varieties
-            ? [{
-                icon: <Apple className="h-3.5 w-3.5" />,
-                label: '主要品种',
-                content: selected.varieties,
-              }]
-            : []),
-          ...(selected?.cultivation
-            ? [{
-                icon: <Sprout className="h-3.5 w-3.5" />,
-                label: '栽培与生产',
-                content: selected.cultivation,
-              }]
-            : []),
-          ...(selected?.healthBenefits
-            ? [{
-                icon: <Heart className="h-3.5 w-3.5" />,
-                label: '健康益处',
-                content: selected.healthBenefits,
-              }]
-            : []),
-          ...(selected?.precautions
-            ? [{
-                icon: <ShieldAlert className="h-3.5 w-3.5" />,
-                label: '食用禁忌与注意事项',
-                content: selected.precautions,
-              }]
-            : []),
-          ...(selected?.storage
-            ? [{
-                icon: <Snowflake className="h-3.5 w-3.5" />,
-                label: '保存方法',
-                content: selected.storage,
-              }]
-            : []),
-          ...(selected?.culture
-            ? [{
-                icon: <Leaf className="h-3.5 w-3.5" />,
-                label: '文化与历史',
-                content: selected.culture,
-              }]
-            : []),
-        ]}
-        footer={
-          selected && (
-            <button
-              onClick={() => {
-                addFruitRecord({ fruit: selected, weight: 100 });
-                setSelected(null);
-              }}
-              className="w-full rounded-xl bg-sage-500 py-3 text-sm font-medium text-white shadow-soft transition hover:bg-sage-600"
-            >
-              快速记录 100g
-            </button>
-          )
-        }
-      />
     </div>
   );
 }
 
-// 图例徽章
-function LegendBadge({ level }: { level: 'low' | 'medium' | 'high' }) {
+/** 营养标签 */
+function NutrientTag({ label, value, unit, icon }: { label: string; value: number; unit: string; icon?: React.ReactNode }) {
   return (
-    <span
-      className={cn(
-        'inline-flex whitespace-nowrap items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium',
-        LEVEL_COLORS[level].bg,
-        LEVEL_COLORS[level].text
-      )}
-    >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {LEVEL_TEXT[level]}
-    </span>
-  );
-}
-
-// 元素含量小标签（带明确单位 mg/100g）
-function NutrientTag({ label, value, unit }: { label: string; value: number; unit: string }) {
-  return (
-    <span className="inline-flex whitespace-nowrap items-baseline gap-0.5 rounded-md bg-cream-100 px-1.5 py-0.5 text-[10px] text-teal-600/80">
+    <span className="inline-flex items-center gap-1 rounded-lg bg-cream-100 px-2 py-1 text-xs">
+      {icon}
       <span className="text-teal-600/60">{label}</span>
-      <span className="font-medium text-teal-700">{value}</span>
+      <span className="font-semibold text-teal-700">{value}</span>
       <span className="text-teal-600/40">{unit}</span>
     </span>
   );
 }
 
-// 水果卡片
+/** 水果卡片 */
 function FruitCard({
   fruit,
-  onQuickAdd,
-  onSelectDetail,
-  onDeleteCustom,
+  onClick,
+  onDelete,
 }: {
   fruit: Fruit;
-  onQuickAdd: (weight: number) => void;
-  onSelectDetail: () => void;
-  onDeleteCustom?: () => void;
+  onClick: () => void;
+  onDelete?: () => void;
 }) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [weight, setWeight] = useState('');
-
-  const handleAdd = () => {
-    const w = Number(weight);
-    if (w > 0) {
-      onQuickAdd(w);
-      setWeight('');
-      setShowAdd(false);
-    }
-  };
-
   return (
-    <div
-      className="glass-tile group relative overflow-hidden rounded-2xl p-4 transition hover:border-teal-300 hover:shadow-soft"
-      style={{ contentVisibility: 'auto', containIntrinsicSize: '0 200px' }}
-    >
-      {/* 顶部可点击区域：查看详情 */}
-      <button
-        onClick={onSelectDetail}
-        className="relative z-10 flex w-full items-start justify-between text-left transition"
-      >
-        <div className="flex items-center gap-3">
-          <div className="glass-tile flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl text-2xl">
-            {fruit.emoji}
+    <div className="flex items-center justify-between rounded-2xl border border-cream-200 bg-white p-4 transition hover:border-teal-300 hover:shadow-sm">
+      <button onClick={onClick} className="flex flex-1 items-center gap-3 text-left">
+        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-cream-50 text-2xl">
+          {fruit.emoji}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <h3 className="font-medium text-teal-700">{fruit.name}</h3>
+            {fruit.isCustom && (
+              <span className="rounded-full bg-sage-100 px-1.5 py-0.5 text-[9px] font-medium text-sage-600">
+                自定义
+              </span>
+            )}
           </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h3 className="font-medium text-teal-700">{fruit.name}</h3>
-              {fruit.isCustom && (
-                <span className="rounded-full bg-sage-100 px-1.5 py-0.5 text-[9px] font-medium text-sage-600">
-                  自定义
-                </span>
-              )}
-              <ChevronRight className="h-3 w-3 text-teal-600/40" />
-            </div>
-            <div className="mt-0.5 text-[9px] text-teal-600/40">每 100g 含 · 点击查看详情</div>
-            <div className="mt-1 flex flex-wrap gap-1.5">
-              <NutrientTag label="钾" value={fruit.potassiumPer100g} unit="mg" />
-              <NutrientTag label="磷" value={fruit.phosphorusPer100g} unit="mg" />
-              <NutrientTag label="钠" value={fruit.sodiumPer100g} unit="mg" />
-              <NutrientTag label="水" value={fruit.waterPer100g} unit="ml" />
-            </div>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <NutrientTag label="钾" value={fruit.potassiumPer100g} unit="mg" />
+            <NutrientTag label="磷" value={fruit.phosphorusPer100g} unit="mg" />
+            <NutrientTag label="钠" value={fruit.sodiumPer100g} unit="mg" />
+            <NutrientTag label="水" value={fruit.waterPer100g} unit="ml" />
           </div>
         </div>
+      </button>
+      <div className="flex flex-shrink-0 flex-col items-center gap-1">
         <span
           className={cn(
-            'whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium ring-1',
+            'whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium',
             LEVEL_COLORS[fruit.level].bg,
-            LEVEL_COLORS[fruit.level].text,
-            LEVEL_COLORS[fruit.level].ring
+            LEVEL_COLORS[fruit.level].text
           )}
         >
           {LEVEL_TEXT[fruit.level]}
         </span>
-      </button>
-
-      {/* 建议 */}
-      <div className="relative z-10 mt-3 flex items-start gap-1.5 rounded-xl bg-cream-50/70 px-3 py-2 text-xs text-teal-600/70">
-        <Info className="mt-0.5 h-3 w-3 flex-shrink-0" />
-        <span>{fruit.suggestion}</span>
-      </div>
-
-      {/* 快速记录 */}
-      {showAdd ? (
-        <div className="relative z-10 mt-3 space-y-2">
-          <div className="flex flex-wrap gap-1.5">
-            {[100, 150, 200, 250].map((w) => (
-              <button
-                key={w}
-                onClick={() => setWeight(String(w))}
-                className="whitespace-nowrap rounded-lg border border-cream-300 bg-cream-50 px-2 py-1 text-[11px] font-medium text-teal-600 transition hover:border-sage-300 hover:bg-sage-50"
-              >
-                {formatWeightKg(w)}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-              placeholder="输入克数 (g)，将换算为 kg"
-              autoFocus
-              className="min-w-0 flex-1 rounded-xl border border-cream-300 bg-cream-50 px-3 py-1.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-sage-400 focus:bg-white"
-              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-            />
-            <button
-              onClick={handleAdd}
-              className="flex-shrink-0 whitespace-nowrap rounded-xl bg-sage-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-sage-600"
-            >
-              记录
-            </button>
-            <button
-              onClick={() => setShowAdd(false)}
-              className="flex-shrink-0 whitespace-nowrap rounded-xl border border-cream-300 px-3 py-1.5 text-sm text-teal-600 hover:bg-cream-100"
-            >
-              取消
-            </button>
-          </div>
-          {weight && Number(weight) > 0 && (
-            <div className="whitespace-nowrap rounded-lg bg-sage-50 px-3 py-1.5 text-[10px] text-sage-700">
-              本次 {formatWeightKg(Number(weight))}：钾 <span className="font-semibold">{Math.round((fruit.potassiumPer100g * Number(weight)) / 100)}</span> mg / 磷 <span className="font-semibold">{Math.round((fruit.phosphorusPer100g * Number(weight)) / 100)}</span> mg / 钠 <span className="font-semibold">{Math.round((fruit.sodiumPer100g * Number(weight)) / 100)}</span> mg / 水 <span className="font-semibold">{Math.round((fruit.waterPer100g * Number(weight)) / 100)}</span> ml
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="relative z-10 mt-3 flex items-center justify-between">
-          <button
-            onClick={() => setShowAdd(true)}
-            className="glass-btn rounded-xl px-3 py-1.5 text-xs font-medium text-teal-600 transition hover:bg-teal-50"
-          >
-            + 快速记录
+        {onDelete && (
+          <button onClick={onDelete} className="text-[10px] text-red-400 hover:text-red-600">
+            删除
           </button>
-          {onDeleteCustom && (
-            <button
-              onClick={onDeleteCustom}
-              className="rounded-lg p-1 text-teal-600/30 transition hover:bg-red-50 hover:text-red-500"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
 
-// 添加水果抽屉
-function AddFruitDrawer({
+/** 水果详情弹层 */
+function FruitDetail({
+  fruit,
+  weight,
+  setWeight,
+  onRecord,
   onClose,
-  onAdd,
-  customCount,
 }: {
+  fruit: Fruit;
+  weight: string;
+  setWeight: (v: string) => void;
+  onRecord: () => void;
   onClose: () => void;
-  onAdd: (fruit: Omit<Fruit, 'id' | 'isCustom' | 'level'>) => void;
-  customCount: number;
 }) {
-  // 锁定背景滚动，避免抽屉唤出时页面跳动
-  useLockBodyScroll(true);
-  const [name, setName] = useState('');
-  const [emoji, setEmoji] = useState('🍇');
-  const [potassium, setPotassium] = useState('');
-  const [phosphorus, setPhosphorus] = useState('');
-  const [sodium, setSodium] = useState('');
-  const [water, setWater] = useState('');
-  const [suggestion, setSuggestion] = useState('');
-
-  const emojiChoices = ['🍇', '🍊', '🍋', '🍎', '🍐', '🥭', '🍑', '🍓', '🥝', '🍍', '🥥', '🥑', '🍈', '🫐'];
-
-  const handleSubmit = () => {
-    if (!name.trim() || !potassium || Number(potassium) <= 0) return;
-    onAdd({
-      name: name.trim(),
-      emoji,
-      potassiumPer100g: Number(potassium),
-      phosphorusPer100g: Number(phosphorus) || 0,
-      sodiumPer100g: Number(sodium) || 0,
-      waterPer100g: Number(water) || 80,
-      suggestion: suggestion.trim() || '请根据医嘱适量食用',
-    });
-  };
-
-  const isVaild = name.trim() && potassium && Number(potassium) > 0;
+  const w = Number(weight) || 0;
 
   return (
     <>
+      {/* 遮罩 */}
       <motion.div
         className="fixed inset-0 z-[100] bg-black/40"
         initial={{ opacity: 0 }}
@@ -571,8 +267,9 @@ function AddFruitDrawer({
         exit={{ opacity: 0 }}
         onClick={onClose}
       />
+      {/* 底部抽屉 */}
       <motion.div
-        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[85vh] w-full overflow-y-auto rounded-t-3xl bg-white"
+        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white"
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
@@ -580,151 +277,125 @@ function AddFruitDrawer({
         onClick={(e) => e.stopPropagation()}
         style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
       >
+        {/* 标题 */}
         <div className="flex items-center justify-between px-6 pt-5">
-          <h3 className="text-lg font-semibold text-teal-700">添加自定义水果</h3>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{fruit.emoji}</span>
+            <div>
+              <h3 className="text-lg font-semibold text-teal-700">{fruit.name}</h3>
+              <span
+                className={cn(
+                  'inline-block rounded-full px-2 py-0.5 text-[10px] font-medium',
+                  LEVEL_COLORS[fruit.level].bg,
+                  LEVEL_COLORS[fruit.level].text
+                )}
+              >
+                {LEVEL_TEXT[fruit.level]}
+              </span>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-50 text-teal-600"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-cream-100 text-teal-600"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="space-y-4 px-6 pb-4 pt-4">
-          {/* 名称 */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-teal-600">
-              水果名称 <span className="text-red-400">*</span>
-            </label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="例如：柚子"
-              className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
-            />
+        <div className="space-y-4 px-6 pb-6 pt-4">
+          {/* 核心：每100g元素含量 */}
+          <div className="rounded-2xl bg-cream-50 p-4">
+            <h4 className="mb-3 text-sm font-medium text-teal-700">每 100g 元素含量</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+                <Atom className="h-5 w-5 text-orange-500" />
+                <div>
+                  <div className="text-xs text-teal-600/60">钾</div>
+                  <div className="text-lg font-bold text-teal-700">{fruit.potassiumPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+                <FlaskConical className="h-5 w-5 text-blue-500" />
+                <div>
+                  <div className="text-xs text-teal-600/60">磷</div>
+                  <div className="text-lg font-bold text-teal-700">{fruit.phosphorusPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+                <Beaker className="h-5 w-5 text-purple-500" />
+                <div>
+                  <div className="text-xs text-teal-600/60">钠</div>
+                  <div className="text-lg font-bold text-teal-700">{fruit.sodiumPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+                <Droplet className="h-5 w-5 text-cyan-500" />
+                <div>
+                  <div className="text-xs text-teal-600/60">水分</div>
+                  <div className="text-lg font-bold text-teal-700">{fruit.waterPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">ml</span></div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* emoji 选择 */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-teal-600">水果图标</label>
+          {/* 其他营养成分 */}
+          {fruit.description && (
+            <div className="rounded-2xl border border-cream-200 p-4">
+              <h4 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-teal-700">
+                <Info className="h-4 w-4" /> 详细营养成分
+              </h4>
+              <p className="text-sm leading-relaxed text-teal-600/80">{fruit.description}</p>
+            </div>
+          )}
+
+          {/* 食用建议 */}
+          <div className="rounded-2xl bg-sage-50 p-4">
+            <h4 className="mb-1 text-sm font-medium text-sage-700">食用建议</h4>
+            <p className="text-sm text-sage-600">{fruit.suggestion}</p>
+          </div>
+
+          {/* 快速记录 */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-teal-700">记录摄入</h4>
             <div className="flex flex-wrap gap-2">
-              {emojiChoices.map((e) => (
+              {[100, 150, 200, 250].map((preset) => (
                 <button
-                  key={e}
-                  onClick={() => setEmoji(e)}
+                  key={preset}
+                  onClick={() => setWeight(String(preset))}
                   className={cn(
-                    'flex h-10 w-10 items-center justify-center rounded-xl border text-lg transition',
-                    emoji === e
-                      ? 'border-teal-400 bg-teal-50'
-                      : 'border-cream-300 bg-white hover:bg-cream-100'
+                    'rounded-lg border px-3 py-1.5 text-xs font-medium transition',
+                    weight === String(preset)
+                      ? 'border-teal-400 bg-teal-50 text-teal-700'
+                      : 'border-cream-300 bg-white text-teal-600 hover:bg-cream-50'
                   )}
                 >
-                  {e}
+                  {formatWeightKg(preset)}
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* 元素含量：钾 */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-teal-600">
-              每 100g 含钾量 <span className="text-teal-600/50">(mg)</span> <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="number"
-              value={potassium}
-              onChange={(e) => setPotassium(e.target.value)}
-              placeholder="例如：180"
-              className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-teal-600">
-                磷 <span className="text-teal-600/50">(mg)</span>
-              </label>
+            <div className="flex gap-2">
               <input
                 type="number"
-                value={phosphorus}
-                onChange={(e) => setPhosphorus(e.target.value)}
-                placeholder="可选"
-                className="w-full rounded-xl border border-cream-300 bg-white px-3 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                placeholder="输入克数 (g)"
+                className="min-w-0 flex-1 rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+                onKeyDown={(e) => e.key === 'Enter' && onRecord()}
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-teal-600">
-                钠 <span className="text-teal-600/50">(mg)</span>
-              </label>
-              <input
-                type="number"
-                value={sodium}
-                onChange={(e) => setSodium(e.target.value)}
-                placeholder="可选"
-                className="w-full rounded-xl border border-cream-300 bg-white px-3 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-teal-600">
-                水分 <span className="text-teal-600/50">(ml)</span>
-              </label>
-              <input
-                type="number"
-                value={water}
-                onChange={(e) => setWater(e.target.value)}
-                placeholder="默认80"
-                className="w-full rounded-xl border border-cream-300 bg-white px-3 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {/* 建议 */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-teal-600">食用建议</label>
-            <textarea
-              value={suggestion}
-              onChange={(e) => setSuggestion(e.target.value)}
-              placeholder="可选，例如：可适量食用，建议不超过 150g"
-              rows={2}
-              className="w-full resize-none rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
-            />
-          </div>
-
-          {/* 自动判断等级 */}
-          {potassium && Number(potassium) > 0 && (
-            <div className="rounded-xl bg-cream-100 px-4 py-2.5 text-xs text-teal-600">
-              系统将自动判定为
-              <span
-                className={cn(
-                  'ml-1.5 rounded-full px-2 py-0.5 font-medium',
-                  LEVEL_COLORS[
-                    Number(potassium) < 150 ? 'low' : Number(potassium) < 200 ? 'medium' : 'high'
-                  ].bg,
-                  LEVEL_COLORS[
-                    Number(potassium) < 150 ? 'low' : Number(potassium) < 200 ? 'medium' : 'high'
-                  ].text
-                )}
+              <button
+                onClick={onRecord}
+                disabled={w <= 0}
+                className="flex-shrink-0 rounded-xl bg-sage-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-sage-600 disabled:opacity-40"
               >
-                {LEVEL_TEXT[
-                  Number(potassium) < 150 ? 'low' : Number(potassium) < 200 ? 'medium' : 'high'
-                ]}
-              </span>
+                记录
+              </button>
             </div>
-          )}
-
-          <button
-            onClick={handleSubmit}
-            disabled={!isVaild}
-            className="w-full rounded-xl bg-teal-500 py-3 text-sm font-medium text-white transition hover:bg-teal-600 disabled:opacity-40"
-          >
-            添加水果
-          </button>
-
-          {customCount > 0 && (
-            <p className="text-center text-xs text-teal-600/60">
-              已添加 {customCount} 个自定义水果
-            </p>
-          )}
+            {w > 0 && (
+              <div className="rounded-xl bg-cream-50 px-4 py-2.5 text-xs text-teal-600">
+                本次 {formatWeightKg(w)}：钾 <span className="font-semibold text-teal-700">{Math.round((fruit.potassiumPer100g * w) / 100)}</span> mg / 磷 <span className="font-semibold text-teal-700">{Math.round((fruit.phosphorusPer100g * w) / 100)}</span> mg / 钠 <span className="font-semibold text-teal-700">{Math.round((fruit.sodiumPer100g * w) / 100)}</span> mg / 水 <span className="font-semibold text-teal-700">{Math.round((fruit.waterPer100g * w) / 100)}</span> ml
+              </div>
+            )}
+          </div>
         </div>
       </motion.div>
     </>
