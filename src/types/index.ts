@@ -130,6 +130,7 @@ export type MedicationCategory =
   | 'phosphate-binder' // 磷结合剂
   | 'vitamin' // 维生素/矿物质
   | 'antihypertensive' // 降压药
+  | 'diuretic' // 利尿剂
   | 'esa' // 促红细胞生成剂
   | 'iron' // 铁剂
   | 'other'; // 其他

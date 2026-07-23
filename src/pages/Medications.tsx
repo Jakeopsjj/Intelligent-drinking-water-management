@@ -57,6 +57,7 @@ export default function Medications() {
   const guessCategory = useCallback((name: string): MedicationCategory => {
     const n = name.toLowerCase();
     if (/碳酸钙|醋酸钙|司维拉姆|碳酸镧|氢氧化铝|磷结合|降磷/.test(n)) return 'phosphate-binder';
+    if (/呋塞米|托拉塞米|氢氯噻嗪|螺内酯|氨苯蝶啶|阿米洛利|吲达帕胺|布美他尼|利尿|噻嗪|襻利尿|袢利尿/.test(n)) return 'diuretic';
     if (/硝苯地平|氨氯地平|缬沙坦|氯沙坦|厄贝沙坦|替米沙坦|美托洛尔|比索洛尔|卡托普利|依那普利|培哚普利|降压|地平|沙坦|洛尔|普利/.test(n)) return 'antihypertensive';
     if (/促红|红细胞生成素|达依泊汀|epo|esa/.test(n)) return 'esa';
     if (/蔗糖铁|多糖铁|硫酸亚铁|琥珀酸亚铁|富马酸亚铁|铁剂|补铁/.test(n)) return 'iron';
@@ -166,6 +167,7 @@ export default function Medications() {
     'phosphate-binder': [],
     'vitamin': [],
     'antihypertensive': [],
+    'diuretic': [],
     'esa': [],
     'iron': [],
     'other': [],
