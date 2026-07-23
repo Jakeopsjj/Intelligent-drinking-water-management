@@ -10,8 +10,10 @@
  * - 药物：搜索 Commons 多组关键词获取多张药盒图片（中文封面优先）
  * - Wikipedia 缩略图作为兜底
  *
- * 带内存缓存 + 并发去重，同一名称只请求一次。
+ * 带持久化缓存 + 并发去重，同一名称只请求一次。
  */
+
+import { PersistentCache } from './persistentCache';
 
 export type EntityKind = 'fruit' | 'medication';
 
@@ -24,7 +26,7 @@ export interface EntityInfo {
   description?: string;
 }
 
-const cache = new Map<string, EntityInfo>();
+const cache = new PersistentCache<EntityInfo>({ prefix: 'wiki_cache_', maxEntries: 80 });
 const pending = new Map<string, Promise<EntityInfo>>();
 
 /** 常见水果中文名 → 英文名映射（提升 Commons 搜索精准度） */
@@ -327,7 +329,7 @@ export interface WikiSearchItem {
   image?: string;       // 缩略图（搜索阶段不获取，保留字段）
 }
 
-const searchCache = new Map<string, WikiSearchItem[]>();
+const searchCache = new PersistentCache<WikiSearchItem[]>({ prefix: 'wiki_search_cache_', maxEntries: 50 });
 const searchPending = new Map<string, Promise<WikiSearchItem[]>>();
 
 /** 去除 snippet 中的 HTML 标签，得到纯文本描述 */

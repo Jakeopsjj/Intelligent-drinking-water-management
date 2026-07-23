@@ -341,14 +341,43 @@ host=github.com" 2>/dev/null | grep "^password=" | cut -d= -f2-)
     curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
         "https://api.github.com/repos/$repo/git/refs/tags/$tag" >/dev/null 2>&1
 
-    # 创建新 release
+    # 创建新 release（body 必须量化罗列实质性改动明细，禁止笼统描述）
+    local release_body="肾友笔记 $tag 更新明细\\n\\n"
+    release_body="${release_body}## 功能新增\\n"
+    release_body="${release_body}- 数据分层架构：水果（维基百科）与药物（百度百科）双模块采用「本地静态预置 + 在线网络兜底」二级加载策略\\n"
+    release_body="${release_body}- 新增 SmartImage 智能图片组件：异步懒加载 + 加载中占位图 + 加载失败兜底视图 + 排版自适应\\n"
+    release_body="${release_body}- 新增 useOnlineStatus 网络状态检测 hook：navigator.onLine + online/offline 事件监听\\n"
+    release_body="${release_body}- 新增 PersistentCache 通用持久化缓存：LRU 淘汰 + 容量超限自动回收\\n"
+    release_body="${release_body}\\n## 逻辑修改\\n"
+    release_body="${release_body}- baikeService：内存缓存升级为 localStorage 持久化，离线二次访问直接读本地\\n"
+    release_body="${release_body}- wikiService：EntityInfo 缓存 + 搜索结果缓存均持久化到 localStorage\\n"
+    release_body="${release_body}- 水果搜索流程：本地库未命中 → 维基百科 search API 候选列表 → 用户选择 → 营养+维基并发获取\\n"
+    release_body="${release_body}- 药物详情页：全部内容切换为百度百科数据源（摘要/基本信息/详细内容/配图）\\n"
+    release_body="${release_body}- 水果详情页：除每100g元素含量板块（apihz.cn）外全部使用维基百科内容\\n"
+    release_body="${release_body}\\n## UI 调整\\n"
+    release_body="${release_body}- 水果/药物详情页抽屉：bg-white → bg-white/80 backdrop-blur-xl 玻璃材质，透出底层液态玻璃视觉层\\n"
+    release_body="${release_body}- 水果候选选择浮层同步玻璃化\\n"
+    release_body="${release_body}- 详情页配图：motion.img 替换为 SmartImage（三态：loading 旋转占位 / loaded 淡入 / error 兜底）\\n"
+    release_body="${release_body}\\n## 数据策略优化\\n"
+    release_body="${release_body}- 网络数据本地持久化：百度百科/维基百科/维基搜索结果均落地 localStorage，实现离线二次访问\\n"
+    release_body="${release_body}- LRU 淘汰策略：百科缓存上限 80 条，搜索缓存上限 50 条，超出自动淘汰最旧\\n"
+    release_body="${release_body}- 容量超限容错：localStorage QuotaExceededError 时自动回收一半条目重试\\n"
+    release_body="${release_body}\\n## 问题修复\\n"
+    release_body="${release_body}- 无网络时详情页不再卡在 loading：显示 WifiOff 提示 + 「仅展示已缓存数据」友好说明\\n"
+    release_body="${release_body}- 图片加载失败不再显示空白：SmartImage error 态显示 ImageOff 图标 + 提示文字\\n"
+    release_body="${release_body}- 长文本排版溢出：百科摘要/正文/维基介绍加 break-words 自适应换行\\n"
+    release_body="${release_body}\\n## 接口适配\\n"
+    release_body="${release_body}- 维基百科 search API（action=query&list=search）适配水果候选搜索\\n"
+    release_body="${release_body}- 百度百科 HTML 页面 DOMParser 解析：摘要/正文/配图/信息框全字段提取\\n"
+    release_body="${release_body}- apihz.cn 食物营养API 持续用于每100g钾磷钠水数据获取\\n"
+
     local response=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
         -H "Content-Type: application/json" \
         "https://api.github.com/repos/$repo/releases" -d "{
         \"tag_name\": \"$tag\",
         \"target_commitish\": \"main\",
         \"name\": \"$tag Debug + Release APK\",
-        \"body\": \"肾友笔记 $tag\\n\\n包含 Debug 和 Release 两个版本的 APK\",
+        \"body\": \"$release_body\",
         \"draft\": false,
         \"prerelease\": false
     }")

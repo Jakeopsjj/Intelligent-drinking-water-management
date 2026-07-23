@@ -12,7 +12,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, Loader2, ChevronRight, BellRing, Clock, Pill as PillIcon, Check } from 'lucide-react';
+import { Search, X, Loader2, ChevronRight, BellRing, Clock, Pill as PillIcon, Check, WifiOff } from 'lucide-react';
 import { useMedicationsStore } from '@/store/useMedicationsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useMedicationPlanStore } from '@/store/useMedicationPlanStore';
@@ -21,6 +21,8 @@ import { cn } from '@/lib/utils';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useBaikeInfo } from '@/hooks/useBaikeInfo';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import SmartImage from '@/components/SmartImage';
 import type { Medication, MedicationCategory } from '@/types';
 
 export default function Medications() {
@@ -318,6 +320,7 @@ function MedicationDetail({
   const cat = MEDICATION_CATEGORIES[med.category];
   // 详情页内容全部来自百度百科
   const { info, loading } = useBaikeInfo(med.name);
+  const isOnline = useOnlineStatus();
 
   // 信息框键值对（过滤掉值过短或明显无效项）
   const infoboxEntries = info?.infobox
@@ -334,7 +337,7 @@ function MedicationDetail({
         onClick={onClose}
       />
       <motion.div
-        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white"
+        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white/80 backdrop-blur-xl"
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
@@ -363,9 +366,17 @@ function MedicationDetail({
 
         <div className="space-y-4 px-6 pb-6 pt-4">
           {loading ? (
-            <div className="flex items-center justify-center gap-2 rounded-2xl bg-cream-50 py-10 text-sm text-teal-600/60">
-              <Loader2 className="h-4 w-4 animate-spin" /> 正在从百度百科获取内容…
-            </div>
+            isOnline ? (
+              <div className="flex items-center justify-center gap-2 rounded-2xl bg-cream-50 py-10 text-sm text-teal-600/60">
+                <Loader2 className="h-4 w-4 animate-spin" /> 正在从百度百科获取内容…
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 rounded-2xl bg-amber-50 py-10 text-sm text-amber-600">
+                <WifiOff className="h-5 w-5" />
+                <p>当前无网络连接</p>
+                <p className="text-xs text-amber-600/60">仅展示已缓存的本地数据，联网后可获取完整内容</p>
+              </div>
+            )
           ) : info ? (
             <>
               {/* 百度百科配图（主图 + 多图） */}
@@ -378,13 +389,11 @@ function MedicationDetail({
                 return (
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {allImgs.slice(0, 5).map((img, i) => (
-                      <motion.img
+                      <SmartImage
                         key={i}
                         src={img}
                         alt={`${info.title || med.name} ${i + 1}`}
-                        className="h-24 w-24 flex-shrink-0 rounded-xl object-cover"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                        className="h-24 w-24 flex-shrink-0 rounded-xl"
                       />
                     ))}
                   </div>
@@ -395,7 +404,7 @@ function MedicationDetail({
               {info.summary && (
                 <div className="rounded-2xl bg-cream-50 p-4">
                   <h4 className="mb-1.5 text-sm font-medium text-teal-700">摘要</h4>
-                  <p className="text-sm leading-relaxed text-teal-600/80">{info.summary}</p>
+                  <p className="text-sm leading-relaxed break-words text-teal-600/80">{info.summary}</p>
                 </div>
               )}
 
@@ -422,7 +431,7 @@ function MedicationDetail({
                   </h4>
                   <div className="space-y-2">
                     {info.content.split('\n\n').map((p, i) => (
-                      <p key={i} className="text-sm leading-relaxed text-teal-600/80">{p}</p>
+                      <p key={i} className="text-sm leading-relaxed break-words text-teal-600/80">{p}</p>
                     ))}
                   </div>
                 </div>

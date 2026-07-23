@@ -25,6 +25,8 @@
  * 注：CORS 代理模式参考 foodNutritionService.ts，但独立定义以解耦。
  */
 
+import { PersistentCache } from './persistentCache';
+
 export interface BaikeInfo {
   /** 词条标题 */
   title: string;
@@ -56,8 +58,8 @@ const CORS_PROXIES: Array<(url: string) => string> = [
   (url: string) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
 ];
 
-/** 详情缓存 + 并发去重（参考 wikiService.ts 的 cache/pending Map 模式） */
-const baikeCache = new Map<string, BaikeInfo | null>();
+/** 详情持久化缓存（localStorage + 内存，离线二次访问）+ 并发去重（参考 wikiService.ts 的 cache/pending 模式） */
+const baikeCache = new PersistentCache<BaikeInfo | null>({ prefix: 'baike_cache_', maxEntries: 80 });
 const baikePending = new Map<string, Promise<BaikeInfo | null>>();
 
 /** 风控/验证页特征关键词，命中任一即视为被拦截 */

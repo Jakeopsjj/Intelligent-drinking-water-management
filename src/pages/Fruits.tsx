@@ -12,7 +12,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, Loader2, Droplet, FlaskConical, Beaker, Atom, ChevronRight, Info } from 'lucide-react';
+import { Search, X, Loader2, Droplet, FlaskConical, Beaker, Atom, ChevronRight, Info, WifiOff } from 'lucide-react';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg, getLevelFromPotassium } from '@/utils/calc';
@@ -22,6 +22,8 @@ import { searchWikiFruits, fetchEntityInfo, type WikiSearchItem } from '@/lib/wi
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useEntityInfo } from '@/hooks/useEntityInfo';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import SmartImage from '@/components/SmartImage';
 import type { Fruit } from '@/types';
 
 export default function Fruits() {
@@ -230,7 +232,7 @@ export default function Fruits() {
             />
             {/* 底部抽屉 */}
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-[101] max-h-[70vh] overflow-y-auto rounded-t-3xl bg-white"
+              className="fixed bottom-0 left-0 right-0 z-[101] max-h-[70vh] overflow-y-auto rounded-t-3xl bg-white/80 backdrop-blur-xl"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -360,6 +362,7 @@ function FruitDetail({
     fruit.image,
     fruit.description
   );
+  const isOnline = useOnlineStatus();
 
   return (
     <>
@@ -373,7 +376,7 @@ function FruitDetail({
       />
       {/* 底部抽屉 */}
       <motion.div
-        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white"
+        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white/80 backdrop-blur-xl"
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
@@ -409,17 +412,22 @@ function FruitDetail({
         <div className="space-y-4 px-6 pb-6 pt-4">
           {/* 水果配图 */}
           {image ? (
-            <motion.img
+            <SmartImage
               src={image}
               alt={fruit.name}
-              className="h-40 w-full rounded-2xl object-cover"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              className="h-40 w-full rounded-2xl"
             />
           ) : loading ? (
-            <div className="flex h-40 w-full items-center justify-center rounded-2xl bg-cream-100">
-              <Loader2 className="h-6 w-6 animate-spin text-teal-600/40" />
-            </div>
+            isOnline ? (
+              <div className="flex h-40 w-full items-center justify-center rounded-2xl bg-cream-100">
+                <Loader2 className="h-6 w-6 animate-spin text-teal-600/40" />
+              </div>
+            ) : (
+              <div className="flex h-40 w-full flex-col items-center justify-center gap-2 rounded-2xl bg-amber-50 text-amber-600">
+                <WifiOff className="h-5 w-5" />
+                <span className="text-xs">无网络，无法获取图片</span>
+              </div>
+            )
           ) : null}
 
           {/* 核心：每100g元素含量 */}
@@ -463,7 +471,7 @@ function FruitDetail({
               <h4 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-teal-700">
                 <Info className="h-4 w-4" /> 维基介绍
               </h4>
-              <p className="text-sm leading-relaxed text-teal-600/80">{description}</p>
+              <p className="text-sm leading-relaxed break-words text-teal-600/80">{description}</p>
             </div>
           )}
 
