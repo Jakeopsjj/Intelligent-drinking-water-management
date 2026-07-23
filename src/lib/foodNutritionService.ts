@@ -129,16 +129,45 @@ async function doFetchNutrition(keyword: string): Promise<FoodNutrition | null> 
     return null;
   }
 
-  // 从结果中找最匹配的（优先精确匹配，否则取第一个含有效数据的）
   const items = data.datas as Record<string, string>[];
   if (items.length === 0) return null;
 
-  // 优先精确匹配
-  const exact = items.find((item) => item.food === keyword);
-  const best = exact || items[0];
+  // 匹配优先级：
+  // 1. 精确匹配 food === keyword
+  // 2. food 以 keyword 开头（如"苹果(祝光苹果)"以"苹果"开头）
+  // 3. food 包含 keyword
+  // 4. keyword 包含 food（如"苹果汁"包含"苹果"）
+  // 5. 取第一个
+  let best: Record<string, string> | null = null;
 
-  const nutrition = parseFoodItem(best);
+  // 1. 精确匹配
+  best = items.find((item) => item.food === keyword) || null;
+  if (best) return finishNutrition(best);
+
+  // 2. food 以 keyword 开头
+  best = items.find((item) => item.food.startsWith(keyword)) || null;
+  if (best) return finishNutrition(best);
+
+  // 3. food 包含 keyword
+  best = items.find((item) => item.food.includes(keyword)) || null;
+  if (best) return finishNutrition(best);
+
+  // 4. keyword 包含 food（选最长的 food）
+  let longestFood = '';
+  for (const item of items) {
+    if (keyword.includes(item.food) && item.food.length > longestFood.length) {
+      longestFood = item.food;
+      best = item;
+    }
+  }
+  if (best) return finishNutrition(best);
+
+  // 5. 取第一个
+  return finishNutrition(items[0]);
+}
+
+function finishNutrition(item: Record<string, string>): FoodNutrition | null {
+  const nutrition = parseFoodItem(item);
   if (!nutrition.name) return null;
-
   return nutrition;
 }

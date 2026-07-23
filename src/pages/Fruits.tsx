@@ -51,6 +51,20 @@ export default function Fruits() {
       const nutrition = await fetchFoodNutrition(keyword);
 
       if (nutrition) {
+        // 构建完整营养描述
+        const parts: string[] = [];
+        if (nutrition.energy) parts.push(`能量 ${nutrition.energy} kcal`);
+        if (nutrition.protein) parts.push(`蛋白质 ${nutrition.protein} g`);
+        if (nutrition.fat) parts.push(`脂肪 ${nutrition.fat} g`);
+        if (nutrition.carbohydrate) parts.push(`碳水 ${nutrition.carbohydrate} g`);
+        if (nutrition.fiber) parts.push(`膳食纤维 ${nutrition.fiber} g`);
+        if (nutrition.calcium) parts.push(`钙 ${nutrition.calcium} mg`);
+        if (nutrition.magnesium) parts.push(`镁 ${nutrition.magnesium} mg`);
+        if (nutrition.iron) parts.push(`铁 ${nutrition.iron} mg`);
+        if (nutrition.zinc) parts.push(`锌 ${nutrition.zinc} mg`);
+        if (nutrition.vitaminC) parts.push(`维生素C ${nutrition.vitaminC} mg`);
+        const nutritionDesc = parts.length > 0 ? `每100g营养成分：${parts.join('，')}` : undefined;
+
         addFruit({
           name: keyword,
           emoji: '🍇',
@@ -59,7 +73,7 @@ export default function Fruits() {
           sodiumPer100g: nutrition.sodium,
           waterPer100g: nutrition.water,
           suggestion: '请根据医嘱适量食用',
-          description: nutrition.energy ? `每100g能量 ${nutrition.energy} kcal` : undefined,
+          description: nutritionDesc,
         });
         const latest = useFruitsStore.getState().customFruits;
         const newFruit = [...latest].reverse().find((f) => f.name === keyword);
