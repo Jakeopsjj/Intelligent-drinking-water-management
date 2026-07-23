@@ -26,6 +26,51 @@
  */
 
 import { PersistentCache } from './persistentCache';
+import { builtinFruitBaike } from '@/data/baikeFruits';
+import { builtinMedicationBaike } from '@/data/baikeMedications';
+
+/**
+ * 本地内置百科数据（离线兜底数据源）。
+ *
+ * 合并水果 + 药物内置数据，key 统一为小写。
+ * 当联网抓取百度百科失败时，从此表查询作为可靠兜底，确保搜索/详情始终有结果。
+ * 60 个词条（30 水果 + 30 药物），覆盖肾病患者最常见场景。
+ */
+const builtinBaikeData: Record<string, BaikeInfo> = (() => {
+  const merged: Record<string, BaikeInfo> = {};
+  for (const [k, v] of Object.entries(builtinFruitBaike)) merged[k.toLowerCase()] = v;
+  for (const [k, v] of Object.entries(builtinMedicationBaike)) merged[k.toLowerCase()] = v;
+  return merged;
+})();
+
+/**
+ * 查询本地内置百科数据。
+ * 支持精确匹配 + 模糊匹配（包含/被包含），适配用户输入变体（如"桂圆"匹配"龙眼"）。
+ * @returns 本地命中返回 BaikeInfo（标记 _builtin）；未命中返回 null
+ */
+function lookupBuiltinBaike(keyword: string): BaikeInfo | null {
+  const key = keyword.trim().toLowerCase();
+  if (!key) return null;
+  // 1. 精确匹配
+  if (builtinBaikeData[key]) return { ...builtinBaikeData[key] };
+  // 2. 去除常见后缀后匹配（如"硝苯地平片"→"硝苯地平"、"柚子肉"→"柚子"）
+  const stripped = key.replace(/(片|胶囊|注射液|口服液|缓释片|控释片|分散片|颗粒|丸|膏|露|素|果|肉|子|类)$/, '');
+  if (stripped !== key && builtinBaikeData[stripped]) return { ...builtinBaikeData[stripped] };
+  // 3. 包含匹配：内置 key 包含在用户输入中（如"硝苯地平缓释片"包含"硝苯地平"）
+  for (const [k, v] of Object.entries(builtinBaikeData)) {
+    if (k.length >= 2 && key.includes(k)) return { ...v };
+  }
+  // 4. 被包含匹配：用户输入是内置 key 的子串（如"柚"匹配"柚子"）
+  let bestLen = 0;
+  let best: BaikeInfo | null = null;
+  for (const [k, v] of Object.entries(builtinBaikeData)) {
+    if (k.length >= 2 && k.includes(key) && k.length > bestLen) {
+      bestLen = k.length;
+      best = { ...v };
+    }
+  }
+  return best;
+}
 
 /** 百度百科正文章节（按词条内二级/三级标题划分） */
 export interface BaikeSection {
@@ -130,20 +175,43 @@ export function fetchBaikeInfo(keyword: string): Promise<BaikeInfo | null> {
   const inflight = baikePending.get(key);
   if (inflight) return inflight;
 
+  // 4. 优先查本地内置百科数据（离线兜底数据源）
+  //    本地命中即返回，并持久化到 localStorage，避免重复查询
+  //    未命中再走联网抓取（CapacitorHttp 原生 HTTP 或浏览器 fetch）
+  const builtin = lookupBuiltinBaike(keyword);
+  if (builtin) {
+    baikeCache.set(key, builtin);
+    return Promise.resolve(builtin);
+  }
+
   const p = doFetchBaike(keyword.trim())
     .then((result) => {
       if (result) {
-        // 成功：持久化到 localStorage，离线二次访问直接读本地
+        // 联网成功：持久化到 localStorage，离线二次访问直接读本地
         baikeCache.set(key, result);
       } else {
-        // 失败：只存内存，下次重启应用可重新尝试联网
-        // 修复问题3：原策略持久化 null 导致后续永远读出空数据
+        // 联网失败：回退查本地内置数据作为最终兜底
+        // （兜底匹配可能因大小写/后缀差异比第 4 步更宽，再次确认一次）
+        const fallback = lookupBuiltinBaike(keyword);
+        if (fallback) {
+          baikeCache.set(key, fallback);
+          baikePending.delete(key);
+          return fallback;
+        }
+        // 完全失败：只存内存，下次重启应用可重新尝试联网
         baikeMemoryCache.set(key, null);
       }
       baikePending.delete(key);
       return result;
     })
     .catch(() => {
+      // 异常兜底：再查一次本地内置数据
+      const fallback = lookupBuiltinBaike(keyword);
+      if (fallback) {
+        baikeCache.set(key, fallback);
+        baikePending.delete(key);
+        return fallback;
+      }
       baikeMemoryCache.set(key, null);
       baikePending.delete(key);
       return null;
@@ -571,8 +639,21 @@ export function searchBaike(keyword: string): Promise<BaikeSearchItem[]> {
   return p;
 }
 
-/** 实际检索流程：搜索结果页解析 → 兜底直接词条解析 */
+/** 实际检索流程：本地内置数据 → 搜索结果页 → 兜底直接词条解析 */
 async function doSearchBaike(keyword: string): Promise<BaikeSearchItem[]> {
+  // 策略0：优先查本地内置百科数据，确保「搜索始终有结果」（联网失败时的可靠兜底）
+  const builtin = lookupBuiltinBaike(keyword);
+  if (builtin && builtin.title) {
+    return [
+      {
+        title: builtin.title,
+        description: builtin.summary || builtin.content?.slice(0, 120),
+        url: `https://baike.baidu.com/item/${encodeURIComponent(builtin.title)}`,
+        image: builtin.image,
+      },
+    ];
+  }
+
   // 策略1：搜索结果页
   const searchUrl = `https://baike.baidu.com/search?word=${encodeURIComponent(keyword)}`;
   const html = await fetchHtml(searchUrl);
