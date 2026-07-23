@@ -5,7 +5,6 @@ import { useFruitsStore } from '@/store/useFruitsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
-import { fetchWikiDetail, type WikiDetail } from '@/lib/wikiSearchService';
 import { fetchFoodNutrition } from '@/lib/foodNutritionService';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
@@ -41,38 +40,26 @@ export default function Fruits() {
     high: filtered.filter((f) => f.level === 'high'),
   };
 
-  // 联网搜索并自动添加水果（营养API + 维基百科）
+  // 联网搜索并自动添加水果（食物营养API）
   const handleWikiSearch = async () => {
     const keyword = query.trim();
     if (!keyword) return;
     setWikiSearching(true);
     setWikiError(null);
     try {
-      // 1. 从食物营养API获取钾/磷/钠/水分
+      // 从食物营养API获取钾/磷/钠/水分等营养数据
       const nutrition = await fetchFoodNutrition(keyword);
 
-      // 2. 同时从维基百科获取百科内容（介绍/图片/段落）
-      const detail: WikiDetail | null = await fetchWikiDetail(keyword);
-
-      // 3. 合并数据：营养API的数值 + 维基百科的文案
-      if (nutrition || detail) {
+      if (nutrition) {
         addFruit({
           name: keyword,
           emoji: '🍇',
-          potassiumPer100g: nutrition?.potassium ?? detail?.potassiumPer100g ?? 0,
-          phosphorusPer100g: nutrition?.phosphorus ?? detail?.phosphorusPer100g ?? 0,
-          sodiumPer100g: nutrition?.sodium ?? detail?.sodiumPer100g ?? 0,
-          waterPer100g: nutrition?.water ?? detail?.waterPer100g ?? 80,
+          potassiumPer100g: nutrition.potassium,
+          phosphorusPer100g: nutrition.phosphorus,
+          sodiumPer100g: nutrition.sodium,
+          waterPer100g: nutrition.water,
           suggestion: '请根据医嘱适量食用',
-          description: detail?.summary,
-          image: detail?.image,
-          origin: detail?.origin,
-          varieties: detail?.varieties,
-          cultivation: detail?.cultivation,
-          culture: detail?.culture,
-          healthBenefits: detail?.healthBenefits,
-          precautions: detail?.precautions,
-          storage: detail?.storage,
+          description: nutrition.energy ? `每100g能量 ${nutrition.energy} kcal` : undefined,
         });
         const latest = useFruitsStore.getState().customFruits;
         const newFruit = [...latest].reverse().find((f) => f.name === keyword);
