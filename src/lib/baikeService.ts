@@ -28,18 +28,24 @@
 import { PersistentCache } from './persistentCache';
 import { builtinFruitBaike } from '@/data/baikeFruits';
 import { builtinMedicationBaike } from '@/data/baikeMedications';
+import { builtinFruitBaikeExtra } from '@/data/baikeFruitsExtra';
+import { builtinMedicationBaikeExtra } from '@/data/baikeMedicationsExtra';
+import { fetchEntityInfo, type EntityInfo } from './wikiService';
 
 /**
  * 本地内置百科数据（离线兜底数据源）。
  *
- * 合并水果 + 药物内置数据，key 统一为小写。
+ * 合并水果 + 药物内置数据（基础 + 扩充），key 统一为小写。
  * 当联网抓取百度百科失败时，从此表查询作为可靠兜底，确保搜索/详情始终有结果。
- * 60 个词条（30 水果 + 30 药物），覆盖肾病患者最常见场景。
+ * 共约 127 个词条（30+37 水果 + 30+30 药物），覆盖肾病患者最常见场景。
+ * 联网增强仍由维基百科 API + 百度百科抓取承担，本表保证离线兜底覆盖面。
  */
 const builtinBaikeData: Record<string, BaikeInfo> = (() => {
   const merged: Record<string, BaikeInfo> = {};
   for (const [k, v] of Object.entries(builtinFruitBaike)) merged[k.toLowerCase()] = v;
+  for (const [k, v] of Object.entries(builtinFruitBaikeExtra)) merged[k.toLowerCase()] = v;
   for (const [k, v] of Object.entries(builtinMedicationBaike)) merged[k.toLowerCase()] = v;
+  for (const [k, v] of Object.entries(builtinMedicationBaikeExtra)) merged[k.toLowerCase()] = v;
   return merged;
 })();
 
@@ -221,8 +227,30 @@ export function fetchBaikeInfo(keyword: string): Promise<BaikeInfo | null> {
   return p;
 }
 
-/** 实际抓取 + 解析流程 */
+/** 实际抓取 + 解析流程
+ *
+ * 数据源优先级：
+ * 1. 维基百科 REST/parse API（首选）：API 规范、无风控、有结构化章节/infobox/图集
+ * 2. 百度百科 HTML 抓取（兜底）：覆盖维基百科未收录的中文词条
+ *
+ * 维基百科在国内可访问（虽偶有不稳定），且提供 origin=* CORS 支持，
+ * 比百度百科 HTML 抓取成功率高很多。
+ */
 async function doFetchBaike(keyword: string): Promise<BaikeInfo | null> {
+  // 策略1：维基百科 API（首选，覆盖率高、无风控）
+  // 根据关键词特征判断类型：含药字后缀（片/胶囊/注射液等）视为药物，否则按水果处理
+  const kind = /片|胶囊|注射液|口服液|缓释|控释|分散|颗粒|丸|膏|注射剂|滴剂|喷雾|贴剂|凝胶|乳膏/.test(keyword)
+    ? 'medication'
+    : 'fruit';
+  try {
+    const wikiInfo = await fetchEntityInfo(keyword, kind);
+    const converted = wikiInfoToBaike(keyword, wikiInfo);
+    if (converted) return converted;
+  } catch {
+    // 维基失败，继续走百度百科
+  }
+
+  // 策略2：百度百科 HTML 抓取（兜底）
   const targetUrl = `https://baike.baidu.com/item/${encodeURIComponent(keyword)}`;
 
   // 1. 抓取 HTML 文本（直接 → 代理轮换）
@@ -264,6 +292,40 @@ async function doFetchBaike(keyword: string): Promise<BaikeInfo | null> {
 
   const infobox = safe(() => parseInfobox(doc));
   if (infobox && Object.keys(infobox).length > 0) info.infobox = infobox;
+
+  return info;
+}
+
+/**
+ * 将 wikiService 的 EntityInfo 转换为 BaikeInfo。
+ * 维基百科数据结构比百度百科更规范，章节/信息框/图集都有专门字段。
+ * 至少要有 lead 或 sections 或 description 才视为有效。
+ */
+function wikiInfoToBaike(keyword: string, wiki: EntityInfo): BaikeInfo | null {
+  if (!wiki || Object.keys(wiki).length === 0) return null;
+
+  const title = keyword;
+  const summary = wiki.description || (wiki.lead ? wiki.lead.slice(0, 200) : '');
+  const content = wiki.lead || wiki.description || '';
+
+  // 至少要有摘要/正文/章节之一才算有效
+  if (!summary && !content && (!wiki.sections || wiki.sections.length === 0)) {
+    return null;
+  }
+
+  const info: BaikeInfo = { title, summary, content };
+
+  // 章节：WikiSection 结构与 BaikeSection 兼容（title + paragraphs[]）
+  if (wiki.sections && wiki.sections.length > 0) {
+    info.sections = wiki.sections.map((s) => ({
+      title: s.title,
+      paragraphs: s.paragraphs,
+    }));
+  }
+
+  if (wiki.image) info.image = wiki.image;
+  if (wiki.images && wiki.images.length > 0) info.images = wiki.images;
+  if (wiki.infobox && Object.keys(wiki.infobox).length > 0) info.infobox = wiki.infobox;
 
   return info;
 }
