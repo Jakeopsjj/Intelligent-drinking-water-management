@@ -14,6 +14,7 @@
  */
 
 import { PersistentCache } from './persistentCache';
+import { logger } from '@/store/useDebugStore';
 
 export type EntityKind = 'fruit' | 'medication';
 
@@ -245,18 +246,28 @@ export function fetchEntityInfo(name: string, kind: EntityKind = 'fruit'): Promi
   if (!name.trim()) return Promise.resolve({});
 
   const cached = cache.get(key);
-  if (cached) return Promise.resolve(cached);
+  if (cached) {
+    logger.info(`[wiki] 缓存命中: ${kind} ${name}`, { key }, 'wikiService');
+    return Promise.resolve(cached);
+  }
 
   const inflight = pending.get(key);
-  if (inflight) return inflight;
+  if (inflight) {
+    logger.info(`[wiki] 请求去重: ${kind} ${name}`, { key }, 'wikiService');
+    return inflight;
+  }
+
+  logger.info(`[wiki] 开始请求: ${kind} ${name}`, { key }, 'wikiService');
 
   const p = doFetch(name.trim(), kind).then((info) => {
     cache.set(key, info);
     pending.delete(key);
+    logger.api(`[wiki] 请求成功: ${kind} ${name}`, { hasImage: !!info.image, sections: info.sections?.length || 0 }, 'wikiService');
     return info;
-  }).catch(() => {
+  }).catch((err) => {
     cache.set(key, {});
     pending.delete(key);
+    logger.error(`[wiki] 请求失败: ${kind} ${name}`, { error: err?.message || 'unknown' }, 'wikiService');
     return {};
   });
 

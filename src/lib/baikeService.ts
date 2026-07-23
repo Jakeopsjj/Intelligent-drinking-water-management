@@ -31,6 +31,7 @@ import { builtinMedicationBaike } from '@/data/baikeMedications';
 import { builtinFruitBaikeExtra } from '@/data/baikeFruitsExtra';
 import { builtinMedicationBaikeExtra } from '@/data/baikeMedicationsExtra';
 import { fetchEntityInfo, type EntityInfo } from './wikiService';
+import { logger } from '@/store/useDebugStore';
 
 /**
  * 本地内置百科数据（离线兜底数据源）。
@@ -183,32 +184,41 @@ export function fetchBaikeInfo(keyword: string): Promise<BaikeInfo | null> {
 
   // 1. 命中持久化缓存（仅成功结果）直接返回
   if (baikeCache.has(key)) {
+    logger.info(`[baike] 持久化缓存命中: ${keyword}`, { key }, 'baikeService');
     return Promise.resolve(baikeCache.get(key) ?? null);
   }
 
   // 2. 命中内存临时缓存（含失败 null，仅本次会话）也返回，避免短时间内重复打请求
   if (baikeMemoryCache.has(key)) {
+    logger.info(`[baike] 内存缓存命中: ${keyword}`, { key }, 'baikeService');
     return Promise.resolve(baikeMemoryCache.get(key) ?? null);
   }
 
   // 3. 并发去重：同一关键词的并发调用复用同一个 Promise
   const inflight = baikePending.get(key);
-  if (inflight) return inflight;
+  if (inflight) {
+    logger.info(`[baike] 请求去重: ${keyword}`, { key }, 'baikeService');
+    return inflight;
+  }
 
   // 4. 优先查本地内置百科数据（离线兜底数据源）
   //    本地命中即返回，并持久化到 localStorage，避免重复查询
   //    未命中再走联网抓取（CapacitorHttp 原生 HTTP 或浏览器 fetch）
   const builtin = lookupBuiltinBaike(keyword);
   if (builtin) {
+    logger.info(`[baike] 本地内置数据命中: ${keyword}`, { hasImage: !!builtin.images?.[0] }, 'baikeService');
     baikeCache.set(key, builtin);
     return Promise.resolve(builtin);
   }
+
+  logger.info(`[baike] 开始联网请求: ${keyword}`, { key }, 'baikeService');
 
   const p = doFetchBaike(keyword.trim())
     .then((result) => {
       if (result) {
         // 联网成功：持久化到 localStorage，离线二次访问直接读本地
         baikeCache.set(key, result);
+        logger.api(`[baike] 联网请求成功: ${keyword}`, { hasImage: !!result.images?.[0], sections: result.sections?.length || 0 }, 'baikeService');
       } else {
         // 联网失败：回退查本地内置数据作为最终兜底
         // （兜底匹配可能因大小写/后缀差异比第 4 步更宽，再次确认一次）
@@ -216,24 +226,28 @@ export function fetchBaikeInfo(keyword: string): Promise<BaikeInfo | null> {
         if (fallback) {
           baikeCache.set(key, fallback);
           baikePending.delete(key);
+          logger.warn(`[baike] 联网失败，使用兜底数据: ${keyword}`, { source: 'builtin' }, 'baikeService');
           return fallback;
         }
         // 完全失败：只存内存，下次重启应用可重新尝试联网
         baikeMemoryCache.set(key, null);
+        logger.error(`[baike] 联网请求失败，无兜底数据: ${keyword}`, {}, 'baikeService');
       }
       baikePending.delete(key);
       return result;
     })
-    .catch(() => {
+    .catch((err) => {
       // 异常兜底：再查一次本地内置数据
       const fallback = lookupBuiltinBaike(keyword);
       if (fallback) {
         baikeCache.set(key, fallback);
         baikePending.delete(key);
+        logger.warn(`[baike] 请求异常，使用兜底数据: ${keyword}`, { error: err?.message || 'unknown' }, 'baikeService');
         return fallback;
       }
       baikeMemoryCache.set(key, null);
       baikePending.delete(key);
+      logger.error(`[baike] 请求异常，无兜底数据: ${keyword}`, { error: err?.message || 'unknown' }, 'baikeService');
       return null;
     });
 

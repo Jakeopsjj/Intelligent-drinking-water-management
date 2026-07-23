@@ -12,6 +12,7 @@ import Settings from '@/pages/Settings';
 import Onboarding from '@/pages/Onboarding';
 import PermissionsGate, { hasAcceptedPermissions } from '@/components/PermissionsGate';
 import UpdateModal from '@/components/UpdateModal';
+import DebugConsole from '@/components/DebugConsole';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { migrateLocalStorageToNative } from '@/lib/nativeStorage';
 import { closeTopOverlay } from '@/lib/backHandler';
@@ -157,6 +158,8 @@ export default function App() {
         onClose={() => setShowChangelog(false)}
         mode="changelog"
       />
+      {/* 调试控制台 */}
+      <DebugConsole />
     </Router>
   );
 }
