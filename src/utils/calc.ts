@@ -153,3 +153,18 @@ export function getHourlyDistribution(records: AnyRecord[], dateKey: string): Ho
 export function getRangeMetrics(records: AnyRecord[], dateKeys: string[]): DailyMetrics[] {
   return dateKeys.map((k) => getDailyMetrics(records, k));
 }
+
+/**
+ * 根据干体重和透析类型自动计算建议每日摄水限额。
+ * 公式参考 KDOQI / 中国血液透析充分性临床实践指南：
+ * - HD（血液透析）：干体重 × 5 ml/kg（残肾无尿患者）
+ * - PD（腹膜透析）：干体重 × 8 ml/kg（有残余肾功能，限制较宽松）
+ * 结果取整到 50ml，下限 500ml，上限 2500ml。
+ */
+export function calculateSuggestedWaterLimit(weightKg?: number, dialysisType?: 'hd' | 'pd'): number | null {
+  if (!weightKg || weightKg <= 0) return null;
+  const factor = dialysisType === 'pd' ? 8 : 5;
+  const raw = Math.round(weightKg * factor);
+  const rounded = Math.round(raw / 50) * 50;
+  return Math.max(500, Math.min(2500, rounded));
+}

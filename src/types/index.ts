@@ -146,6 +146,8 @@ export interface UserSettings {
   userName?: string;
   userAvatar?: string; // 用户头像（emoji 或 data:image base64 字符串）
   dialysisSchedule?: string; // 透析日程备注
+  weight?: number; // 干体重 kg
+  dialysisType?: 'hd' | 'pd'; // 透析类型：hd=血液透析，pd=腹膜透析
   initialized: boolean; // 是否已完成初始设置
 }
 

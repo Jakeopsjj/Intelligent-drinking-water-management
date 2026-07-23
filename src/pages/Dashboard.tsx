@@ -10,8 +10,11 @@ import {
   Bone,
   Soup,
   Pill,
+  Plus,
+  Check,
 } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
+import WaterProgressRing from '@/components/WaterProgressRing';
 import {
   WaterQuickRecord,
   UltrafiltrationQuickRecord,
@@ -22,7 +25,9 @@ import RecordItem from '@/components/RecordItem';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { formatDateLong, getTodayKey } from '@/utils/date';
-import { getProgressStatus, getDailyMetrics } from '@/utils/calc';
+import { getProgressStatus, getDailyMetrics, calculateSuggestedWaterLimit } from '@/utils/calc';
+import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 // 将克转为 kg 纯数字字符串（不含单位）
 function gToKgNum(g: number): string {
@@ -34,7 +39,10 @@ function gToKgNum(g: number): string {
 export default function Dashboard() {
   const records = useRecordsStore((s) => s.records);
   const deleteRecord = useRecordsStore((s) => s.deleteRecord);
+  const addWaterRecord = useRecordsStore((s) => s.addWaterRecord);
   const settings = useSettingsStore((s) => s.settings);
+
+  const [quickSaved, setQuickSaved] = useState<number | null>(null);
 
   const todayKey = getTodayKey();
   const todayMetrics = useMemo(
@@ -44,7 +52,14 @@ export default function Dashboard() {
 
   const userName = settings.userName?.trim() || '肾友';
 
-  const waterStatus = getProgressStatus(todayMetrics.water, settings.dailyWaterLimit);
+  // 智能摄水限额：优先使用用户设置，其次根据体重自动计算建议值
+  const waterLimit = useMemo(() => {
+    if (settings.dailyWaterLimit > 0) return settings.dailyWaterLimit;
+    const suggested = calculateSuggestedWaterLimit(settings.weight, settings.dialysisType);
+    return suggested ?? 1000;
+  }, [settings.dailyWaterLimit, settings.weight, settings.dialysisType]);
+
+  const waterStatus = getProgressStatus(todayMetrics.water, waterLimit);
   const potassiumStatus = getProgressStatus(
     todayMetrics.potassium,
     settings.dailyPotassiumLimit
@@ -62,6 +77,12 @@ export default function Dashboard() {
     phosphorusStatus === 'exceeded' ||
     sodiumStatus === 'exceeded' ||
     fruitStatus === 'exceeded';
+
+  const handleQuickAdd = (amount: number) => {
+    addWaterRecord({ amount });
+    setQuickSaved(amount);
+    setTimeout(() => setQuickSaved(null), 1200);
+  };
 
   const overviewItems = [
     { label: '饮水', value: todayMetrics.water, unit: 'ml', icon: <Droplets className="h-3 w-3" /> },
@@ -112,7 +133,49 @@ export default function Dashboard() {
         </div>
       </motion.section>
 
-      {/* 今日总览：6 个指标，横向滑动查看 */}
+      {/* 饮水进度环 + 一键记录 */}
+      <motion.section
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+        className="glass-card relative overflow-hidden rounded-[28px] p-5"
+      >
+        <div className="glass-orb -right-10 -top-10 h-28 w-28 bg-teal-300/20" />
+        <div className="glass-shimmer" />
+        <div className="relative z-10 flex flex-col items-center">
+          <WaterProgressRing current={todayMetrics.water} limit={waterLimit} />
+
+          {/* 一键记录按钮 */}
+          <div className="mt-4 flex w-full flex-wrap justify-center gap-2">
+            {[50, 100, 150, 200].map((amount) => (
+              <button
+                key={amount}
+                onClick={() => handleQuickAdd(amount)}
+                className={cn(
+                  'flex items-center gap-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition active:scale-95',
+                  quickSaved === amount
+                    ? 'border-sage-400 bg-sage-500 text-white'
+                    : 'border-teal-200 bg-teal-50 text-teal-600 hover:border-teal-300 hover:bg-teal-100'
+                )}
+              >
+                {quickSaved === amount ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                {amount} ml
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-[10px] text-teal-600/40">
+            {settings.weight
+              ? `基于体重 ${settings.weight}kg${settings.dialysisType === 'pd' ? '（腹膜透析）' : ''} 建议每日 ${waterLimit}ml`
+              : '请在设置中填写体重，自动计算建议摄水限额'}
+          </p>
+        </div>
+      </motion.section>
+
+      {/* 今日总览：7 个指标，横向滑动查看 */}
       <motion.section
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -164,7 +227,7 @@ export default function Dashboard() {
           title="摄水量"
           icon={<Droplets className="h-4 w-4" />}
           current={todayMetrics.water}
-          limit={settings.dailyWaterLimit}
+          limit={waterLimit}
           unit="ml"
           theme="teal"
           description={todayMetrics.fruitWater > 0 ? `含水果水 ${todayMetrics.fruitWater} ml` : undefined}

@@ -26,6 +26,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.16.9] - 2026-07-23
+
+### Features
+
+- 新增饮水进度环（WaterProgressRing）：SVG 环形进度条，直观展示今日摄水量占每日限额比例
+- 饮水一键快捷记录：仪表盘 50/100/150/200ml 四个快捷按钮，点击即记录
+- 智能摄水限额计算：根据干体重和透析类型自动计算建议每日摄水限额
+- 设置页新增干体重和透析类型（HD/PD）配置
+- 摄水限额颜色编码：正常(teal)、警告(orange, 80%)、超标(red, 100%)
+
+### Bug Fixes
+
+- 修复 DebugConsole 白屏卡死（Zustand selector 返回函数引用导致 logs.map 抛错）
+
+---
+
+## [2.16.8] - 2026-07-23
+
+### Bug Fixes
+
+- 修复 DebugConsole 白屏卡死（Zustand selector 返回函数引用导致 logs.map 抛错）
+
+---
+
 ## [2.16.7] - 2026-07-23
 
 ### Features

@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet, Image as ImageIcon, Upload, Camera, Github, RefreshCw, Loader2, Info, MessageSquare } from 'lucide-react';
+import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet, Image as ImageIcon, Upload, Camera, Github, RefreshCw, Loader2, Info, MessageSquare, Scale } from 'lucide-react';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { exportAsJSON, exportAsCSV, exportAsImage, parseBackupJSON, readFileAsText } from '@/utils/export';
+import { calculateSuggestedWaterLimit } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 import AvatarPicker, { AvatarView } from '@/components/AvatarPicker';
 import UpdateModal from '@/components/UpdateModal';
@@ -231,6 +232,65 @@ export default function Settings() {
               placeholder="例如：周一 / 周三 / 周五"
               className="glass-tile w-full rounded-xl px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
             />
+          </Field>
+
+          <Field label="干体重" hint="用于自动计算建议摄水限额" icon={<Scale className="h-3.5 w-3.5" />}>
+            <div className="flex items-center gap-2">
+              <div className="glass-tile flex flex-1 items-center rounded-xl">
+                <button
+                  onClick={() => updateSettings({ weight: Math.max(30, (settings.weight ?? 60) - 1) })}
+                  className="flex h-10 w-10 items-center justify-center text-teal-600 hover:bg-cream-100"
+                >
+                  −
+                </button>
+                <input
+                  type="number"
+                  value={settings.weight ?? ''}
+                  step={0.5}
+                  placeholder="60"
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    updateSettings({ weight: isNaN(v) ? undefined : Math.max(0, v) });
+                  }}
+                  className="w-full bg-transparent py-2.5 text-center text-sm font-medium text-teal-700 placeholder:text-teal-600/40 focus:outline-none"
+                />
+                <button
+                  onClick={() => updateSettings({ weight: (settings.weight ?? 60) + 1 })}
+                  className="flex h-10 w-10 items-center justify-center text-teal-600 hover:bg-cream-100"
+                >
+                  +
+                </button>
+              </div>
+              <span className="w-10 text-xs text-teal-600/60">kg</span>
+            </div>
+          </Field>
+
+          <Field label="透析类型" hint="血液透析或腹膜透析，影响摄水限额计算">
+            <div className="flex gap-2">
+              {[
+                { value: 'hd', label: '血液透析(HD)' },
+                { value: 'pd', label: '腹膜透析(PD)' },
+              ].map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => updateSettings({ dialysisType: settings.dialysisType === value ? undefined : (value as 'hd' | 'pd') })}
+                  className={cn(
+                    'flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition',
+                    settings.dialysisType === value
+                      ? 'border-teal-400 bg-teal-50 text-teal-700'
+                      : 'border-cream-300 bg-cream-50 text-teal-600 hover:border-teal-300 hover:bg-teal-50'
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {settings.weight && settings.weight > 0 && (
+              <p className="mt-2 rounded-lg bg-teal-50 px-3 py-1.5 text-[10px] text-teal-600">
+                建议摄水限额：{calculateSuggestedWaterLimit(settings.weight, settings.dialysisType) ?? '—'} ml/天
+                （{settings.dialysisType === 'pd' ? '腹膜透析限制较宽松，8ml/kg' : '血液透析建议 5ml/kg'}）
+              </p>
+            )}
           </Field>
         </div>
         </div>
