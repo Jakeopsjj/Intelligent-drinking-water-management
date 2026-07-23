@@ -2,11 +2,13 @@
  * 内置药物库（透析患者常用药物）
  *
  * 覆盖肾友日常用药主要类别：
- * - 磷结合剂：碳酸钙、司维拉姆、碳酸镧
- * - 维生素/矿物质：骨化三醇、碳酸氢钠
- * - 降压药：氨氯地平、缬沙坦
+ * - 磷结合剂：碳酸钙、司维拉姆、碳酸镧、醋酸钙
+ * - 维生素/矿物质：骨化三醇、碳酸氢钠、叶酸、甲钴胺
+ * - 降压药：氨氯地平、缬沙坦、氯沙坦钾、厄贝沙坦、美托洛尔、比索洛尔、卡托普利、依那普利、培哚普利
+ * - 利尿剂：呋塞米、托拉塞米、氢氯噻嗪、螺内酯
  * - 促红素：重组人促红素 EPO
- * - 铁剂：蔗糖铁
+ * - 铁剂：蔗糖铁、多糖铁、琥珀酸亚铁
+ * - 其他：阿司匹林、氯吡格雷、别嘌醇、左卡尼汀
  *
  * 配图与介绍由详情页自动联网获取（维基百科），无需在此硬编码
  */
@@ -17,7 +19,7 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
   // —— 磷结合剂 ——
   {
     id: 'med-calcium-carbonate',
-    name: '碳酸钙',
+    name: '碳酸钙片',
     emoji: '💊',
     category: 'phosphate-binder',
     usage: {
@@ -63,8 +65,8 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
       '老年患者使用应谨慎。老年人胃酸分泌减少可能影响碳酸钙溶解，且常合并便秘、动脉钙化、心肾功能不全，建议小剂量起始并随餐服用；定期监测血钙、血磷、肾功能和血管钙化情况；合并使用噻嗪类利尿剂者高钙血症风险显著增加。',
   },
   {
-    id: 'med-sevelamer',
-    name: '司维拉姆',
+    id: 'med-sevelamer-carbonate',
+    name: '碳酸司维拉姆片',
     emoji: '💊',
     category: 'phosphate-binder',
     usage: {
@@ -74,17 +76,17 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
       timing: '随餐吞服',
       schedule: ['早', '中', '晚'],
     },
-    purpose: '非含钙磷结合剂，降血磷，不增加血钙',
+    purpose: '非含钙磷结合剂，降血磷，不增加血钙，可部分纠正酸中毒',
     description:
-      '司维拉姆为非钙非铝的磷结合剂，适合高血钙或血管钙化风险高的患者，通过离子交换在肠道结合磷酸根。',
+      '碳酸司维拉姆（商品名 Renvela）为非钙非铝的磷结合剂，是司维拉姆的碳酸盐剂型，适合高血钙或血管钙化风险高的患者，通过离子交换在肠道结合磷酸根。相比盐酸司维拉姆，释放碳酸氢根可部分纠正代谢性酸中毒，现已成为临床首选剂型。',
     usageNotes:
-      '必须随餐服用，整片吞服不可嚼碎。需大量饮水。可能影响脂溶性维生素吸收。',
-    ingredients: '盐酸司维拉姆 800mg',
+      '必须随餐服用，整片吞服不可嚼碎（碳酸盐剂型可碾碎）。需大量饮水。可能影响脂溶性维生素吸收。',
+    ingredients: '碳酸司维拉姆 800mg',
     sideEffects: '胃肠道不适、恶心、便秘',
     contraindications:
       '低磷血症、肠梗阻患者禁用；对本品任何成分过敏者禁用；吞咽困难者慎用。',
     pharmacology:
-      '盐酸司维拉姆为非吸收性阳离子聚合物，在肠道内通过离子交换和氢键结合磷酸根，形成不溶性复合物随粪便排出，不增加钙负荷，几乎不被吸收。',
+      '碳酸司维拉姆为非吸收性阳离子聚合物，在肠道内通过离子交换（与磷酸根交换碳酸氢根）和氢键结合磷酸根，形成不溶性复合物随粪便排出，不增加钙负荷，几乎不被吸收。释放碳酸氢根可部分纠正代谢性酸中毒。',
     drugInteractions:
       '可降低环丙沙星、霉酚酸酯、左甲状腺素的生物利用度，应错时服用；可能影响脂溶性维生素D、E、K的吸收；服用本品前后1小时内避免服用其他口服药物。',
     storage: '遮光、密封，在25℃以下干燥处保存。',
@@ -95,9 +97,9 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
     isCustom: false,
     level: 'low',
     indications:
-      '用于控制正在接受透析治疗的慢性肾脏病成人患者（包括血液透析和腹膜透析）的高磷血症。是高血钙、血管钙化风险高或对含钙磷结合剂不耐受患者的首选磷结合剂。部分研究显示还可降低透析患者低密度脂蛋白胆固醇。',
+      '用于控制正在接受透析治疗的慢性肾脏病成人患者（包括血液透析和腹膜透析）的高磷血症。是高血钙、血管钙化风险高或对含钙磷结合剂不耐受患者的首选磷结合剂。相比盐酸司维拉姆，本剂型释放碳酸氢根可部分纠正酸中毒，更适合合并代谢性酸中毒的患者。部分研究显示还可降低透析患者低密度脂蛋白胆固醇。',
     pharmacokinetics:
-      '司维拉姆为水溶性交联聚烯丙胺盐酸盐聚合物，分子量大（约19g/mol重复单元的网状结构），肠道不吸收，几乎100%以原形随粪便排出，不在体内蓄积，不经过肝肾代谢，因此肾功能不全或透析患者无需调整剂量。不被血液透析或腹膜透析清除。长期服用对血钙无影响，但可能影响脂溶性维生素（A、D、E、K）及部分阴离子药物的肠道吸收。',
+      '碳酸司维拉姆为水溶性交联聚烯丙胺碳酸盐聚合物，分子量大，肠道不吸收，几乎100%以原形随粪便排出，不在体内蓄积，不经过肝肾代谢，因此肾功能不全或透析患者无需调整剂量。不被血液透析或腹膜透析清除。长期服用对血钙无影响，但可能影响脂溶性维生素（A、D、E、K）及部分阴离子药物的肠道吸收。',
     overdose:
       '因不被吸收，急性过量风险低，主要表现为严重恶心、呕吐、腹泻、便秘甚至肠梗阻。处理：对症支持，停药观察；疑似肠梗阻者及时行影像学评估；建议服药期间保证足够水分摄入以防食管梗阻。',
     warnings:
@@ -110,8 +112,55 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
       '老年患者可使用，但更易出现胃肠道反应（恶心、便秘、肠梗阻）和吞咽困难。建议小剂量起始、随餐服药并保证充分饮水；合并胃肠功能紊乱、近期腹部手术者慎用；定期监测血磷、血钙及维生素D水平。',
   },
   {
+    id: 'med-sevelamer-hydrochloride',
+    name: '盐酸司维拉姆片',
+    emoji: '💊',
+    category: 'phosphate-binder',
+    usage: {
+      unit: '片',
+      defaultDose: 1,
+      frequency: '每日3次（随餐）',
+      timing: '随餐吞服',
+      schedule: ['早', '中', '晚'],
+    },
+    purpose: '非含钙磷结合剂，降血磷，不增加血钙（最早上市剂型，可致轻度酸中毒）',
+    description:
+      '盐酸司维拉姆（商品名 Renagel）为最早上市的非钙非铝磷结合剂，是司维拉姆的盐酸盐剂型，通过离子交换在肠道结合磷酸根。因释放氯离子可致轻度代谢性酸中毒，现临床多被碳酸司维拉姆取代，但部分地区仍在使用。',
+    usageNotes:
+      '必须随餐服用，整片吞服不可嚼碎。需大量饮水。可能影响脂溶性维生素吸收。注意监测血气，出现酸中毒应换用碳酸司维拉姆。',
+    ingredients: '盐酸司维拉姆 800mg',
+    sideEffects: '胃肠道不适、恶心、便秘、轻度代谢性酸中毒',
+    contraindications:
+      '低磷血症、肠梗阻患者禁用；对本品任何成分过敏者禁用；吞咽困难者慎用。严重代谢性酸中毒患者慎用或禁用（应改用碳酸司维拉姆）。',
+    pharmacology:
+      '盐酸司维拉姆为非吸收性阳离子聚合物，在肠道内通过离子交换（与磷酸根交换氯离子）和氢键结合磷酸根，形成不溶性复合物随粪便排出，不增加钙负荷，几乎不被吸收。释放氯离子可致轻度代谢性酸中毒（血清碳酸氢根降低约2mmol/L）。',
+    drugInteractions:
+      '可降低环丙沙星、霉酚酸酯、左甲状腺素的生物利用度，应错时服用；可能影响脂溶性维生素D、E、K的吸收；服用本品前后1小时内避免服用其他口服药物。',
+    storage: '遮光、密封，在25℃以下干燥处保存。',
+    packaging: '高密度聚乙烯瓶装，每瓶180片；或铝塑包装，每板10片，每盒3板。',
+    shelfLife: '24个月',
+    manufacturer: 'Genzyme Ireland Ltd.',
+    approvalNumber: '国药准字J20140156',
+    isCustom: false,
+    level: 'low',
+    indications:
+      '用于控制正在接受透析治疗的慢性肾脏病成人患者（包括血液透析和腹膜透析）的高磷血症。是高血钙、血管钙化风险高或对含钙磷结合剂不耐受患者的磷结合剂选择之一。因可致轻度酸中毒，现临床多首选碳酸司维拉姆，本品用于碳酸司维拉姆不可及或已使用者耐受良好时。部分研究显示还可降低透析患者低密度脂蛋白胆固醇。',
+    pharmacokinetics:
+      '盐酸司维拉姆为水溶性交联聚烯丙胺盐酸盐聚合物，分子量大，肠道不吸收，几乎100%以原形随粪便排出，不在体内蓄积，不经过肝肾代谢，因此肾功能不全或透析患者无需调整剂量。不被血液透析或腹膜透析清除。长期服用可致轻度代谢性酸中毒（血清碳酸氢根降低约2mmol/L），需监测血气。可能影响脂溶性维生素（A、D、E、K）及部分阴离子药物的肠道吸收。',
+    overdose:
+      '因不被吸收，急性过量风险低，主要表现为严重恶心、呕吐、腹泻、便秘甚至肠梗阻；长期过量可加重代谢性酸中毒。处理：对症支持，停药观察；疑似肠梗阻者及时行影像学评估；出现明显酸中毒应换用碳酸司维拉姆并纠正酸碱失衡；建议服药期间保证足够水分摄入以防食管梗阻。',
+    warnings:
+      '应随餐整片吞服，不可嚼碎或碾碎；吞咽困难、严重胃肠功能紊乱（如胃轻瘫、术后肠麻痹、反复肠梗阻）者慎用；可能引起或加重胃肠穿孔、溃疡，腹膜透析患者及合并胃肠道手术史者尤需警惕。本品与碳酸司维拉姆的差异：两者磷结合效力相当、剂量1:1换算，但盐酸司维拉姆释放氯离子可致轻度酸中毒，碳酸司维拉姆释放碳酸氢根可纠正酸中毒；出现酸中毒或血清碳酸氢根<22mmol/L时应换用碳酸司维拉姆。长期使用建议补充脂溶性维生素，并应在服用司维拉姆前后至少1小时服用其他口服药物。每2-3个月监测血磷、血钙、血气（碳酸氢根）、iPTH及25-(OH)D水平。',
+    useInPregnancy:
+      '妊娠期使用安全性资料有限。动物实验未发现致畸证据，但缺乏孕妇充分对照研究。司维拉姆不被吸收，理论上对胎儿影响小，但可能影响孕妇脂溶性维生素（特别是维生素D和叶酸）吸收，间接影响胎儿发育。仅在确有必要时使用，并补充维生素。哺乳期安全性资料不足，应权衡利弊。',
+    useInChildren:
+      '6岁以下儿童安全性尚未确立，不推荐使用。6岁及以上透析患儿可在专科医生指导下使用，需密切监测血磷、血钙、血气及营养状态，注意脂溶性维生素缺乏；出现酸中毒应换用碳酸司维拉姆。',
+    useInElderly:
+      '老年患者可使用，但更易出现胃肠道反应（恶心、便秘、肠梗阻）、吞咽困难及代谢性酸中毒。建议小剂量起始、随餐服药并保证充分饮水；合并胃肠功能紊乱、近期腹部手术者慎用；定期监测血磷、血钙、血气及维生素D水平，出现酸中毒应换用碳酸司维拉姆。',
+  },
+  {
     id: 'med-lanthanum',
-    name: '碳酸镧',
+    name: '碳酸镧咀嚼片',
     emoji: '💊',
     category: 'phosphate-binder',
     usage: {
@@ -159,7 +208,7 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
   // —— 维生素 / 矿物质 ——
   {
     id: 'med-calcitriol',
-    name: '骨化三醇',
+    name: '骨化三醇胶囊',
     emoji: '💊',
     category: 'vitamin',
     usage: {
@@ -206,7 +255,7 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
   },
   {
     id: 'med-sodium-bicarbonate',
-    name: '碳酸氢钠',
+    name: '碳酸氢钠片',
     emoji: '💊',
     category: 'vitamin',
     usage: {
@@ -254,7 +303,7 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
   // —— 降压药 ——
   {
     id: 'med-amlodipine',
-    name: '氨氯地平',
+    name: '苯磺酸氨氯地平片',
     emoji: '💊',
     category: 'antihypertensive',
     usage: {
@@ -300,7 +349,7 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
   },
   {
     id: 'med-valsartan',
-    name: '缬沙坦',
+    name: '缬沙坦胶囊',
     emoji: '💊',
     category: 'antihypertensive',
     usage: {
@@ -345,10 +394,282 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
       '老年患者可使用，无需根据年龄调整剂量，但更易出现低血压、高钾血症和肾功能恶化。建议小剂量起始（如40mg/日），缓慢调整；密切监测血压（立位）、血钾、肌酐/eGFR；合并双侧肾动脉狭窄、严重心衰、血容量不足者慎用。',
   },
 
+  // —— 新增降压药 ——
+  {
+    id: 'med-luoshatanjia',
+    name: '氯沙坦钾片',
+    emoji: '💊',
+    category: 'antihypertensive',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: 'ARB类降压药，阻断血管紧张素II受体，降低血压，保护肾脏',
+    description:
+      '氯沙坦钾为血管紧张素II受体拮抗剂（ARB），选择性阻断AT1受体，扩张血管、降低血压。可减少尿蛋白，对肾脏具有保护作用，是透析患者常用的降压药物之一。其代谢产物EXP3174活性更强，降压作用可持续24小时。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+  {
+    id: 'med-ebeshatan',
+    name: '厄贝沙坦片',
+    emoji: '💊',
+    category: 'antihypertensive',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: 'ARB类降压药，长效降压，保护靶器官，减少蛋白尿',
+    description:
+      '厄贝沙坦为长效ARB类降压药，口服吸收良好，半衰期长（11-15小时），每日一次即可平稳控制24小时血压。适用于透析合并高血压患者，可减少蛋白尿、延缓肾功能恶化，对心血管也有保护作用。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+  {
+    id: 'med-meituoluoer',
+    name: '酒石酸美托洛尔片',
+    emoji: '💊',
+    category: 'antihypertensive',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: 'β受体阻滞剂，减慢心率，降低血压，减少心血管事件',
+    description:
+      '美托洛尔为选择性β1受体阻滞剂，通过减慢心率、降低心肌收缩力和心输出量来降低血压。适用于透析合并高血压、冠心病、心力衰竭的患者，可降低心血管事件风险。常与CCB或ARB联合使用。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+  {
+    id: 'med-bisuoluoer',
+    name: '富马酸比索洛尔片',
+    emoji: '💊',
+    category: 'antihypertensive',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: '高选择性β1受体阻滞剂，降压平稳，对气道影响小',
+    description:
+      '比索洛尔为高选择性β1受体阻滞剂，对心脏β1受体亲和力高、选择性为美托洛尔的5-10倍，降压平稳，对气道β2受体影响较小。适用于透析合并高血压、心绞痛、慢性心力衰竭的患者，是心衰治疗的基础药物之一。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+  {
+    id: 'med-katuopuli',
+    name: '卡托普利片',
+    emoji: '💊',
+    category: 'antihypertensive',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: 'ACEI类降压药，抑制血管紧张素转化酶，降压，保护心肾',
+    description:
+      '卡托普利为血管紧张素转化酶抑制剂（ACEI），抑制AngII生成，扩张血管降压。可减少蛋白尿、保护残余肾功能，但需注意监测血钾和干咳副作用。是最早上市的ACEI类药物，起效快但半衰期较短。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+  {
+    id: 'med-yinapuli',
+    name: '依那普利片',
+    emoji: '💊',
+    category: 'antihypertensive',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: 'ACEI类降压药，长效降压，保护心肾功能，减少蛋白尿',
+    description:
+      '依那普利为长效ACEI类降压药，口服后经肝脏转化为活性代谢物依那普利拉发挥降压作用，半衰期约11小时。降压平稳持久，可减少蛋白尿，对心肾具有保护作用，是透析患者常用的降压药之一。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+  {
+    id: 'med-peiduopuli',
+    name: '培哚普利叔丁胺片',
+    emoji: '💊',
+    category: 'antihypertensive',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: 'ACEI类降压药，降压平稳，保护血管内皮，改善动脉弹性',
+    description:
+      '培哚普利为长效ACEI类降压药，降压作用平稳持久，对血管内皮有保护作用，可改善动脉弹性。适用于透析合并高血压、冠心病患者，可减少心血管事件。半衰期长，每日一次服药即可维持24小时降压效果。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+
+  // —— 新增利尿剂 ——
+  {
+    id: 'med-fusaimi',
+    name: '呋塞米片',
+    emoji: '💊',
+    category: 'diuretic',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: '强效袢利尿剂，利尿消肿，减轻水钠潴留',
+    description:
+      '呋塞米为强效袢利尿剂，抑制髓袢升支粗段Na-K-2Cl共转运体，产生强大利尿作用，起效快、作用强。适用于透析患者残余肾功能尚可时的水肿、心力衰竭、高钾血症的辅助治疗，可帮助控制透析间期体重增长。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+  {
+    id: 'med-tuolasaimi',
+    name: '托拉塞米片',
+    emoji: '💊',
+    category: 'diuretic',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: '长效袢利尿剂，利尿作用强且持久，生物利用度高',
+    description:
+      '托拉塞米为长效袢利尿剂，利尿作用强且持久，生物利用度高达80%-90%。相比呋塞米，作用时间更长、电解质紊乱风险稍低，适用于透析患者残余肾功能尚可时的水肿管理。口服吸收不受食物影响。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+  {
+    id: 'med-qinglvsaiqin',
+    name: '氢氯噻嗪片',
+    emoji: '💊',
+    category: 'diuretic',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: '中效噻嗪类利尿剂，利尿降压，辅助控制血压',
+    description:
+      '氢氯噻嗪为中效噻嗪类利尿剂，抑制远曲小管近端Na-Cl共转运体，利尿降压。适用于透析患者残余肾功能尚可时的轻度水肿和高血压辅助治疗，常与其他降压药联合使用。肾功能严重减退时利尿效果减弱。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+  {
+    id: 'med-luoneizhi',
+    name: '螺内酯片',
+    emoji: '💊',
+    category: 'diuretic',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: '保钾利尿剂，拮抗醛固酮，利尿保钾，改善心衰预后',
+    description:
+      '螺内酯为保钾利尿剂，竞争性拮抗醛固酮受体，促进钠水排出而保留钾离子。适用于透析患者合并心力衰竭、高醛固酮血症的辅助治疗，但需警惕高钾血症风险。无尿或少尿透析患者应慎用或禁用。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+
+  // —— 新增磷结合剂 ——
+  {
+    id: 'med-cusuangai',
+    name: '醋酸钙片',
+    emoji: '💊',
+    category: 'phosphate-binder',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: '含钙磷结合剂，降血磷，补充钙质',
+    description:
+      '醋酸钙为含钙磷结合剂，在肠道与食物中磷酸根结合，减少磷的吸收。溶解性好，磷结合力强于碳酸钙，是透析患者常用的磷结合剂之一。同时可补充钙质，但需监测血钙避免高钙血症。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+
+  // —— 新增铁剂 ——
+  {
+    id: 'med-duotangtie',
+    name: '多糖铁复合物胶囊',
+    emoji: '💊',
+    category: 'iron',
+    usage: { unit: '粒', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: '口服铁剂，补充铁元素，胃肠道刺激性小，吸收稳定',
+    description:
+      '多糖铁复合物为口服铁剂，铁元素与多糖结合形成复合物，在肠道缓慢释放铁离子，对胃肠道刺激性小、吸收稳定。用于透析患者缺铁性贫血的补充治疗，可与EPO协同维持铁储备和血红蛋白水平。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+  {
+    id: 'med-huposuanyatie',
+    name: '琥珀酸亚铁片',
+    emoji: '💊',
+    category: 'iron',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: '口服铁剂，含铁量高，吸收好，纠正缺铁性贫血',
+    description:
+      '琥珀酸亚铁为口服铁剂，含铁量较高（约35%元素铁），在胃肠道吸收良好，生物利用度优于传统硫酸亚铁。用于透析患者缺铁性贫血的补充，可与EPO协同维持铁储备和血红蛋白水平。建议饭后服用以减少胃肠刺激。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+
+  // —— 新增维生素 ——
+  {
+    id: 'med-yesuan',
+    name: '叶酸片',
+    emoji: '💊',
+    category: 'vitamin',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: '水溶性维生素，参与造血，预防巨幼细胞贫血，降低同型半胱氨酸',
+    description:
+      '叶酸为水溶性B族维生素，参与DNA合成和红细胞生成，是造血必需的营养素。透析患者因透析丢失和摄入不足常缺乏叶酸，补充叶酸可预防巨幼细胞性贫血，降低同型半胱氨酸水平，对心血管有保护作用。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+  {
+    id: 'med-jiaguan',
+    name: '甲钴胺片',
+    emoji: '💊',
+    category: 'vitamin',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: '活性维生素B12，营养神经，改善周围神经病变',
+    description:
+      '甲钴胺为活性维生素B12（甲钴酰胺），参与神经髓鞘的合成与修复，是神经系统正常功能所必需的辅酶。透析患者常合并周围神经病变，补充甲钴胺可改善麻木、疼痛等神经症状，促进神经修复。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+
+  // —— 新增其他 ——
+  {
+    id: 'med-asipilin',
+    name: '阿司匹林肠溶片',
+    emoji: '💊',
+    category: 'other',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: '抗血小板聚集，预防心脑血管事件',
+    description:
+      '阿司匹林为抗血小板药物，通过抑制环氧化酶（COX-1）减少血栓素A2生成，不可逆抑制血小板聚集。肠溶片可减少胃黏膜刺激，用于透析患者心脑血管事件（心肌梗死、脑卒中）的预防。需注意出血风险。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+  {
+    id: 'med-lvbigelai',
+    name: '硫酸氢氯吡格雷片',
+    emoji: '💊',
+    category: 'other',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: '抗血小板聚集，预防血栓形成，用于心脑血管疾病',
+    description:
+      '氯吡格雷为P2Y12受体拮抗剂，不可逆抑制ADP介导的血小板聚集，抗血小板作用强。常与阿司匹林联合用于急性冠脉综合征或支架术后透析患者的抗栓治疗，可显著降低血栓事件风险。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+  {
+    id: 'med-biepiaochun',
+    name: '别嘌醇片',
+    emoji: '💊',
+    category: 'other',
+    usage: { unit: '片', defaultDose: 1, frequency: '每日1次', timing: '饭后' },
+    purpose: '抑制尿酸生成，降低血尿酸，治疗高尿酸血症和痛风',
+    description:
+      '别嘌醇为黄嘌呤氧化酶抑制剂，抑制次黄嘌呤和黄嘌呤转化为尿酸，从而降低血尿酸水平。适用于透析合并高尿酸血症或痛风患者，可减少痛风发作和尿酸盐沉积。使用初期可能诱发痛风发作，需注意。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+  {
+    id: 'med-zuokaning',
+    name: '左卡尼汀注射液',
+    emoji: '💊',
+    category: 'other',
+    usage: { unit: '支', defaultDose: 1, frequency: '每周2-3次', timing: '透析时静脉注射' },
+    purpose: '补充左卡尼汀，改善心肌和骨骼肌代谢，缓解透析相关乏力',
+    description:
+      '左卡尼汀（左旋肉碱）参与脂肪酸氧化供能，维持心肌和骨骼肌正常代谢。透析患者因透析大量丢失和体内合成减少，常缺乏左卡尼汀。补充后可改善乏力、心肌功能障碍、肌肉痉挛和贫血，透析时静脉给药效果更佳。',
+    image: '',
+    isCustom: false,
+    level: 'medium',
+  },
+
   // —— 促红素 ——
   {
     id: 'med-epoetin',
-    name: '重组人促红素',
+    name: '重组人红细胞生成素注射液',
     emoji: '💉',
     category: 'esa',
     usage: {
@@ -397,7 +718,7 @@ export const BUILTIN_MEDICATIONS: Medication[] = [
   // —— 铁剂 ——
   {
     id: 'med-iron-sucrose',
-    name: '蔗糖铁',
+    name: '蔗糖铁注射液',
     emoji: '💉',
     category: 'iron',
     usage: {
@@ -465,6 +786,12 @@ export const MEDICATION_CATEGORIES: Record<
     color: 'text-purple-600',
     bg: 'bg-purple-50',
     ring: 'ring-purple-200',
+  },
+  diuretic: {
+    name: '利尿剂',
+    color: 'text-cyan-600',
+    bg: 'bg-cyan-50',
+    ring: 'ring-cyan-200',
   },
   esa: {
     name: '促红细胞生成剂',

@@ -7,11 +7,40 @@
 1. **代码检查**：运行 `npm run build` 检查 TypeScript 编译是否通过，修复所有编译错误
 2. **构建 APK**：运行 `bash /workspace/scripts/build-apk.sh`，该脚本会自动构建 Debug 和 Release 两个版本的 APK
 3. **推送到 GitHub**：构建成功后，执行 git commit + push 到远程仓库
+4. **流程校验**：运行 `bash /workspace/scripts/verify-sync.sh` 强制校验三步全部完成（本地保存 / commit / push）
 
 ```bash
 # 标准流程（每次修改后执行）
-cd /workspace && npm run build && bash scripts/build-apk.sh && git add -A && git commit -m "描述修改内容" && git push
+cd /workspace && npm run build && bash scripts/build-apk.sh && git add -A && git commit -m "描述修改内容" && git push && bash scripts/verify-sync.sh
 ```
+
+## 强制规则：流程同步校验（防止"代码改了不生效"）
+
+**背景**：此前多次需求修改"未生效"，根因均为以下三步之一被遗漏：
+- 代码未保存到磁盘（编辑器缓冲未落盘）
+- 代码已保存但未 `git commit`（改动停留在工作区，重启即丢）
+- 代码已 commit 但未 `git push` 到 GitHub 远程（本地分支领先远程）
+
+**`scripts/verify-sync.sh` 强制校验上述三步，任一失败即退出非 0：**
+
+```bash
+# 纯校验（收尾前必跑，CI gate）
+bash scripts/verify-sync.sh
+
+# 校验失败时自动 add + commit + push
+bash scripts/verify-sync.sh --auto-fix
+
+# 额外校验指定文件已纳入最新 commit（防止"改了文件却没提交"）
+bash scripts/verify-sync.sh --files src/pages/Fruits.tsx src/pages/Medications.tsx src/lib/baikeService.ts
+```
+
+校验内容：
+1. **步骤 1/3**：工作区必须干净（`git status --porcelain` 为空）→ 代码已保存并 commit
+2. **步骤 2/3**：HEAD commit 必须有效；可选校验指定文件已存在于 HEAD
+3. **步骤 3/3**：本地 HEAD 必须等于远程 `@{u}` HEAD → 已成功 push 到 GitHub
+
+**铁律**：`npm run build` 成功 ≠ 代码已生效；必须 `verify-sync.sh` 通过才算本次需求交付完成。
+任何"代码改了不生效"的问题，先跑 `verify-sync.sh` 定位是哪一步遗漏。
 
 ---
 
@@ -46,6 +75,7 @@ cd /workspace && npm run build && bash scripts/build-apk.sh && git add -A && git
 - `android/build.gradle` - 顶层构建脚本（含阿里云 Maven 镜像）
 - `android/variables.gradle` - SDK 版本配置
 - `scripts/build-apk.sh` - 自动化构建脚本
+- `scripts/verify-sync.sh` - 流程同步校验脚本（本地保存/commit/push 三步校验）
 - `CLAUDE.md` - 本规则文件
 
 以下文件被 gitignore 忽略（机器相关），由 `build-apk.sh` 自动创建：

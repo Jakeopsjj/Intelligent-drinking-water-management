@@ -26,6 +26,8 @@ body {
   /* 背景透明：露出底层 LiquidGlassBackground（GLSL 纹理 + 气泡粒子） */
   background-color: transparent;
   color: #234a48;
+  /* 禁止水平滚动：防止子元素溢出导致页面可左右滑动（药物/水果板块曾出现"多一块"问题） */
+  overflow-x: hidden;
 }
 
 /* 自定义滚动条 */

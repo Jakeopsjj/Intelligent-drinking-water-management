@@ -1,13 +1,15 @@
 /**
  * 水果板块（重构版）
  *
+ * 数据源：百度百科（检索 + 详情图文全量解析）
  * 流程：
  * 1. 顶部搜索框，输入关键词点搜索
  * 2. 先查本地库（customFruits + fruits）按 name 匹配
  * 3. 本地有 → 直接打开该水果详情页
- * 4. 本地没有 → 调 searchWikiFruits 拿维基候选 → 弹出底部抽屉选择
- * 5. 选中 → 调 apihz.cn 营养API + fetchEntityInfo 维基图文 → 添加 → 打开详情
- * 6. 详情页：维基配图 + 介绍（联网）+ 每100g元素含量（钾磷钠水）+ 食用建议 + 记录摄入
+ * 4. 本地没有 → 调 searchBaike 拿百度百科候选 → 弹出底部抽屉选择
+ * 5. 选中 → 取营养数据（本地内置 → USDA → OFF 多级兜底）→ 添加 → 打开详情
+ * 6. 详情页：百度百科配图 + 摘要 + 信息框 + 结构化章节（形态特征/分布范围/主要价值等）
+ *    + 每100g元素含量（钾磷钠水）+ 食用建议 + 记录摄入
  */
 
 import { useState, useCallback } from 'react';
@@ -18,11 +20,12 @@ import { useRecordsStore } from '@/store/useRecordsStore';
 import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg, getLevelFromPotassium } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 import { fetchFoodNutrition, type FoodNutrition } from '@/lib/foodNutritionService';
-import { searchWikiFruits, fetchEntityInfo, type WikiSearchItem } from '@/lib/wikiService';
+import { searchBaike, lookupBuiltinBaike, type BaikeSearchItem } from '@/lib/baikeService';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
-import { useEntityInfo } from '@/hooks/useEntityInfo';
+import { useBaikeInfo } from '@/hooks/useBaikeInfo';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useEntityImage } from '@/hooks/useEntityImage';
 import SmartImage from '@/components/SmartImage';
 import type { Fruit } from '@/types';
 
@@ -41,8 +44,8 @@ export default function Fruits() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Fruit | null>(null);
   const [weight, setWeight] = useState('100');
-  // 维基候选选择浮层（本地未命中时弹出）
-  const [candidates, setCandidates] = useState<WikiSearchItem[]>([]);
+  // 百度百科候选选择浮层（本地未命中时弹出）
+  const [candidates, setCandidates] = useState<BaikeSearchItem[]>([]);
 
   // 候选浮层与详情浮层互斥，分别注册返回处理；useLockBodyScroll 用引用计数兼容叠加
   useOverlayBackHandler(!!selected, () => setSelected(null));
@@ -51,68 +54,33 @@ export default function Fruits() {
 
   const closeCandidateDrawer = useCallback(() => setCandidates([]), []);
 
-  const handleSearch = useCallback(async () => {
-    const keyword = query.trim();
-    if (!keyword || searching) return;
-    setSearching(true);
-    setError(null);
-
-    // 1. 先查本地库（customFruits + fruits），按 name 精确匹配
-    const state = useFruitsStore.getState();
-    const local = [...state.customFruits, ...state.fruits].find(
-      (f) => f.name === keyword
-    );
-    if (local) {
-      // 本地有 → 直接打开详情，不再调 apihz 重复添加
-      setSelected(local);
-      setQuery('');
-      setSearching(false);
-      return;
-    }
-
-    // 2. 本地没有 → 联网搜索维基候选
-    try {
-      const results = await searchWikiFruits(keyword);
-      if (results.length === 0) {
-        setError('未找到相关水果，试试其他关键词');
-        return;
-      }
-      setCandidates(results);
-    } catch {
-      setError('搜索失败，请重试');
-    } finally {
-      setSearching(false);
-    }
-  }, [query, searching]);
-
-  const handleSelectCandidate = useCallback(
-    async (item: WikiSearchItem) => {
-      if (searching) return;
-      const title = item.title;
-      // 关闭候选浮层，进入「添加中」状态（搜索按钮显示 Loader2）
-      setCandidates([]);
+  // 公共流程：获取营养数据 → 添加水果 → 打开详情页
+  // 营养数据失败不阻塞：用 0 占位继续添加，详情页对全 0 营养会显示"暂无精确营养数据"提示
+  const addFruitAndOpen = useCallback(
+    async (title: string) => {
       setSearching(true);
       setError(null);
       try {
-        // 并发拿营养数据 + 维基图文
-        const [nutrition, entity] = await Promise.all([
-          fetchFoodNutrition(title),
-          fetchEntityInfo(title, 'fruit'),
-        ]);
-        if (!nutrition) {
-          setError('未找到该食物的营养数据');
-          return;
+        // 尝试取营养数据（钾磷钠水）；失败时用 0 占位，不阻塞添加流程
+        let nutrition: FoodNutrition | null = null;
+        try {
+          nutrition = await fetchFoodNutrition(title);
+        } catch {
+          nutrition = null;
         }
+        const potassium = nutrition?.potassium ?? 0;
+        const phosphorus = nutrition?.phosphorus ?? 0;
+        const sodium = nutrition?.sodium ?? 0;
+        const water = nutrition?.water ?? 0;
+
         addFruit({
           name: title,
           emoji: '🍇',
-          potassiumPer100g: nutrition.potassium,
-          phosphorusPer100g: nutrition.phosphorus,
-          sodiumPer100g: nutrition.sodium,
-          waterPer100g: nutrition.water,
+          potassiumPer100g: potassium,
+          phosphorusPer100g: phosphorus,
+          sodiumPer100g: sodium,
+          waterPer100g: water,
           suggestion: '请根据医嘱适量食用',
-          // 维基介绍作为 fruit.description（详情页由「维基介绍」块展示）
-          description: entity.description,
         });
 
         // 找到刚添加的水果并打开详情
@@ -128,7 +96,60 @@ export default function Fruits() {
         setSearching(false);
       }
     },
-    [searching, addFruit]
+    [addFruit]
+  );
+
+  const handleSearch = useCallback(async () => {
+    const keyword = query.trim();
+    if (!keyword || searching) return;
+    setSearching(true);
+    setError(null);
+
+    // 1. 先查本地水果列表（customFruits + fruits），按 name 精确匹配
+    const state = useFruitsStore.getState();
+    const local = [...state.customFruits, ...state.fruits].find(
+      (f) => f.name === keyword
+    );
+    if (local) {
+      // 本地有 → 直接打开详情
+      setSelected(local);
+      setQuery('');
+      setSearching(false);
+      return;
+    }
+
+    // 2. 查本地内置百科数据（baikeFruits.ts，30 种常见水果）
+    //    命中则直接添加并打开详情，跳过候选浮层，营养数据由本地内置库兜底
+    const builtin = lookupBuiltinBaike(keyword);
+    if (builtin && builtin.title) {
+      setSearching(false);
+      await addFruitAndOpen(builtin.title);
+      return;
+    }
+
+    // 3. 本地都没有 → 联网检索百度百科候选
+    try {
+      const results = await searchBaike(keyword);
+      if (results.length === 0) {
+        setError('未找到相关水果，试试其他关键词');
+        return;
+      }
+      setCandidates(results);
+    } catch {
+      setError('搜索失败，请重试');
+    } finally {
+      setSearching(false);
+    }
+  }, [query, searching, addFruitAndOpen]);
+
+  const handleSelectCandidate = useCallback(
+    async (item: BaikeSearchItem) => {
+      if (searching) return;
+      // 关闭候选浮层，进入添加流程（营养数据失败不阻塞）
+      setCandidates([]);
+      await addFruitAndOpen(item.title);
+    },
+    [searching, addFruitAndOpen]
   );
 
   // 按等级分组
@@ -250,7 +271,7 @@ export default function Fruits() {
                 </button>
               </div>
               <p className="px-6 pb-2 text-xs text-teal-600/50">
-                未在本地找到「{query.trim()}」，从维基百科找到以下候选：
+                未在本地找到「{query.trim()}」，从百度百科找到以下候选：
               </p>
               <div className="divide-y divide-cream-100">
                 {candidates.map((item) => (
@@ -298,11 +319,16 @@ function FruitCard({
   onClick: () => void;
   onDelete?: () => void;
 }) {
+  const image = useEntityImage(fruit.name, 'fruit');
   return (
     <div className="flex items-center justify-between rounded-2xl border border-cream-200 bg-white p-4 transition hover:border-teal-300 hover:shadow-sm">
       <button onClick={onClick} className="flex flex-1 items-center gap-3 text-left">
-        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-cream-50 text-2xl">
-          {fruit.emoji}
+        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-cream-50 text-2xl overflow-hidden">
+          {image ? (
+            <SmartImage src={image} alt={fruit.name} className="h-full w-full" />
+          ) : (
+            fruit.emoji
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
@@ -356,35 +382,37 @@ function FruitDetail({
   onClose: () => void;
 }) {
   const w = Number(weight) || 0;
-  const {
-    image,
-    images,
-    description,
-    lead,
-    sections,
-    infobox,
-    loading,
-  } = useEntityInfo(
-    fruit.name,
-    'fruit',
-    fruit.image,
-    fruit.description
-  );
+  // 详情页图文全量来自百度百科（摘要 / 信息框 / 结构化章节 / 图集）
+  const { info, loading } = useBaikeInfo(fruit.name);
   const isOnline = useOnlineStatus();
 
   // 信息框键值对（过滤过短/无效项）
-  const infoboxEntries = infobox
-    ? Object.entries(infobox).filter(([, v]) => v && v.length > 1).slice(0, 10)
+  const infoboxEntries = info?.infobox
+    ? Object.entries(info.infobox).filter(([, v]) => v && v.length > 1).slice(0, 10)
     : [];
 
   // 图集（主图 + 多图，去重）
   const allImages = (() => {
     const all = [
-      ...(image ? [image] : []),
-      ...(images || []),
+      ...(info?.image ? [info.image] : []),
+      ...(info?.images || []),
     ].filter((v, i, a) => v && a.indexOf(v) === i);
     return all.slice(0, 6);
   })();
+
+  // 章节段落（百度百科结构化正文）
+  const sections = info?.sections ?? [];
+  // 兜底正文：无结构化章节时，按 \n\n 拆分 content
+  const contentParas = !sections.length && info?.content
+    ? info.content.split('\n\n').filter((p) => p.trim())
+    : [];
+
+  // 营养数据是否可用（钾磷钠水全为 0 视为暂无精确数据，如联网失败时的占位）
+  const hasNutrition =
+    fruit.potassiumPer100g > 0 ||
+    fruit.phosphorusPer100g > 0 ||
+    fruit.sodiumPer100g > 0 ||
+    fruit.waterPer100g > 0;
 
   return (
     <>
@@ -411,7 +439,7 @@ function FruitDetail({
           <div className="flex items-center gap-3">
             <span className="text-3xl">{fruit.emoji}</span>
             <div>
-              <h3 className="text-lg font-semibold text-teal-700">{fruit.name}</h3>
+              <h3 className="text-lg font-semibold text-teal-700">{info?.title || fruit.name}</h3>
               <span
                 className={cn(
                   'inline-block rounded-full px-2 py-0.5 text-[10px] font-medium',
@@ -457,13 +485,13 @@ function FruitDetail({
             )
           ) : null}
 
-          {/* 维基百科引言（lead，完整首段） */}
-          {lead && (
+          {/* 百度百科摘要 */}
+          {info?.summary && (
             <div className="rounded-2xl border border-cream-200 bg-cream-50 p-4">
               <h4 className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-teal-700">
                 <Info className="h-4 w-4" /> 词条简介
               </h4>
-              <p className="text-sm leading-relaxed break-words text-teal-600/80">{lead}</p>
+              <p className="text-sm leading-relaxed break-words text-teal-600/80">{info.summary}</p>
             </div>
           )}
 
@@ -482,8 +510,8 @@ function FruitDetail({
             </div>
           )}
 
-          {/* 维基百科完整章节段落（形态特性/分布范围/主要价值等） */}
-          {sections && sections.length > 0 && (
+          {/* 百度百科完整章节段落（形态特征/分布范围/主要价值等） */}
+          {sections.length > 0 && (
             <div className="rounded-2xl border border-cream-200 p-4">
               <h4 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-teal-700">
                 <ChevronRight className="h-4 w-4" /> 详细内容
@@ -503,55 +531,84 @@ function FruitDetail({
             </div>
           )}
 
-          {/* 兼容兜底：无 sections 时使用 description（维基摘要） */}
-          {!lead && !sections?.length && description && (
+          {/* 兜底：无结构化章节时，按段落展示 content */}
+          {sections.length === 0 && contentParas.length > 0 && (
             <div className="rounded-2xl border border-cream-200 p-4">
               <h4 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-teal-700">
-                <Info className="h-4 w-4" /> 维基介绍
+                <Info className="h-4 w-4" /> 百度百科正文
               </h4>
-              <p className="text-sm leading-relaxed break-words text-teal-600/80">{description}</p>
+              <div className="space-y-2">
+                {contentParas.map((p, i) => (
+                  <p key={i} className="text-sm leading-relaxed break-words text-teal-600/80">{p}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 加载中 / 无结果提示 */}
+          {loading && !info && (
+            isOnline ? (
+              <div className="flex items-center justify-center gap-2 rounded-2xl bg-cream-50 py-8 text-sm text-teal-600/60">
+                <Loader2 className="h-4 w-4 animate-spin" /> 正在从百度百科获取内容…
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 rounded-2xl bg-amber-50 py-8 text-sm text-amber-600">
+                <WifiOff className="h-5 w-5" />
+                <p>当前无网络，无法获取百科内容</p>
+              </div>
+            )
+          )}
+          {!loading && !info && (
+            <div className="rounded-2xl bg-cream-50 px-4 py-6 text-center text-sm text-teal-600/50">
+              暂无「{fruit.name}」的百度百科内容
             </div>
           )}
 
           {/* 核心：每100g元素含量（保留模块） */}
           <div className="rounded-2xl bg-cream-50 p-4">
             <h4 className="mb-3 text-sm font-medium text-teal-700">每 100g 元素含量</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
-                <Atom className="h-5 w-5 text-orange-500" />
-                <div>
-                  <div className="text-xs text-teal-600/60">钾</div>
-                  <div className="text-lg font-bold text-teal-700">{fruit.potassiumPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
+            {hasNutrition ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+                  <Atom className="h-5 w-5 text-orange-500" />
+                  <div>
+                    <div className="text-xs text-teal-600/60">钾</div>
+                    <div className="text-lg font-bold text-teal-700">{fruit.potassiumPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+                  <FlaskConical className="h-5 w-5 text-blue-500" />
+                  <div>
+                    <div className="text-xs text-teal-600/60">磷</div>
+                    <div className="text-lg font-bold text-teal-700">{fruit.phosphorusPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+                  <Beaker className="h-5 w-5 text-purple-500" />
+                  <div>
+                    <div className="text-xs text-teal-600/60">钠</div>
+                    <div className="text-lg font-bold text-teal-700">{fruit.sodiumPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+                  <Droplet className="h-5 w-5 text-cyan-500" />
+                  <div>
+                    <div className="text-xs text-teal-600/60">水分</div>
+                    <div className="text-lg font-bold text-teal-700">{fruit.waterPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">ml</span></div>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
-                <FlaskConical className="h-5 w-5 text-blue-500" />
-                <div>
-                  <div className="text-xs text-teal-600/60">磷</div>
-                  <div className="text-lg font-bold text-teal-700">{fruit.phosphorusPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
-                </div>
+            ) : (
+              <div className="rounded-xl bg-white p-3 text-center text-xs text-teal-600/50">
+                暂无精确营养数据，请参考百科内容中关于钾含量高低的描述，或咨询医生
               </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
-                <Beaker className="h-5 w-5 text-purple-500" />
-                <div>
-                  <div className="text-xs text-teal-600/60">钠</div>
-                  <div className="text-lg font-bold text-teal-700">{fruit.sodiumPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
-                <Droplet className="h-5 w-5 text-cyan-500" />
-                <div>
-                  <div className="text-xs text-teal-600/60">水分</div>
-                  <div className="text-lg font-bold text-teal-700">{fruit.waterPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">ml</span></div>
-                </div>
-              </div>
-            </div>
-            <p className="mt-2 text-[10px] text-teal-600/30">数据来源：apihz.cn 食物营养API</p>
+            )}
+            <p className="mt-2 text-[10px] text-teal-600/30">数据来源：《中国食物成分表》第6版 / USDA / Open Food Facts</p>
           </div>
 
           {/* 数据源标注 */}
-          {(lead || sections?.length) && (
-            <p className="px-1 text-[10px] text-teal-600/30">图文来源：维基百科</p>
+          {(info?.summary || sections.length > 0 || contentParas.length > 0) && (
+            <p className="px-1 text-[10px] text-teal-600/30">图文来源：百度百科</p>
           )}
 
           {/* 食用建议 */}
