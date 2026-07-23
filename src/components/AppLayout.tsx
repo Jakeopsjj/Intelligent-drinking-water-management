@@ -22,7 +22,7 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
 
   return (
     <div
-      className="flex min-h-screen flex-col [scrollbar-gutter:stable]"
+      className="flex min-h-screen flex-col overflow-x-hidden"
       style={{
         // 背景透明：露出底层 LiquidGlassBackground 的 GLSL 纹理 + 气泡
         // 视觉层已在 main.tsx 顶层注入，全局覆盖所有页面（含引导/权限/加载/二级页）
