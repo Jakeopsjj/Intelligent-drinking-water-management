@@ -108,55 +108,71 @@ fi
 # ---------- 步骤 3：GitHub 推送校验 ----------
 echo ""
 info "【步骤 3/3】校验已推送到 GitHub 远程 …"
-UPSTREAM="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || echo '')"
-if [[ -z "$UPSTREAM" ]]; then
-  err "当前分支未设置上游跟踪分支（从未 push 过）"
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+LOCAL_HEAD="$(git rev-parse HEAD)"
+
+# 优先用 @{u} 解析本地已记录的远程跟踪引用（普通仓库 fast path）
+REMOTE_HEAD="$(git rev-parse '@{u}' 2>/dev/null || echo '')"
+USED_LSREMOTE=0
+
+# 兜底：@{u} 无法解析时（如 remote.origin.fetch refspec 仅跟踪 main、
+# 或当前为未建立 remote-tracking ref 的 feature 分支），直接用
+# git ls-remote 查询远程真实 HEAD，不依赖本地 refspec 配置。
+if [[ -z "$REMOTE_HEAD" ]]; then
+  info "本地未建立 remote-tracking ref，直接查询远程 ${BRANCH} 分支 HEAD …"
+  REMOTE_HEAD="$(git ls-remote origin "refs/heads/${BRANCH}" 2>/dev/null | awk '{print $1}')"
+  USED_LSREMOTE=1
+fi
+
+if [[ -z "$REMOTE_HEAD" ]]; then
+  # 远程完全没有该分支 → 需要 push
+  err "远程未找到分支 origin/${BRANCH}（从未 push 过）"
   if [[ "$AUTO_FIX" -eq 1 ]]; then
-    warn "--auto-fix 模式：尝试 git push -u origin <当前分支> …"
-    BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+    warn "--auto-fix 模式：尝试 git push -u origin ${BRANCH} …"
     if git push -u origin "$BRANCH" >/dev/null 2>&1; then
-      ok "已设置上游并推送"
-      UPSTREAM="origin/$BRANCH"
+      ok "已成功推送分支 ${BRANCH} 到 GitHub"
     else
-      err "首次 push 失败，请检查网络或远程权限"
+      err "push 失败，请检查网络或远程权限"
       FAIL=1
     fi
   else
     FAIL=1
   fi
+elif [[ "$LOCAL_HEAD" == "$REMOTE_HEAD" ]]; then
+  ok "本地 HEAD 与远程一致，已成功推送"
+  [[ "$USED_LSREMOTE" -eq 1 ]] && ok "（通过 git ls-remote 实时校验，不依赖本地 refspec）"
 else
-  ok "上游跟踪分支：$UPSTREAM"
-  # 先 fetch 拿到最新远程引用（失败不致命，降级用本地已知引用）
-  if ! git fetch origin >/dev/null 2>&1; then
-    warn "git fetch 失败，使用本地已知远程引用比对（可能非最新）"
-  fi
-  LOCAL_HEAD="$(git rev-parse HEAD)"
-  REMOTE_HEAD="$(git rev-parse '@{u}' 2>/dev/null || echo '')"
-  if [[ -z "$REMOTE_HEAD" ]]; then
-    err "无法解析远程 HEAD"
-    FAIL=1
-  elif [[ "$LOCAL_HEAD" == "$REMOTE_HEAD" ]]; then
-    ok "本地 HEAD 与远程一致，已成功推送"
-  else
-    # 本地领先远程 → 未 push；本地落后远程 → 需要 pull
+  # 本地与远程不一致：判断领先/落后
+  if [[ "$USED_LSREMOTE" -eq 0 ]]; then
     AHEAD="$(git rev-list --count '@{u}..HEAD' 2>/dev/null || echo 0)"
     BEHIND="$(git rev-list --count 'HEAD..@{u}' 2>/dev/null || echo 0)"
-    if [[ "$AHEAD" -gt 0 ]]; then
-      err "本地领先远程 $AHEAD 个 commit，尚未 push 到 GitHub"
-      if [[ "$AUTO_FIX" -eq 1 ]]; then
-        warn "--auto-fix 模式：尝试 git push …"
-        if git push >/dev/null 2>&1; then
-          ok "已成功 push $AHEAD 个 commit"
-        else
-          err "push 失败，请检查网络或远程权限"
-          FAIL=1
-        fi
+  else
+    # ls-remote 模式下无法用 rev-list 算 ahead/behind，用 SHA 比对推断
+    if git merge-base --is-ancestor "$REMOTE_HEAD" "$LOCAL_HEAD" 2>/dev/null; then
+      AHEAD="$(git rev-list --count "${REMOTE_HEAD}..HEAD" 2>/dev/null || echo '?')"; BEHIND=0
+    else
+      AHEAD=0; BEHIND=1
+    fi
+  fi
+  if [[ "$AHEAD" != "0" && "$AHEAD" != "?" ]]; then
+    err "本地领先远程 ${AHEAD} 个 commit，尚未 push 到 GitHub"
+    if [[ "$AUTO_FIX" -eq 1 ]]; then
+      warn "--auto-fix 模式：尝试 git push …"
+      if git push -u origin "$BRANCH" >/dev/null 2>&1; then
+        ok "已成功 push ${AHEAD} 个 commit"
       else
+        err "push 失败，请检查网络或远程权限"
         FAIL=1
       fi
-    elif [[ "$BEHIND" -gt 0 ]]; then
-      warn "本地落后远程 $BEHIND 个 commit（远程有新提交，建议 git pull）"
+    else
+      FAIL=1
     fi
+  elif [[ "$BEHIND" -gt 0 ]]; then
+    warn "本地落后远程 ${BEHIND} 个 commit（远程有新提交，建议 git pull）"
+  else
+    err "本地与远程 HEAD 不一致且无法判定领先/落后关系，请手动检查"
+    info "本地: ${LOCAL_HEAD:0:12}  远程: ${REMOTE_HEAD:0:12}"
+    FAIL=1
   fi
 fi
 
