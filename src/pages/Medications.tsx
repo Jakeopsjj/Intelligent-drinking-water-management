@@ -21,7 +21,7 @@ import { useRecordsStore } from '@/store/useRecordsStore';
 import { useMedicationPlanStore } from '@/store/useMedicationPlanStore';
 import { MEDICATION_CATEGORIES } from '@/data/medications';
 import { cn } from '@/lib/utils';
-import { searchBaike, type BaikeSearchItem } from '@/lib/baikeService';
+import { searchBaike, lookupBuiltinBaike, type BaikeSearchItem } from '@/lib/baikeService';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useBaikeInfo } from '@/hooks/useBaikeInfo';
@@ -64,45 +64,9 @@ export default function Medications() {
     return 'other';
   }, []);
 
-  const handleSearch = useCallback(async () => {
-    const keyword = query.trim();
-    if (!keyword || searching) return;
-    setSearching(true);
-    setError(null);
-
-    // 1. 先查本地库（customMedications + builtinMedications），按 name 精确匹配
-    const state = useMedicationsStore.getState();
-    const local = [...state.customMedications, ...state.builtinMedications].find(
-      (m) => m.name === keyword
-    );
-    if (local) {
-      setSelected(local);
-      setQuery('');
-      setSearching(false);
-      return;
-    }
-
-    // 2. 本地没有 → 联网检索百度百科候选
-    try {
-      const results = await searchBaike(keyword);
-      if (results.length === 0) {
-        setError('未找到相关药物，试试其他关键词');
-        return;
-      }
-      setCandidates(results);
-    } catch {
-      setError('搜索失败，请重试');
-    } finally {
-      setSearching(false);
-    }
-  }, [query, searching]);
-
-  const handleSelectCandidate = useCallback(
-    (item: BaikeSearchItem) => {
-      if (searching) return;
-      const title = item.title;
-      // 关闭候选浮层
-      setCandidates([]);
+  // 公共流程：添加药物 → 打开详情页
+  const addMedicationAndOpen = useCallback(
+    (title: string) => {
       setError(null);
       try {
         const category = guessCategory(title);
@@ -129,7 +93,59 @@ export default function Medications() {
         setError('添加失败，请重试');
       }
     },
-    [searching, addMedication, guessCategory]
+    [addMedication, guessCategory]
+  );
+
+  const handleSearch = useCallback(async () => {
+    const keyword = query.trim();
+    if (!keyword || searching) return;
+    setSearching(true);
+    setError(null);
+
+    // 1. 先查本地药物列表（customMedications + builtinMedications），按 name 精确匹配
+    const state = useMedicationsStore.getState();
+    const local = [...state.customMedications, ...state.builtinMedications].find(
+      (m) => m.name === keyword
+    );
+    if (local) {
+      setSelected(local);
+      setQuery('');
+      setSearching(false);
+      return;
+    }
+
+    // 2. 查本地内置百科数据（baikeMedications.ts，30 种肾科常用药）
+    //    命中则直接添加并打开详情，跳过候选浮层
+    const builtin = lookupBuiltinBaike(keyword);
+    if (builtin && builtin.title) {
+      setSearching(false);
+      addMedicationAndOpen(builtin.title);
+      return;
+    }
+
+    // 3. 本地都没有 → 联网检索百度百科候选
+    try {
+      const results = await searchBaike(keyword);
+      if (results.length === 0) {
+        setError('未找到相关药物，试试其他关键词');
+        return;
+      }
+      setCandidates(results);
+    } catch {
+      setError('搜索失败，请重试');
+    } finally {
+      setSearching(false);
+    }
+  }, [query, searching, addMedicationAndOpen]);
+
+  const handleSelectCandidate = useCallback(
+    (item: BaikeSearchItem) => {
+      if (searching) return;
+      // 关闭候选浮层，进入添加流程
+      setCandidates([]);
+      addMedicationAndOpen(item.title);
+    },
+    [searching, addMedicationAndOpen]
   );
 
   const handleQuickAdd = (med: Medication) => {

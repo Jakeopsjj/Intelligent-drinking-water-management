@@ -48,7 +48,7 @@ const builtinBaikeData: Record<string, BaikeInfo> = (() => {
  * 支持精确匹配 + 模糊匹配（包含/被包含），适配用户输入变体（如"桂圆"匹配"龙眼"）。
  * @returns 本地命中返回 BaikeInfo（标记 _builtin）；未命中返回 null
  */
-function lookupBuiltinBaike(keyword: string): BaikeInfo | null {
+export function lookupBuiltinBaike(keyword: string): BaikeInfo | null {
   const key = keyword.trim().toLowerCase();
   if (!key) return null;
   // 1. 精确匹配

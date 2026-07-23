@@ -20,7 +20,7 @@ import { useRecordsStore } from '@/store/useRecordsStore';
 import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg, getLevelFromPotassium } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 import { fetchFoodNutrition, type FoodNutrition } from '@/lib/foodNutritionService';
-import { searchBaike, type BaikeSearchItem } from '@/lib/baikeService';
+import { searchBaike, lookupBuiltinBaike, type BaikeSearchItem } from '@/lib/baikeService';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useBaikeInfo } from '@/hooks/useBaikeInfo';
@@ -53,62 +53,32 @@ export default function Fruits() {
 
   const closeCandidateDrawer = useCallback(() => setCandidates([]), []);
 
-  const handleSearch = useCallback(async () => {
-    const keyword = query.trim();
-    if (!keyword || searching) return;
-    setSearching(true);
-    setError(null);
-
-    // 1. 先查本地库（customFruits + fruits），按 name 精确匹配
-    const state = useFruitsStore.getState();
-    const local = [...state.customFruits, ...state.fruits].find(
-      (f) => f.name === keyword
-    );
-    if (local) {
-      // 本地有 → 直接打开详情，不再调 apihz 重复添加
-      setSelected(local);
-      setQuery('');
-      setSearching(false);
-      return;
-    }
-
-    // 2. 本地没有 → 联网检索百度百科候选
-    try {
-      const results = await searchBaike(keyword);
-      if (results.length === 0) {
-        setError('未找到相关水果，试试其他关键词');
-        return;
-      }
-      setCandidates(results);
-    } catch {
-      setError('搜索失败，请重试');
-    } finally {
-      setSearching(false);
-    }
-  }, [query, searching]);
-
-  const handleSelectCandidate = useCallback(
-    async (item: BaikeSearchItem) => {
-      if (searching) return;
-      const title = item.title;
-      // 关闭候选浮层，进入「添加中」状态（搜索按钮显示 Loader2）
-      setCandidates([]);
+  // 公共流程：获取营养数据 → 添加水果 → 打开详情页
+  // 营养数据失败不阻塞：用 0 占位继续添加，详情页对全 0 营养会显示"暂无精确营养数据"提示
+  const addFruitAndOpen = useCallback(
+    async (title: string) => {
       setSearching(true);
       setError(null);
       try {
-        // 取营养数据（钾磷钠水）；图文由详情页联网百度百科获取，不在此处重复请求
-        const nutrition = await fetchFoodNutrition(title);
-        if (!nutrition) {
-          setError('未找到该食物的营养数据');
-          return;
+        // 尝试取营养数据（钾磷钠水）；失败时用 0 占位，不阻塞添加流程
+        let nutrition: FoodNutrition | null = null;
+        try {
+          nutrition = await fetchFoodNutrition(title);
+        } catch {
+          nutrition = null;
         }
+        const potassium = nutrition?.potassium ?? 0;
+        const phosphorus = nutrition?.phosphorus ?? 0;
+        const sodium = nutrition?.sodium ?? 0;
+        const water = nutrition?.water ?? 0;
+
         addFruit({
           name: title,
           emoji: '🍇',
-          potassiumPer100g: nutrition.potassium,
-          phosphorusPer100g: nutrition.phosphorus,
-          sodiumPer100g: nutrition.sodium,
-          waterPer100g: nutrition.water,
+          potassiumPer100g: potassium,
+          phosphorusPer100g: phosphorus,
+          sodiumPer100g: sodium,
+          waterPer100g: water,
           suggestion: '请根据医嘱适量食用',
         });
 
@@ -125,7 +95,60 @@ export default function Fruits() {
         setSearching(false);
       }
     },
-    [searching, addFruit]
+    [addFruit]
+  );
+
+  const handleSearch = useCallback(async () => {
+    const keyword = query.trim();
+    if (!keyword || searching) return;
+    setSearching(true);
+    setError(null);
+
+    // 1. 先查本地水果列表（customFruits + fruits），按 name 精确匹配
+    const state = useFruitsStore.getState();
+    const local = [...state.customFruits, ...state.fruits].find(
+      (f) => f.name === keyword
+    );
+    if (local) {
+      // 本地有 → 直接打开详情
+      setSelected(local);
+      setQuery('');
+      setSearching(false);
+      return;
+    }
+
+    // 2. 查本地内置百科数据（baikeFruits.ts，30 种常见水果）
+    //    命中则直接添加并打开详情，跳过候选浮层，不依赖 apihz.cn 营养数据是否可用
+    const builtin = lookupBuiltinBaike(keyword);
+    if (builtin && builtin.title) {
+      setSearching(false);
+      await addFruitAndOpen(builtin.title);
+      return;
+    }
+
+    // 3. 本地都没有 → 联网检索百度百科候选
+    try {
+      const results = await searchBaike(keyword);
+      if (results.length === 0) {
+        setError('未找到相关水果，试试其他关键词');
+        return;
+      }
+      setCandidates(results);
+    } catch {
+      setError('搜索失败，请重试');
+    } finally {
+      setSearching(false);
+    }
+  }, [query, searching, addFruitAndOpen]);
+
+  const handleSelectCandidate = useCallback(
+    async (item: BaikeSearchItem) => {
+      if (searching) return;
+      // 关闭候选浮层，进入添加流程（营养数据失败不阻塞）
+      setCandidates([]);
+      await addFruitAndOpen(item.title);
+    },
+    [searching, addFruitAndOpen]
   );
 
   // 按等级分组
@@ -378,6 +401,13 @@ function FruitDetail({
     ? info.content.split('\n\n').filter((p) => p.trim())
     : [];
 
+  // 营养数据是否可用（钾磷钠水全为 0 视为暂无精确数据，如 apihz.cn 失败时的占位）
+  const hasNutrition =
+    fruit.potassiumPer100g > 0 ||
+    fruit.phosphorusPer100g > 0 ||
+    fruit.sodiumPer100g > 0 ||
+    fruit.waterPer100g > 0;
+
   return (
     <>
       {/* 遮罩 */}
@@ -531,36 +561,42 @@ function FruitDetail({
           {/* 核心：每100g元素含量（保留模块） */}
           <div className="rounded-2xl bg-cream-50 p-4">
             <h4 className="mb-3 text-sm font-medium text-teal-700">每 100g 元素含量</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
-                <Atom className="h-5 w-5 text-orange-500" />
-                <div>
-                  <div className="text-xs text-teal-600/60">钾</div>
-                  <div className="text-lg font-bold text-teal-700">{fruit.potassiumPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
+            {hasNutrition ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+                  <Atom className="h-5 w-5 text-orange-500" />
+                  <div>
+                    <div className="text-xs text-teal-600/60">钾</div>
+                    <div className="text-lg font-bold text-teal-700">{fruit.potassiumPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+                  <FlaskConical className="h-5 w-5 text-blue-500" />
+                  <div>
+                    <div className="text-xs text-teal-600/60">磷</div>
+                    <div className="text-lg font-bold text-teal-700">{fruit.phosphorusPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+                  <Beaker className="h-5 w-5 text-purple-500" />
+                  <div>
+                    <div className="text-xs text-teal-600/60">钠</div>
+                    <div className="text-lg font-bold text-teal-700">{fruit.sodiumPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+                  <Droplet className="h-5 w-5 text-cyan-500" />
+                  <div>
+                    <div className="text-xs text-teal-600/60">水分</div>
+                    <div className="text-lg font-bold text-teal-700">{fruit.waterPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">ml</span></div>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
-                <FlaskConical className="h-5 w-5 text-blue-500" />
-                <div>
-                  <div className="text-xs text-teal-600/60">磷</div>
-                  <div className="text-lg font-bold text-teal-700">{fruit.phosphorusPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
-                </div>
+            ) : (
+              <div className="rounded-xl bg-white p-3 text-center text-xs text-teal-600/50">
+                暂无精确营养数据，请参考百科内容中关于钾含量高低的描述，或咨询医生
               </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
-                <Beaker className="h-5 w-5 text-purple-500" />
-                <div>
-                  <div className="text-xs text-teal-600/60">钠</div>
-                  <div className="text-lg font-bold text-teal-700">{fruit.sodiumPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
-                <Droplet className="h-5 w-5 text-cyan-500" />
-                <div>
-                  <div className="text-xs text-teal-600/60">水分</div>
-                  <div className="text-lg font-bold text-teal-700">{fruit.waterPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">ml</span></div>
-                </div>
-              </div>
-            </div>
+            )}
             <p className="mt-2 text-[10px] text-teal-600/30">数据来源：apihz.cn 食物营养API</p>
           </div>
 
