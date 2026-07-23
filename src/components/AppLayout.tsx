@@ -1,8 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, BookOpen, Citrus, Pill, Settings as SettingsIcon, Droplets, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import LiquidGlassBackground from './LiquidGlassBackground';
-import RippleLayer from './RippleLayer';
 import type { FC, ReactNode } from 'react';
 
 interface NavItem {
@@ -27,13 +25,10 @@ const AppLayout: FC<{ children: ReactNode }> = ({ children }) => {
       className="flex min-h-screen flex-col [scrollbar-gutter:stable]"
       style={{
         // 背景透明：露出底层 LiquidGlassBackground 的 GLSL 纹理 + 气泡
+        // 视觉层已在 main.tsx 顶层注入，全局覆盖所有页面（含引导/权限/加载/二级页）
         background: 'transparent',
       }}
     >
-      {/* 全应用液态玻璃背景层（GLSL 着色器 + CSS 降级 + 气泡粒子） */}
-      <LiquidGlassBackground />
-      {/* 点击径向水波纹涟漪系统 */}
-      <RippleLayer />
       {/* 移动端顶部标题栏：肾友笔记 + 搜索 */}
       <header
         className="glass-bar sticky top-0 z-30 md:hidden"

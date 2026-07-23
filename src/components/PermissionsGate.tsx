@@ -58,7 +58,7 @@ export default function PermissionsGate({ onAccepted }: Props) {
   const current = PERMISSIONS[step];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-cream-100 px-6 py-10">
+    <div className="min-h-screen px-6 py-10" style={{ background: 'transparent' }}>
       <div className="mx-auto max-w-md">
         <motion.div
           initial={{ opacity: 0, y: 12 }}

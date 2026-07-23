@@ -312,3 +312,79 @@ async function tryWikimediaCommonsMulti(searchTerm: string, limit: number): Prom
     return [];
   }
 }
+
+/**
+ * 维基百科搜索候选项（用于水果搜索流程）
+ *
+ * 调用维基百科 search API，返回 title + snippet（去标签后作为 description）。
+ * 缩略图不在搜索阶段获取，用户选中后再通过 fetchEntityInfo 取，避免并发太慢。
+ *
+ * 缓存 + 并发去重，模式同 fetchEntityInfo；过滤消歧义页；超时 10s，失败返回 []。
+ */
+export interface WikiSearchItem {
+  title: string;        // 词条标题
+  description?: string; // 简短描述（snippet 去标签）
+  image?: string;       // 缩略图（搜索阶段不获取，保留字段）
+}
+
+const searchCache = new Map<string, WikiSearchItem[]>();
+const searchPending = new Map<string, Promise<WikiSearchItem[]>>();
+
+/** 去除 snippet 中的 HTML 标签，得到纯文本描述 */
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').trim();
+}
+
+export function searchWikiFruits(keyword: string): Promise<WikiSearchItem[]> {
+  const key = keyword.trim().toLowerCase();
+  if (!key) return Promise.resolve([]);
+
+  const cached = searchCache.get(key);
+  if (cached) return Promise.resolve(cached);
+
+  const inflight = searchPending.get(key);
+  if (inflight) return inflight;
+
+  const p = doSearchWikiFruits(keyword.trim()).then((items) => {
+    searchCache.set(key, items);
+    searchPending.delete(key);
+    return items;
+  }).catch(() => {
+    searchCache.set(key, []);
+    searchPending.delete(key);
+    return [];
+  });
+
+  searchPending.set(key, p);
+  return p;
+}
+
+async function doSearchWikiFruits(keyword: string): Promise<WikiSearchItem[]> {
+  // 追加 ' fruit 植物' 提升水果/植物精准度，但保留 keyword 主体
+  const params = new URLSearchParams({
+    action: 'query',
+    list: 'search',
+    srsearch: `${keyword} fruit 植物`,
+    format: 'json',
+    origin: '*',
+    srlimit: '8',
+  });
+  const res = await fetch(
+    `https://zh.wikipedia.org/w/api.php?${params.toString()}`,
+    { signal: AbortSignal.timeout(10000) }
+  );
+  if (!res.ok) return [];
+  const data = await res.json();
+  const results = data?.query?.search as
+    | Array<{ title: string; snippet?: string }>
+    | undefined;
+  if (!Array.isArray(results)) return [];
+
+  // 过滤消歧义页
+  return results
+    .filter((r) => r.title && !r.title.includes('消歧义'))
+    .map((r) => ({
+      title: r.title,
+      description: r.snippet ? stripHtml(r.snippet) : undefined,
+    }));
+}

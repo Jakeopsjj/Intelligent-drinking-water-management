@@ -6,7 +6,7 @@
  * 2. 关键词匹配自动判断分类（降压药/磷结合剂/铁剂等）
  * 3. 添加到列表，按分类分组展示
  * 4. 卡片：名称 + 分类标签 + 用法
- * 5. 详情页：完整药物信息
+ * 5. 详情页：全部内容使用百度百科联网获取
  */
 
 import { useState, useCallback } from 'react';
@@ -20,7 +20,7 @@ import { MEDICATION_CATEGORIES } from '@/data/medications';
 import { cn } from '@/lib/utils';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
-import { useEntityInfo } from '@/hooks/useEntityInfo';
+import { useBaikeInfo } from '@/hooks/useBaikeInfo';
 import type { Medication, MedicationCategory } from '@/types';
 
 export default function Medications() {
@@ -301,7 +301,9 @@ function MedicationCard({
   );
 }
 
-/** 药物详情弹层 */
+/** 药物详情弹层
+ * 全部内容使用百度百科联网获取（摘要/正文/配图/信息框）
+ */
 function MedicationDetail({
   med,
   onClose,
@@ -314,25 +316,13 @@ function MedicationDetail({
   saved: boolean;
 }) {
   const cat = MEDICATION_CATEGORIES[med.category];
-  const { images, description, loading } = useEntityInfo(
-    med.name,
-    'medication',
-    med.image,
-    med.description
-  );
-  const fields: { label: string; value?: string }[] = [
-    { label: '主要作用', value: med.purpose },
-    { label: '药物介绍', value: med.description },
-    { label: '适应症', value: med.indications },
-    { label: '用法用量', value: `${med.usage.defaultDose}${med.usage.unit}，${med.usage.frequency}，${med.usage.timing}` },
-    { label: '使用说明', value: med.usageNotes },
-    { label: '主要成分', value: med.ingredients },
-    { label: '不良反应', value: med.sideEffects },
-    { label: '禁忌症', value: med.contraindications },
-    { label: '药理毒理', value: med.pharmacology },
-    { label: '药物相互作用', value: med.drugInteractions },
-    { label: '贮藏', value: med.storage },
-  ];
+  // 详情页内容全部来自百度百科
+  const { info, loading } = useBaikeInfo(med.name);
+
+  // 信息框键值对（过滤掉值过短或明显无效项）
+  const infoboxEntries = info?.infobox
+    ? Object.entries(info.infobox).filter(([, v]) => v && v.length > 1).slice(0, 8)
+    : [];
 
   return (
     <>
@@ -357,7 +347,7 @@ function MedicationDetail({
           <div className="flex items-center gap-3">
             <span className="text-3xl">{med.emoji}</span>
             <div>
-              <h3 className="text-lg font-semibold text-teal-700">{med.name}</h3>
+              <h3 className="text-lg font-semibold text-teal-700">{info?.title || med.name}</h3>
               <span className={cn('inline-block rounded-full px-2 py-0.5 text-[10px] font-medium', cat.bg, cat.color)}>
                 {cat.name}
               </span>
@@ -372,35 +362,82 @@ function MedicationDetail({
         </div>
 
         <div className="space-y-4 px-6 pb-6 pt-4">
-          {/* 药盒配图 */}
-          {images && images.length > 0 ? (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {images.map((img, i) => (
-                <motion.img
-                  key={i}
-                  src={img}
-                  alt={`${med.name} ${i + 1}`}
-                  className="h-20 w-20 flex-shrink-0 rounded-xl object-cover"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                />
-              ))}
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 rounded-2xl bg-cream-50 py-10 text-sm text-teal-600/60">
+              <Loader2 className="h-4 w-4 animate-spin" /> 正在从百度百科获取内容…
             </div>
-          ) : loading ? (
-            <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-cream-100">
-              <Loader2 className="h-5 w-5 animate-spin text-teal-600/40" />
-            </div>
-          ) : null}
+          ) : info ? (
+            <>
+              {/* 百度百科配图（主图 + 多图） */}
+              {(() => {
+                const allImgs = [
+                  ...(info.image ? [info.image] : []),
+                  ...(info.images || []),
+                ].filter((v, i, a) => v && a.indexOf(v) === i);
+                if (allImgs.length === 0) return null;
+                return (
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {allImgs.slice(0, 5).map((img, i) => (
+                      <motion.img
+                        key={i}
+                        src={img}
+                        alt={`${info.title || med.name} ${i + 1}`}
+                        className="h-24 w-24 flex-shrink-0 rounded-xl object-cover"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
 
-          {/* 介绍（联网获取；静态介绍由下方"药物介绍"字段展示，避免重复） */}
-          {description && !med.description && (
-            <div className="rounded-2xl border border-cream-200 p-4">
-              <h4 className="mb-1.5 text-sm font-medium text-teal-700">介绍</h4>
-              <p className="text-sm leading-relaxed text-teal-600/80">{description}</p>
+              {/* 百度百科摘要 */}
+              {info.summary && (
+                <div className="rounded-2xl bg-cream-50 p-4">
+                  <h4 className="mb-1.5 text-sm font-medium text-teal-700">摘要</h4>
+                  <p className="text-sm leading-relaxed text-teal-600/80">{info.summary}</p>
+                </div>
+              )}
+
+              {/* 信息框键值对 */}
+              {infoboxEntries.length > 0 && (
+                <div className="rounded-2xl border border-cream-200 p-4">
+                  <h4 className="mb-2 text-sm font-medium text-teal-700">基本信息</h4>
+                  <dl className="grid grid-cols-1 gap-1.5">
+                    {infoboxEntries.map(([k, v]) => (
+                      <div key={k} className="flex gap-2 text-sm">
+                        <dt className="flex-shrink-0 text-teal-600/60">{k}</dt>
+                        <dd className="text-teal-700">{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+
+              {/* 百度百科正文（详细内容） */}
+              {info.content && (
+                <div className="rounded-2xl border border-cream-200 p-4">
+                  <h4 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-teal-700">
+                    <ChevronRight className="h-4 w-4" /> 详细内容
+                  </h4>
+                  <div className="space-y-2">
+                    {info.content.split('\n\n').map((p, i) => (
+                      <p key={i} className="text-sm leading-relaxed text-teal-600/80">{p}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 数据源标注 */}
+              <p className="px-1 text-[10px] text-teal-600/30">内容来源：百度百科</p>
+            </>
+          ) : (
+            <div className="rounded-2xl bg-red-50 px-4 py-6 text-center text-sm text-red-500">
+              未找到「{med.name}」的百度百科内容
             </div>
           )}
 
-          {/* 用法用量 */}
+          {/* 用法用量（本地录入，与百科互补） */}
           <div className="rounded-2xl bg-cream-50 p-4">
             <h4 className="mb-3 flex items-center gap-1.5 text-sm font-medium text-teal-700">
               <Clock className="h-4 w-4" /> 用法用量
@@ -412,22 +449,14 @@ function MedicationDetail({
               </div>
               <div className="rounded-xl bg-white p-3 text-center">
                 <div className="text-xs text-teal-600/60">频次</div>
-                <div className="mt-1 text-sm font-bold text-teal-700">{med.usage.frequency}</div>
+                <div className="text-sm font-bold text-teal-700">{med.usage.frequency}</div>
               </div>
               <div className="rounded-xl bg-white p-3 text-center">
                 <div className="text-xs text-teal-600/60">时间</div>
-                <div className="mt-1 text-sm font-bold text-teal-700">{med.usage.timing}</div>
+                <div className="text-sm font-bold text-teal-700">{med.usage.timing}</div>
               </div>
             </div>
           </div>
-
-          {/* 详细信息 */}
-          {fields.filter((f) => f.value).map((f, i) => (
-            <div key={i} className="rounded-2xl border border-cream-200 p-4">
-              <h4 className="mb-1.5 text-sm font-medium text-teal-700">{f.label}</h4>
-              <p className="text-sm leading-relaxed text-teal-600/80">{f.value}</p>
-            </div>
-          ))}
 
           {/* 快速记录 */}
           <button

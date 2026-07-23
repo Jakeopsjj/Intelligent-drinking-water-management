@@ -31,7 +31,7 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cream-100 via-cream-50 to-sage-50 px-6">
+    <div className="flex min-h-screen items-center justify-center px-6" style={{ background: 'transparent' }}>
       <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white/80 p-8 shadow-soft-lg backdrop-blur-xl">
         {/* 装饰圆 */}
         <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-teal-500/10 blur-3xl" />
