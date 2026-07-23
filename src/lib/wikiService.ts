@@ -154,6 +154,12 @@ async function doFetchMedication(name: string): Promise<EntityInfo> {
   const terms = MED_SEARCH_TERMS[name];
   const allImages: string[] = [];
 
+  // 提取通用名（去掉剂型后缀），用于维基百科词条搜索
+  // 如"硝苯地平控释片"→"硝苯地平"、"碳酸司维拉姆片"→"碳酸司维拉姆"
+  const genericName = name
+    .replace(/(控释片|缓释片|分散片|咀嚼片|肠溶片|泡腾片|注射液|注射剂|口服液|胶囊|片剂|片|丸|膏|颗粒|滴剂|喷雾|贴剂|凝胶|乳膏)$/, '')
+    .replace(/^(盐酸|苯磺酸|富马酸|酒石酸|硫酸氢|醋酸|碳酸|枸橼酸|磷酸|马来酸)/, (m) => m);
+
   // 并发搜索中文和外文图片
   const searchPromises: Promise<string[]>[] = [];
   if (terms) {
@@ -164,12 +170,15 @@ async function doFetchMedication(name: string): Promise<EntityInfo> {
       searchPromises.push(tryWikimediaCommonsMulti(en, 2));
     }
   } else {
+    // 用剂型全称 + 通用名双重搜索，提升命中率
     searchPromises.push(tryWikimediaCommonsMulti(`${name} 药盒`, 2));
-    searchPromises.push(tryWikimediaCommonsMulti(`${name} medicine`, 3));
+    searchPromises.push(tryWikimediaCommonsMulti(`${genericName} 药盒`, 2));
+    searchPromises.push(tryWikimediaCommonsMulti(`${genericName} medicine`, 3));
+    searchPromises.push(tryWikimediaCommonsMulti(`${genericName} tablet`, 3));
   }
 
-  // 同时获取维基百科图片
-  searchPromises.push(tryWikipediaImages(name, 'medication'));
+  // 同时获取维基百科图片（用通用名搜索，维基词条通常是通用名）
+  searchPromises.push(tryWikipediaImages(genericName || name, 'medication'));
 
   const results = await Promise.all(searchPromises);
   for (const urls of results) {
@@ -179,14 +188,14 @@ async function doFetchMedication(name: string): Promise<EntityInfo> {
   }
 
   // 获取介绍
-  const desc = await tryWikipediaDescription(name, 'medication');
+  const desc = await tryWikipediaDescription(genericName || name, 'medication');
 
   if (allImages.length > 0) {
     return { image: allImages[0], images: allImages.slice(0, 5), description: desc };
   }
 
-  // 兜底：维基百科 summary
-  const wikiInfo = await tryWikipediaSummary(name, 'medication');
+  // 兜底：维基百科 summary（用通用名）
+  const wikiInfo = await tryWikipediaSummary(genericName || name, 'medication');
   if (wikiInfo.image || wikiInfo.description) {
     return {
       image: wikiInfo.image,
