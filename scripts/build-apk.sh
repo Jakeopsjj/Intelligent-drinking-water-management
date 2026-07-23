@@ -125,7 +125,24 @@ ensure_npm_deps() {
 }
 
 # ============================================================
-# 4. 同步 Capacitor 资源（必须在修复 Java 版本之前执行，
+# 4a. 构建 Web 资源 (Vite build → dist/)
+#     必须在 cap sync 之前执行，否则 cap sync 会把旧的 dist 复制进 Android
+# ============================================================
+build_web() {
+    info "构建 Web 资源 (tsc + vite build)..."
+    cd "$PROJECT_ROOT"
+    # 清理旧的 dist，避免遗留陈旧 chunk 文件
+    rm -rf "$PROJECT_ROOT/dist"
+    npm run build 2>&1 | tail -15
+    if [ ! -d "$PROJECT_ROOT/dist" ] || [ ! -f "$PROJECT_ROOT/dist/index.html" ]; then
+        error "Web 构建失败：dist/ 不存在或缺少 index.html"
+        return 1
+    fi
+    info "Web 构建完成，dist/ 已更新"
+}
+
+# ============================================================
+# 4b. 同步 Capacitor 资源（必须在修复 Java 版本之前执行，
 #    因为 cap sync 会重新生成 capacitor.build.gradle）
 # ============================================================
 sync_capacitor() {
@@ -325,6 +342,11 @@ main() {
     ensure_debug_keystore
     ensure_gradle_config
     ensure_npm_deps
+
+    # 关键：先构建 Web (dist/)，再 cap sync 复制到 android
+    # 之前缺失这一步，导致 APK 里跑的是旧 JS bundle，代码修改完全不生效
+    build_web || { error "Web 构建失败，终止"; exit 1; }
+
     sync_capacitor
     fix_capacitor_java_version
 
