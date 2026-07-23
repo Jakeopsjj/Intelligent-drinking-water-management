@@ -7,6 +7,7 @@ import { LEVEL_TEXT, LEVEL_COLORS, formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
 import { fetchWikiDetail, type WikiDetail } from '@/lib/wikiSearchService';
 import { findFruitBaike } from '@/data/baikeDatabase';
+import { fetchFoodNutrition } from '@/lib/foodNutritionService';
 import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import DetailDrawer, { FieldIcons } from '@/components/DetailDrawer';
@@ -48,7 +49,7 @@ export default function Fruits() {
     setWikiSearching(true);
     setWikiError(null);
     try {
-      // 1. 先查离线百科数据库
+      // 1. 先查离线百科数据库（自带完整营养数据）
       const offlineBaike = findFruitBaike(keyword);
       if (offlineBaike) {
         addFruit({
@@ -79,36 +80,42 @@ export default function Fruits() {
         return;
       }
 
-      // 2. 离线库没有，联网搜索维基百科
+      // 2. 离线库没有，先从食物营养API获取钾/磷/钠/水分
+      const nutrition = await fetchFoodNutrition(keyword);
+
+      // 3. 同时从维基百科获取百科内容（介绍/图片/段落）
       const detail: WikiDetail | null = await fetchWikiDetail(keyword);
-      if (!detail) {
-        setWikiError('未找到相关内容');
+
+      // 4. 合并数据：营养API的数值 + 维基百科的文案
+      if (nutrition || detail) {
+        addFruit({
+          name: keyword,
+          emoji: '🍇',
+          potassiumPer100g: nutrition?.potassium ?? detail?.potassiumPer100g ?? 0,
+          phosphorusPer100g: nutrition?.phosphorus ?? detail?.phosphorusPer100g ?? 0,
+          sodiumPer100g: nutrition?.sodium ?? detail?.sodiumPer100g ?? 0,
+          waterPer100g: nutrition?.water ?? detail?.waterPer100g ?? 80,
+          suggestion: '请根据医嘱适量食用',
+          description: detail?.summary,
+          image: detail?.image,
+          origin: detail?.origin,
+          varieties: detail?.varieties,
+          cultivation: detail?.cultivation,
+          culture: detail?.culture,
+          healthBenefits: detail?.healthBenefits,
+          precautions: detail?.precautions,
+          storage: detail?.storage,
+        });
+        const latest = useFruitsStore.getState().customFruits;
+        const newFruit = [...latest].reverse().find((f) => f.name === keyword);
+        if (newFruit) {
+          setSelected(newFruit);
+          setQuery('');
+        }
         return;
       }
-      addFruit({
-        name: keyword,
-        emoji: '🍇',
-        potassiumPer100g: detail.potassiumPer100g ?? 0,
-        phosphorusPer100g: detail.phosphorusPer100g ?? 0,
-        sodiumPer100g: detail.sodiumPer100g ?? 0,
-        waterPer100g: detail.waterPer100g ?? 80,
-        suggestion: '请根据医嘱适量食用',
-        description: detail.summary,
-        image: detail.image,
-        origin: detail.origin,
-        varieties: detail.varieties,
-        cultivation: detail.cultivation,
-        culture: detail.culture,
-        healthBenefits: detail.healthBenefits,
-        precautions: detail.precautions,
-        storage: detail.storage,
-      });
-      const latest = useFruitsStore.getState().customFruits;
-      const newFruit = [...latest].reverse().find((f) => f.name === keyword);
-      if (newFruit) {
-        setSelected(newFruit);
-        setQuery('');
-      }
+
+      setWikiError('未找到相关内容');
     } catch {
       setWikiError('未找到相关内容');
     } finally {
