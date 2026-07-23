@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.18.0] - 2026-07-23
+
+### Features
+
+- 饮食页面新增每日营养限额进度条：水分/钾/磷/钠/水果五项实时监控
+- 限额进度颜色编码：正常(teal <80%)、警告(amber 80-100%)、超标(rose ≥100%)
+- 超标预警横幅：当日任意营养项超标时醒目提示具体超标项目
+- 水分统计合并饮水 + 水果含水，准确反映真实摄水量
+- 复用 calc.ts 中已有的 getProgressStatus 工具函数，统一状态判定标准
+
+### Bug Fixes
+
+- 修复饮食板块白屏问题：根因为 Zustand selector 中调用 store 方法 (s.getTodayRecords()) 每次返回新数组引用导致无限重渲染
+  - 改为订阅原始 records 状态，使用 useMemo + 纯函数 isToday() 计算当日记录
+  - 统一遵循 Dashboard/Records 页面已验证的状态订阅模式
+  - 移除不必要的 useFruitImage 包装 hook，直接调用 useEntityImage
+  - allFruits 组合结果用 useMemo 包裹，避免每次渲染重建数组
+  - 旧记录兼容：营养字段访问加 `|| 0` 防御，防止历史数据缺失 sodium/water 导致 NaN
+
 ## [2.17.1] - 2026-07-23
 
 ### Features

@@ -1,27 +1,16 @@
-/**
- * 饮食记录页面
- *
- * 功能：
- * 1. 餐次选择：早餐/午餐/晚餐/加餐
- * 2. 水果搜索 + 列表展示
- * 3. 一键记录重量（50g/100g/150g/200g）
- * 4. 当日饮食汇总：按餐次分组展示记录
- * 5. 营养小计：钾/磷/钠/水分按餐次汇总
- */
-
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, Plus, Check, Clock, ChevronDown, ChevronUp, Trash2, Citrus, Apple, Banana } from 'lucide-react';
+import { Search, X, Plus, Check, Clock, ChevronDown, ChevronUp, Trash2, Citrus, Apple, Banana, Droplets, AlertTriangle } from 'lucide-react';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
-import { LEVEL_TEXT, LEVEL_COLORS, getLevelFromPotassium } from '@/utils/calc';
-import { formatDateTime } from '@/utils/date';
+import { useSettingsStore } from '@/store/useSettingsStore';
+import { LEVEL_TEXT, LEVEL_COLORS, getLevelFromPotassium, getProgressStatus } from '@/utils/calc';
+import { formatDateTime, getTodayKey } from '@/utils/date';
 import { cn } from '@/lib/utils';
 import { useEntityImage } from '@/hooks/useEntityImage';
 import SmartImage from '@/components/SmartImage';
-import type { Fruit, MealType, FruitRecord } from '@/types';
+import type { Fruit, MealType, FruitRecord, WaterRecord } from '@/types';
 
-// 餐次配置
 const MEAL_CONFIG: { type: MealType; label: string; emoji: string; timeHint: string }[] = [
   { type: 'breakfast', label: '早餐', emoji: '🌅', timeHint: '6:00-9:00' },
   { type: 'lunch', label: '午餐', emoji: '☀️', timeHint: '11:00-13:00' },
@@ -29,7 +18,6 @@ const MEAL_CONFIG: { type: MealType; label: string; emoji: string; timeHint: str
   { type: 'snack', label: '加餐', emoji: '🍪', timeHint: '任意时间' },
 ];
 
-// 快捷重量按钮
 const QUICK_WEIGHTS = [50, 100, 150, 200];
 
 const MEAL_ACTIVE_COLORS: Record<MealType, string> = {
@@ -39,40 +27,51 @@ const MEAL_ACTIVE_COLORS: Record<MealType, string> = {
   snack: 'border-purple-400 bg-purple-500 text-white shadow-purple-500/25',
 };
 
-function useFruitImage(fruit: Fruit) {
-  return useEntityImage(fruit.name, 'fruit');
+const EMPTY_NUTRITION = { potassium: 0, phosphorus: 0, sodium: 0, water: 0, fruit: 0, count: 0 };
+
+const PROGRESS_COLORS: Record<'normal' | 'warning' | 'exceeded', { bar: string; bg: string; text: string }> = {
+  normal: { bar: 'bg-teal-500', bg: 'bg-teal-100', text: 'text-teal-700' },
+  warning: { bar: 'bg-amber-500', bg: 'bg-amber-100', text: 'text-amber-700' },
+  exceeded: { bar: 'bg-rose-500', bg: 'bg-rose-100', text: 'text-rose-700' },
+};
+
+function isToday(timestamp: number): boolean {
+  const todayKey = getTodayKey();
+  const d = new Date(timestamp);
+  const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return key === todayKey;
 }
 
 export default function Diet() {
   const customFruits = useFruitsStore((s) => s.customFruits);
   const builtinFruits = useFruitsStore((s) => s.fruits);
-  const allFruits = [...customFruits, ...builtinFruits];
+  const allFruits = useMemo(() => [...customFruits, ...builtinFruits], [customFruits, builtinFruits]);
+
+  const records = useRecordsStore((s) => s.records);
   const addFruitRecord = useRecordsStore((s) => s.addFruitRecord);
   const deleteRecord = useRecordsStore((s) => s.deleteRecord);
-  const todayRecords = useRecordsStore((s) => s.getTodayRecords());
+  const settings = useSettingsStore((s) => s.settings);
 
   const [selectedMeal, setSelectedMeal] = useState<MealType>('breakfast');
   const [searchQuery, setSearchQuery] = useState('');
-  const [quickSaved, setQuickSaved] = useState<string | null>(null); // fruitId
+  const [quickSaved, setQuickSaved] = useState<string | null>(null);
   const [expandedMeal, setExpandedMeal] = useState<MealType | null>(null);
 
-  // 筛选水果
   const filteredFruits = useMemo(() => {
     if (!searchQuery.trim()) return allFruits;
     const q = searchQuery.toLowerCase();
     return allFruits.filter(
       (f) =>
         f.name.toLowerCase().includes(q) ||
-        (f.aliases && f.aliases.toLowerCase().includes(q))
+        (f.aliases ? f.aliases.toLowerCase().includes(q) : false)
     );
   }, [allFruits, searchQuery]);
 
-  // 当日水果记录（带餐次）
-  const fruitRecords = useMemo(() => {
-    return todayRecords.filter((r): r is FruitRecord => r.type === 'fruit');
-  }, [todayRecords]);
+  const fruitRecords = useMemo(
+    () => records.filter((r): r is FruitRecord => r.type === 'fruit' && isToday(r.timestamp)),
+    [records]
+  );
 
-  // 按餐次分组的记录
   const mealGroupedRecords = useMemo(() => {
     const grouped: Record<MealType, FruitRecord[]> = {
       breakfast: [],
@@ -87,30 +86,29 @@ export default function Diet() {
     return grouped;
   }, [fruitRecords]);
 
-  // 各餐次营养汇总
   const mealNutrition = useMemo(() => {
-    const result: Record<MealType, { potassium: number; phosphorus: number; sodium: number; water: number; fruit: number; count: number }> = {
-      breakfast: { potassium: 0, phosphorus: 0, sodium: 0, water: 0, fruit: 0, count: 0 },
-      lunch: { potassium: 0, phosphorus: 0, sodium: 0, water: 0, fruit: 0, count: 0 },
-      dinner: { potassium: 0, phosphorus: 0, sodium: 0, water: 0, fruit: 0, count: 0 },
-      snack: { potassium: 0, phosphorus: 0, sodium: 0, water: 0, fruit: 0, count: 0 },
+    const result: Record<MealType, typeof EMPTY_NUTRITION> = {
+      breakfast: { ...EMPTY_NUTRITION },
+      lunch: { ...EMPTY_NUTRITION },
+      dinner: { ...EMPTY_NUTRITION },
+      snack: { ...EMPTY_NUTRITION },
     };
-    for (const [meal, records] of Object.entries(mealGroupedRecords)) {
-      for (const r of records) {
-        result[meal as MealType].potassium += r.potassium;
-        result[meal as MealType].phosphorus += r.phosphorus;
-        result[meal as MealType].sodium += r.sodium;
-        result[meal as MealType].water += r.water;
-        result[meal as MealType].fruit += r.weight;
-        result[meal as MealType].count += 1;
+    for (const [meal, recs] of Object.entries(mealGroupedRecords)) {
+      for (const r of recs) {
+        const m = result[meal as MealType];
+        m.potassium += r.potassium || 0;
+        m.phosphorus += r.phosphorus || 0;
+        m.sodium += r.sodium || 0;
+        m.water += r.water || 0;
+        m.fruit += r.weight || 0;
+        m.count += 1;
       }
     }
     return result;
   }, [mealGroupedRecords]);
 
-  // 今日总摄入
   const todayTotal = useMemo(() => {
-    const total = { potassium: 0, phosphorus: 0, sodium: 0, water: 0, fruit: 0, count: 0 };
+    const total = { ...EMPTY_NUTRITION };
     for (const n of Object.values(mealNutrition)) {
       total.potassium += n.potassium;
       total.phosphorus += n.phosphorus;
@@ -122,21 +120,78 @@ export default function Diet() {
     return total;
   }, [mealNutrition]);
 
-  // 记录水果
+  const todayDrinkWater = useMemo(() => {
+    return records
+      .filter((r): r is WaterRecord => r.type === 'water' && isToday(r.timestamp))
+      .reduce((sum, r) => sum + r.amount, 0);
+  }, [records]);
+
+  const dayTotalWater = todayDrinkWater + todayTotal.water;
+
+  const nutrientBars = useMemo(() => [
+    {
+      key: 'water',
+      label: '水分',
+      icon: <Droplets className="h-3.5 w-3.5" />,
+      current: dayTotalWater,
+      limit: settings.dailyWaterLimit,
+      unit: 'ml',
+      color: 'text-teal-600',
+    },
+    {
+      key: 'potassium',
+      label: '钾',
+      icon: <span className="text-[11px] font-bold">K</span>,
+      current: todayTotal.potassium,
+      limit: settings.dailyPotassiumLimit,
+      unit: 'mg',
+      color: 'text-sage-600',
+    },
+    {
+      key: 'phosphorus',
+      label: '磷',
+      icon: <span className="text-[11px] font-bold">P</span>,
+      current: todayTotal.phosphorus,
+      limit: settings.dailyPhosphorusLimit,
+      unit: 'mg',
+      color: 'text-clay-600',
+    },
+    {
+      key: 'sodium',
+      label: '钠',
+      icon: <span className="text-[11px] font-bold">Na</span>,
+      current: todayTotal.sodium,
+      limit: settings.dailySodiumLimit,
+      unit: 'mg',
+      color: 'text-amber-600',
+    },
+    {
+      key: 'fruit',
+      label: '水果',
+      icon: <Citrus className="h-3.5 w-3.5" />,
+      current: todayTotal.fruit,
+      limit: settings.dailyFruitLimit,
+      unit: 'g',
+      color: 'text-orange-600',
+    },
+  ], [dayTotalWater, todayTotal, settings]);
+
+  const overLimitCount = nutrientBars.filter((b) => b.current >= b.limit).length;
+
   const handleAddFruit = (fruit: Fruit, weight: number) => {
     addFruitRecord({ fruit, weight, mealType: selectedMeal });
     setQuickSaved(fruit.id);
     setTimeout(() => setQuickSaved(null), 1200);
   };
 
-  // 删除记录
   const handleDelete = (id: string) => {
     deleteRecord(id);
   };
 
+  const hasAnyRecords = MEAL_CONFIG.some((m) => mealGroupedRecords[m.type].length > 0);
+
   return (
     <div className="space-y-5">
-      {/* 页面标题 + 今日汇总 */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -154,7 +209,6 @@ export default function Diet() {
             </div>
           </div>
 
-          {/* 今日摄入概览 */}
           {todayTotal.count > 0 && (
             <div className="grid grid-cols-2 gap-3 mt-4">
               <div className="rounded-xl bg-teal-50 p-3">
@@ -163,7 +217,8 @@ export default function Diet() {
               </div>
               <div className="rounded-xl bg-amber-50 p-3">
                 <p className="text-[10px] text-teal-600/50">水分摄入</p>
-                <p className="mt-0.5 text-lg font-bold text-amber-700">{todayTotal.water}ml</p>
+                <p className="mt-0.5 text-lg font-bold text-amber-700">{dayTotalWater}ml</p>
+                <p className="text-[9px] text-teal-600/40">饮水{todayDrinkWater}ml + 水果{todayTotal.water}ml</p>
               </div>
               <div className="rounded-xl bg-sage-50 p-3">
                 <p className="text-[10px] text-teal-600/50">钾摄入</p>
@@ -175,10 +230,55 @@ export default function Diet() {
               </div>
             </div>
           )}
+
+          {overLimitCount > 0 && (
+            <div className="mt-4 flex items-start gap-2 rounded-xl bg-rose-50 border border-rose-200 p-3">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0 text-rose-500 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-rose-700">今日已超标 {overLimitCount} 项</p>
+                <p className="text-[10px] text-rose-600/70 mt-0.5">
+                  {nutrientBars.filter((b) => b.current >= b.limit).map((b) => b.label).join('、')}
+                  已达每日限额，请注意控制摄入。
+                </p>
+              </div>
+            </div>
+          )}
+
+          {todayTotal.count > 0 && (
+            <div className="mt-4 space-y-2.5">
+              <p className="text-[10px] font-medium text-teal-600/60">每日限额进度</p>
+              {nutrientBars.map((bar) => {
+                const percent = Math.min(100, Math.round((bar.current / bar.limit) * 100));
+                const status = getProgressStatus(bar.current, bar.limit);
+                const colors = PROGRESS_COLORS[status];
+                return (
+                  <div key={bar.key} className="space-y-1">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className={cn('flex items-center gap-1 font-medium', bar.color)}>
+                        {bar.icon}
+                        {bar.label}
+                      </span>
+                      <span className={cn('font-semibold', colors.text)}>
+                        {bar.current}/{bar.limit}{bar.unit}
+                        <span className="ml-1 text-teal-600/40 font-normal">({percent}%)</span>
+                      </span>
+                    </div>
+                    <div className={cn('h-1.5 w-full overflow-hidden rounded-full', colors.bg)}>
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percent}%` }}
+                        transition={{ duration: 0.4, ease: 'easeOut' }}
+                        className={cn('h-full rounded-full', colors.bar)}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </motion.div>
 
-      {/* 餐次选择 */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -223,7 +323,6 @@ export default function Diet() {
         </div>
       </motion.div>
 
-      {/* 水果搜索 */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -251,7 +350,6 @@ export default function Diet() {
             )}
           </div>
 
-          {/* 水果列表 */}
           <div className="mt-4 space-y-2 max-h-[400px] overflow-y-auto">
             {filteredFruits.length === 0 ? (
               <div className="flex flex-col items-center py-8 text-center">
@@ -272,7 +370,6 @@ export default function Diet() {
         </div>
       </motion.div>
 
-      {/* 当日饮食记录（按餐次） */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -291,7 +388,7 @@ export default function Diet() {
             </span>
           </div>
 
-          {Object.values(mealGroupedRecords).every((r) => r.length === 0) ? (
+          {!hasAnyRecords ? (
             <div className="flex flex-col items-center py-10 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-cream-100">
                 <Apple className="h-8 w-8 text-cream-300" />
@@ -302,8 +399,8 @@ export default function Diet() {
           ) : (
             <div className="space-y-3">
               {MEAL_CONFIG.map((meal) => {
-                const records = mealGroupedRecords[meal.type];
-                if (records.length === 0) return null;
+                const recs = mealGroupedRecords[meal.type];
+                if (recs.length === 0) return null;
                 const nutrition = mealNutrition[meal.type];
                 const isExpanded = expandedMeal === meal.type;
 
@@ -317,7 +414,7 @@ export default function Diet() {
                         <span className="text-lg">{meal.emoji}</span>
                         <span className="text-sm font-semibold text-teal-700">{meal.label}</span>
                         <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-medium text-teal-600">
-                          {records.length} 项
+                          {recs.length} 项
                         </span>
                       </div>
                       <div className="flex items-center gap-3">
@@ -332,7 +429,7 @@ export default function Diet() {
                       </div>
                     </button>
 
-                    <AnimatePresence>
+                    <AnimatePresence initial={false}>
                       {isExpanded && (
                         <motion.div
                           initial={{ height: 0, opacity: 0 }}
@@ -342,7 +439,7 @@ export default function Diet() {
                           className="overflow-hidden"
                         >
                           <div className="px-4 pb-3 space-y-2">
-                            {records.map((r) => (
+                            {recs.map((r) => (
                               <div
                                 key={r.id}
                                 className="flex items-center gap-3 rounded-xl bg-white p-3"
@@ -356,18 +453,17 @@ export default function Diet() {
                                     {r.weight}g · K{r.potassium}mg · P{r.phosphorus}mg · 水{r.water}ml
                                   </p>
                                 </div>
-                                <span className="text-xs font-medium text-teal-600/50">
+                                <span className="text-xs font-medium text-teal-600/50 hidden sm:inline">
                                   {formatDateTime(r.timestamp)}
                                 </span>
                                 <button
                                   onClick={() => handleDelete(r.id)}
-                                  className="flex h-7 w-7 items-center justify-center rounded-lg text-teal-600/30 hover:bg-red-50 hover:text-red-500 transition"
+                                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-teal-600/30 hover:bg-red-50 hover:text-red-500 transition"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               </div>
                             ))}
-                            {/* 餐次营养小计 */}
                             <div className="rounded-xl bg-teal-50/50 p-3">
                               <p className="text-[10px] font-medium text-teal-600/60 mb-1.5">餐次营养小计</p>
                               <div className="grid grid-cols-4 gap-2">
@@ -404,7 +500,6 @@ export default function Diet() {
   );
 }
 
-/** 水果卡片组件 */
 function FruitCard({
   fruit,
   onAdd,
@@ -416,17 +511,16 @@ function FruitCard({
 }) {
   const level = getLevelFromPotassium(fruit.potassiumPer100g);
   const levelColors = LEVEL_COLORS[level];
-  const imageUrl = useFruitImage(fruit);
+  const imageUrl = useEntityImage(fruit.name, 'fruit');
 
   return (
     <div className="flex items-center gap-3 rounded-xl border border-cream-200 bg-white p-3 transition hover:border-teal-200 hover:shadow-sm">
-      {/* 图片 */}
       <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-cream-100">
         {imageUrl ? (
           <SmartImage
             src={imageUrl}
             alt={fruit.name}
-            className="h-full w-full"
+            className="h-full w-full object-cover"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-xl">
@@ -435,13 +529,12 @@ function FruitCard({
         )}
       </div>
 
-      {/* 信息 */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="text-sm font-semibold text-teal-700 truncate">{fruit.name}</span>
           <span
             className={cn(
-              'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
+              'flex-shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold',
               levelColors.bg,
               levelColors.text
             )}
@@ -454,14 +547,13 @@ function FruitCard({
         </p>
       </div>
 
-      {/* 快捷重量按钮 */}
       <div className="flex flex-shrink-0 gap-1">
         {QUICK_WEIGHTS.map((w) => (
           <button
             key={w}
             onClick={() => onAdd(w)}
             className={cn(
-              'rounded-lg border px-2 py-1.5 text-[10px] font-medium transition active:scale-90',
+              'flex flex-col items-center rounded-lg border px-2 py-1 text-[10px] font-medium transition active:scale-90',
               saved
                 ? 'border-green-300 bg-green-500 text-white'
                 : 'border-teal-200 bg-teal-50 text-teal-600 hover:border-teal-300 hover:bg-teal-100'
