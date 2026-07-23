@@ -50,6 +50,7 @@ export interface MedicationBaike {
   storage: string; // 贮藏
   overdose: string; // 药物过量
   image?: string; // 图片 URL（可选）
+  aliases?: string; // 别名（逗号/顿号分隔，可选）
 }
 
 // =============================================================================
@@ -361,7 +362,7 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   石榴: {
     name: '石榴',
-    emoji: '🟥',
+    emoji: '🍎',
     potassiumPer100g: 231,
     phosphorusPer100g: 11,
     sodiumPer100g: 1,
@@ -383,7 +384,7 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   火龙果: {
     name: '火龙果',
-    emoji: '🐉',
+    emoji: '🍓',
     potassiumPer100g: 141,
     phosphorusPer100g: 21,
     sodiumPer100g: 3,
@@ -405,7 +406,7 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   李子: {
     name: '李子',
-    emoji: '🟣',
+    emoji: '🍇',
     potassiumPer100g: 144,
     phosphorusPer100g: 13,
     sodiumPer100g: 2,
@@ -427,7 +428,7 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   杏子: {
     name: '杏子',
-    emoji: '🟠',
+    emoji: '🍑',
     potassiumPer100g: 226,
     phosphorusPer100g: 14,
     sodiumPer100g: 3,
@@ -493,7 +494,7 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   榴莲: {
     name: '榴莲',
-    emoji: '🟡',
+    emoji: '🥥',
     potassiumPer100g: 436,
     phosphorusPer100g: 39,
     sodiumPer100g: 3,
@@ -514,7 +515,7 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   柿子: {
     name: '柿子',
-    emoji: '🟧',
+    emoji: '🍊',
     potassiumPer100g: 151,
     phosphorusPer100g: 17,
     sodiumPer100g: 1,
@@ -579,7 +580,7 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   柚子: {
     name: '柚子',
-    emoji: '🟢',
+    emoji: '🍊',
     potassiumPer100g: 216,
     phosphorusPer100g: 24,
     sodiumPer100g: 2,
@@ -601,7 +602,7 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   枣: {
     name: '枣',
-    emoji: '🟤',
+    emoji: '🍒',
     potassiumPer100g: 375,
     phosphorusPer100g: 23,
     sodiumPer100g: 1,
@@ -623,7 +624,7 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   山楂: {
     name: '山楂',
-    emoji: '🔴',
+    emoji: '🍒',
     potassiumPer100g: 299,
     phosphorusPer100g: 14,
     sodiumPer100g: 4,
@@ -644,7 +645,7 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   无花果: {
     name: '无花果',
-    emoji: '🟪',
+    emoji: '🍇',
     potassiumPer100g: 232,
     phosphorusPer100g: 15,
     sodiumPer100g: 1,
@@ -666,7 +667,7 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   百香果: {
     name: '百香果',
-    emoji: '🟨',
+    emoji: '🫐',
     potassiumPer100g: 248,
     phosphorusPer100g: 37,
     sodiumPer100g: 18,
@@ -688,7 +689,7 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   杨桃: {
     name: '杨桃',
-    emoji: '⭐',
+    emoji: '🍋',
     potassiumPer100g: 143,
     phosphorusPer100g: 18,
     sodiumPer100g: 1,
@@ -710,7 +711,7 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   桑葚: {
     name: '桑葚',
-    emoji: '🟫',
+    emoji: '🍇',
     potassiumPer100g: 297,
     phosphorusPer100g: 33,
     sodiumPer100g: 2,
@@ -732,7 +733,7 @@ export const FRUIT_BAIKE: Record<string, FruitBaike> = {
   },
   枇杷: {
     name: '枇杷',
-    emoji: '🟧',
+    emoji: '🍑',
     potassiumPer100g: 266,
     phosphorusPer100g: 16,
     sodiumPer100g: 1,
@@ -1193,6 +1194,7 @@ export const MEDICATION_BAIKE: Record<string, MedicationBaike> = {
     storage: '遮光、密封，在阴凉干燥处保存（不超过25℃）；控释片注意防潮。',
     overdose:
       '过量主要表现为严重低血压、反射性心动过速，严重者心动过缓、休克。处理：立即停药；密切监测血压、心率；平卧、抬高下肢，必要时静脉补液、血管活性药物；钙剂、胰高血糖素可能有助于逆转；活性炭吸附对早期过量有效；血液透析不能有效清除。',
+    aliases: '硝苯地平缓释片,硝苯地平控释片,拜新同,欣然,心痛定,拜新同控释片',
   },
   美托洛尔: {
     name: '美托洛尔',
@@ -1385,17 +1387,33 @@ export function findFruitBaike(name: string): FruitBaike | null {
     if (k.toLowerCase() === key) return FRUIT_BAIKE[k];
   }
 
-  // 3. 名称包含匹配：key 包含查询词 或 查询词包含 key
+  // 3. 名称包含匹配：key 包含查询词 或 查询词包含 key（选最长的 key 作为最佳匹配）
+  let bestMatch: FruitBaike | null = null;
+  let bestLen = 0;
   for (const k of Object.keys(FRUIT_BAIKE)) {
     const kl = k.toLowerCase();
-    if (kl.includes(key) || key.includes(kl)) return FRUIT_BAIKE[k];
+    if (kl.includes(key) || key.includes(kl)) {
+      if (k.length > bestLen) {
+        bestLen = k.length;
+        bestMatch = FRUIT_BAIKE[k];
+      }
+    }
   }
+  if (bestMatch) return bestMatch;
 
-  // 4. 别名包含匹配
+  // 4. 别名包含匹配（选最长的别名所属条目）
+  let bestAliasMatch: FruitBaike | null = null;
+  let bestAliasLen = 0;
   for (const k of Object.keys(FRUIT_BAIKE)) {
     const entry = FRUIT_BAIKE[k];
-    if (entry.aliases && entry.aliases.toLowerCase().includes(key)) return entry;
+    if (entry.aliases && entry.aliases.toLowerCase().includes(key)) {
+      if (k.length > bestAliasLen) {
+        bestAliasLen = k.length;
+        bestAliasMatch = entry;
+      }
+    }
   }
+  if (bestAliasMatch) return bestAliasMatch;
 
   return null;
 }
@@ -1403,7 +1421,8 @@ export function findFruitBaike(name: string): FruitBaike | null {
 /**
  * 查找药物百科条目。
  * 支持模糊匹配：精确名称 → 忽略大小写匹配 → 名称包含 → 别名包含。
- * @param name 药物名称（如“碳酸钙”、“重组人促红素”）
+ * 模糊匹配时选择最长匹配的 key，避免短词抢先命中。
+ * @param name 药物名称（如"碳酸钙"、"重组人促红素"、"硝苯地平缓释片"）
  * @returns 匹配的百科条目，未找到返回 null
  */
 export function findMedicationBaike(name: string): MedicationBaike | null {
@@ -1419,11 +1438,41 @@ export function findMedicationBaike(name: string): MedicationBaike | null {
     if (k.toLowerCase() === key) return MEDICATION_BAIKE[k];
   }
 
-  // 3. 名称包含匹配：key 包含查询词 或 查询词包含 key
+  // 3. 名称包含匹配：key 包含查询词 或 查询词包含 key（选最长的 key 作为最佳匹配）
+  let bestMatch: MedicationBaike | null = null;
+  let bestLen = 0;
   for (const k of Object.keys(MEDICATION_BAIKE)) {
     const kl = k.toLowerCase();
-    if (kl.includes(key) || key.includes(kl)) return MEDICATION_BAIKE[k];
+    if (kl.includes(key) || key.includes(kl)) {
+      if (k.length > bestLen) {
+        bestLen = k.length;
+        bestMatch = MEDICATION_BAIKE[k];
+      }
+    }
   }
+  if (bestMatch) return bestMatch;
+
+  // 4. 别名包含匹配
+  let bestAliasMatch: MedicationBaike | null = null;
+  let bestAliasLen = 0;
+  for (const k of Object.keys(MEDICATION_BAIKE)) {
+    const entry = MEDICATION_BAIKE[k];
+    const aliases = entry.aliases;
+    if (aliases) {
+      // 支持别名用逗号/顿号分隔
+      const aliasList = aliases.split(/[,，、/]/);
+      for (const a of aliasList) {
+        const al = a.trim().toLowerCase();
+        if (al && (key.includes(al) || al.includes(key))) {
+          if (k.length > bestAliasLen) {
+            bestAliasLen = k.length;
+            bestAliasMatch = entry;
+          }
+        }
+      }
+    }
+  }
+  if (bestAliasMatch) return bestAliasMatch;
 
   return null;
 }

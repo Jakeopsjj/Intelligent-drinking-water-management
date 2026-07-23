@@ -6,6 +6,7 @@ import { generateId, getLevelFromPotassium } from '@/utils/calc';
 import { nativeJSONStorage } from '@/lib/nativeStorage';
 import { eventBus } from '@/lib/eventBus';
 import { EVENT_NAMES } from '@/types/events';
+import { findFruitBaike } from '@/data/baikeDatabase';
 
 interface FruitsState {
   // 内置水果（仅用于展示，不可修改）
@@ -91,6 +92,44 @@ export const useFruitsStore = create<FruitsState>()(
       name: 'dialysis_fruits',
       partialize: (state) => ({ customFruits: state.customFruits }),
       storage: nativeJSONStorage,
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        // 数据迁移：修正旧版本 persist 中的错误数据（emoji=🍎且营养为0）
+        const fixed = state.customFruits.map((f) => {
+          const baike = findFruitBaike(f.name);
+          if (!baike) return f;
+          // 如果数据看起来是旧的错误数据（emoji为通用🍎/🟢等且营养为0），用离线库覆盖
+          const needsFix =
+            f.potassiumPer100g === 0 ||
+            f.emoji === '🟢' || f.emoji === '🟥' || f.emoji === '🟣' ||
+            f.emoji === '🟠' || f.emoji === '🐉' || f.emoji === '🟡' ||
+            f.emoji === '🟧' || f.emoji === '🟤' || f.emoji === '🔴' ||
+            f.emoji === '🟪' || f.emoji === '🟨' || f.emoji === '⭐' ||
+            f.emoji === '🟫';
+          if (!needsFix) return f;
+          return {
+            ...f,
+            emoji: baike.emoji,
+            potassiumPer100g: baike.potassiumPer100g,
+            phosphorusPer100g: baike.phosphorusPer100g,
+            sodiumPer100g: baike.sodiumPer100g,
+            waterPer100g: baike.waterPer100g,
+            level: getLevelFromPotassium(baike.potassiumPer100g),
+            description: f.description || baike.description,
+            aliases: f.aliases || baike.aliases,
+          };
+        });
+        // 去重：同名保留最新
+        const seen = new Set<string>();
+        const deduped = [];
+        for (let i = fixed.length - 1; i >= 0; i--) {
+          if (!seen.has(fixed[i].name)) {
+            seen.add(fixed[i].name);
+            deduped.unshift(fixed[i]);
+          }
+        }
+        state.customFruits = deduped;
+      },
     }
   )
 );

@@ -589,130 +589,134 @@ function AddMedicationDrawer({
   };
 
   return (
-    <motion.div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-teal-700/40"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
+    <>
       <motion.div
+        className="fixed inset-0 z-[100] bg-black/40"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <motion.div
+        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[85vh] w-full overflow-y-auto rounded-t-3xl bg-white"
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         onClick={(e) => e.stopPropagation()}
-        className="relative max-h-[90dvh] w-full max-w-lg overflow-hidden rounded-t-3xl bg-white/90 p-4 shadow-soft-lg backdrop-blur-xl"
+        style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
       >
-        <div className="relative z-10 flex items-center justify-between border-b border-cream-200 p-1 pb-3">
-          <h3 className="font-medium text-teal-700">添加自定义药物</h3>
-          <button onClick={onClose} className="glass-tile rounded-full p-1.5 text-teal-600">
-            <X className="h-4 w-4" />
+        <div className="flex items-center justify-between px-6 pt-5">
+          <h3 className="text-lg font-semibold text-teal-700">添加自定义药物</h3>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-50 text-teal-600"
+          >
+            <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="relative z-10 max-h-[calc(90dvh-64px)] overflow-y-auto p-4">
-          <div className="space-y-3">
-            <div className="flex gap-3">
-              <input
-                value={emoji}
-                onChange={(e) => setEmoji(e.target.value)}
-                className="w-14 rounded-xl border border-cream-300 bg-white px-3 py-2.5 text-center text-xl"
-                maxLength={2}
-              />
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="药物名称（必填）"
-                className="flex-1 rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
-              />
-            </div>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as MedicationCategory)}
-              className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 focus:border-teal-400"
-            >
-              {(Object.keys(MEDICATION_CATEGORIES) as MedicationCategory[]).map((cat) => (
-                <option key={cat} value={cat}>{MEDICATION_CATEGORIES[cat].name}</option>
-              ))}
-            </select>
+
+        <div className="space-y-3 px-6 pb-4 pt-4">
+          <div className="flex gap-3">
             <input
-              value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
-              placeholder="主要作用（如：磷结合剂，降血磷）"
-              className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                value={defaultDose}
-                onChange={(e) => setDefaultDose(e.target.value)}
-                type="number"
-                min={0}
-                placeholder="单次剂量（如 1）"
-                className="rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
-              />
-              <input
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                placeholder="单位（片/粒/ml）"
-                className="rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
-              />
-            </div>
-            <input
-              value={frequency}
-              onChange={(e) => setFrequency(e.target.value)}
-              placeholder="频次（如：每日3次）"
-              className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
+              value={emoji}
+              onChange={(e) => setEmoji(e.target.value)}
+              className="w-14 flex-shrink-0 rounded-xl border border-cream-300 bg-white px-3 py-2.5 text-center text-xl focus:border-teal-400 focus:outline-none"
+              maxLength={2}
             />
             <input
-              value={timing}
-              onChange={(e) => setTiming(e.target.value)}
-              placeholder="服用时间（如：饭后/空腹）"
-              className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
-            />
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="药物介绍（可选，留空将自动联网获取）"
-              className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
-              rows={2}
-            />
-            <textarea
-              value={usageNotes}
-              onChange={(e) => setUsageNotes(e.target.value)}
-              placeholder="使用说明 / 注意事项（可选）"
-              className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
-              rows={2}
-            />
-            <textarea
-              value={ingredients}
-              onChange={(e) => setIngredients(e.target.value)}
-              placeholder="主要成分（可选）"
-              className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
-              rows={2}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="药物名称（必填）"
+              className="flex-1 rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
             />
           </div>
-          <div className="mt-4 flex gap-2">
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as MedicationCategory)}
+            className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 focus:border-teal-400 focus:outline-none"
+          >
+            {(Object.keys(MEDICATION_CATEGORIES) as MedicationCategory[]).map((cat) => (
+              <option key={cat} value={cat}>{MEDICATION_CATEGORIES[cat].name}</option>
+            ))}
+          </select>
+          <input
+            value={purpose}
+            onChange={(e) => setPurpose(e.target.value)}
+            placeholder="主要作用（如：磷结合剂，降血磷）"
+            className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              value={defaultDose}
+              onChange={(e) => setDefaultDose(e.target.value)}
+              type="number"
+              min={0}
+              placeholder="单次剂量（如 1）"
+              className="rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+            />
+            <input
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              placeholder="单位（片/粒/ml）"
+              className="rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+            />
+          </div>
+          <input
+            value={frequency}
+            onChange={(e) => setFrequency(e.target.value)}
+            placeholder="频次（如：每日3次）"
+            className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+          />
+          <input
+            value={timing}
+            onChange={(e) => setTiming(e.target.value)}
+            placeholder="服用时间（如：饭后/空腹）"
+            className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+          />
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="药物介绍（可选）"
+            className="w-full resize-none rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+            rows={2}
+          />
+          <textarea
+            value={usageNotes}
+            onChange={(e) => setUsageNotes(e.target.value)}
+            placeholder="使用说明 / 注意事项（可选）"
+            className="w-full resize-none rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+            rows={2}
+          />
+          <textarea
+            value={ingredients}
+            onChange={(e) => setIngredients(e.target.value)}
+            placeholder="主要成分（可选）"
+            className="w-full resize-none rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+            rows={2}
+          />
+          <div className="flex gap-2 pt-2">
             <button
               onClick={onClose}
-              className="glass-tile flex-1 rounded-xl px-4 py-2.5 text-sm font-medium text-teal-600"
+              className="flex-1 rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm font-medium text-teal-600"
             >
               取消
             </button>
             <button
               onClick={handleSave}
               disabled={!canSave}
-              className="flex-1 rounded-xl bg-gradient-to-br from-teal-500 to-sage-500 px-4 py-2.5 text-sm font-medium text-white transition hover:shadow-soft disabled:opacity-40"
+              className="flex-1 rounded-xl bg-teal-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-teal-600 disabled:opacity-40"
             >
               保存
             </button>
           </div>
           {customCount > 0 && (
-            <p className="mt-3 text-center text-[10px] text-teal-600/40">
+            <p className="text-center text-xs text-teal-600/60">
               已添加 {customCount} 种自定义药物
             </p>
           )}
         </div>
       </motion.div>
-    </motion.div>
+    </>
   );
 }

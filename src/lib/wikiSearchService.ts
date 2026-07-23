@@ -34,6 +34,11 @@ export interface WikiDetail {
   healthBenefits?: string; // 健康益处
   precautions?: string;    // 食用禁忌
   storage?: string;        // 保存方法
+  // 每100g营养数据（从营养模板/表格中提取）
+  potassiumPer100g?: number;  // 钾 mg
+  phosphorusPer100g?: number; // 磷 mg
+  sodiumPer100g?: number;     // 钠 mg
+  waterPer100g?: number;      // 水分 g/ml
 }
 
 /** 搜索缓存 */
@@ -212,10 +217,12 @@ async function fetchDetailFromLang(lang: string, keyword: string): Promise<WikiD
   // 2. parse API —— wikitext 正文段落
   let sections: WikiSection[] = [];
   let extraImages: string[] = [];
+  let nutrition: Partial<WikiDetail> = {};
   const wikitext = await fetchWikitext(lang, title);
   if (wikitext) {
     sections = parseWikitext(wikitext);
     extraImages = extractWikitextImages(wikitext);
+    nutrition = extractNutritionFromWikitext(wikitext);
   }
 
   // 水果相关结构化字段
@@ -224,6 +231,7 @@ async function fetchDetailFromLang(lang: string, keyword: string): Promise<WikiD
   const detail: WikiDetail = {
     title,
     summary,
+    ...nutrition,
   };
   if (image) {
     detail.image = image;
@@ -395,4 +403,63 @@ function extractFruitFields(sections: WikiSection[]): Partial<WikiDetail> {
   }
 
   return result;
+}
+
+/** 从维基百科 wikitext 中提取每100g营养数据（钾、磷、钠、水分） */
+export function extractNutritionFromWikitext(wikitext: string): Partial<WikiDetail> {
+  const nutrition: Partial<WikiDetail> = {};
+  if (!wikitext) return nutrition;
+
+  // 先定位到营养模板/营养段落（避免误匹配其他地方的字段）
+  // 中文：{{Nutrition value、{{营养、{{营养成分；英文：{{Nutritional value、{{Nutrition value
+  const nutritionStart = wikitext.search(
+    /\{\{\s*(?:Nutrition value|Nutritional value|Nutritional value per 100\s*g|营养[^}]{0,20})/i
+  );
+  // 取营养模板后 4000 字符作为搜索范围（足够覆盖营养字段）
+  const searchStart = nutritionStart >= 0 ? nutritionStart : 0;
+  const searchEnd = nutritionStart >= 0 ? Math.min(wikitext.length, nutritionStart + 4000) : wikitext.length;
+  const searchText = wikitext.slice(searchStart, searchEnd);
+
+  // 提取钾 (potassium)：支持 | potassium_mg = 135、| 钾 = 135、|potassium=135 mg 等
+  const extractMg = (patterns: RegExp[]): number | undefined => {
+    for (const re of patterns) {
+      const m = searchText.match(re);
+      if (m) {
+        // 提取第一个数字（可能带单位/空格/模板，取第一个数值）
+        const numMatch = m[1].match(/([\d.]+)/);
+        if (numMatch) {
+          const val = parseFloat(numMatch[1]);
+          if (!isNaN(val) && val > 0 && val < 10000) return Math.round(val);
+        }
+      }
+    }
+    return undefined;
+  };
+
+  // 钾：常见英文键 potassium_mg / potassium，中文键 钾
+  nutrition.potassiumPer100g = extractMg([
+    /\|\s*(?:potassium_mg|potassium|钾|k)\s*=\s*([^|}\n]+)/i,
+  ]);
+
+  // 磷：phosphorus_mg / phosphorus / 磷
+  nutrition.phosphorusPer100g = extractMg([
+    /\|\s*(?:phosphorus_mg|phosphorus|磷|p)\s*=\s*([^|}\n]+)/i,
+  ]);
+
+  // 钠：sodium_mg / sodium / 钠
+  nutrition.sodiumPer100g = extractMg([
+    /\|\s*(?:sodium_mg|sodium|钠|na)\s*=\s*([^|}\n]+)/i,
+  ]);
+
+  // 水分：water / 水分 / 水（值为百分比/克数，0-100）
+  const wMatch = searchText.match(/\|\s*(?:water|水分|水)\s*=\s*([^|}\n]+)/i);
+  if (wMatch) {
+    const numMatch = wMatch[1].match(/([\d.]+)/);
+    if (numMatch) {
+      const val = parseFloat(numMatch[1]);
+      if (!isNaN(val) && val > 0 && val < 100) nutrition.waterPer100g = Math.round(val);
+    }
+  }
+
+  return nutrition;
 }

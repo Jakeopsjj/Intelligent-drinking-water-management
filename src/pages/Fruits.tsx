@@ -88,10 +88,10 @@ export default function Fruits() {
       addFruit({
         name: keyword,
         emoji: '🍇',
-        potassiumPer100g: 0,
-        phosphorusPer100g: 0,
-        sodiumPer100g: 0,
-        waterPer100g: 0,
+        potassiumPer100g: detail.potassiumPer100g ?? 0,
+        phosphorusPer100g: detail.phosphorusPer100g ?? 0,
+        sodiumPer100g: detail.sodiumPer100g ?? 0,
+        waterPer100g: detail.waterPer100g ?? 80,
         suggestion: '请根据医嘱适量食用',
         description: detail.summary,
         image: detail.image,
@@ -587,173 +587,170 @@ function AddFruitDrawer({
   const isVaild = name.trim() && potassium && Number(potassium) > 0;
 
   return (
-    <motion.div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-teal-700/40"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
+    <>
       <motion.div
+        className="fixed inset-0 z-[100] bg-black/40"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <motion.div
+        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[85vh] w-full overflow-y-auto rounded-t-3xl bg-white"
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         onClick={(e) => e.stopPropagation()}
-        className="relative max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white/90 p-6 shadow-soft-lg backdrop-blur-xl"
+        style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
       >
-        <div className="relative z-10">
-          <div className="flex items-center justify-between">
-            <h3 className="font-serif text-lg font-semibold text-teal-700">添加自定义水果</h3>
-            <button
-              onClick={onClose}
-              className="glass-tile rounded-full p-1.5 text-teal-600 hover:bg-cream-200"
-            >
-              <X className="h-5 w-5" />
-            </button>
+        <div className="flex items-center justify-between px-6 pt-5">
+          <h3 className="text-lg font-semibold text-teal-700">添加自定义水果</h3>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-50 text-teal-600"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4 px-6 pb-4 pt-4">
+          {/* 名称 */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-teal-600">
+              水果名称 <span className="text-red-400">*</span>
+            </label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="例如：柚子"
+              className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+            />
           </div>
 
-          <div className="mt-4 space-y-4">
-            {/* 名称 */}
+          {/* emoji 选择 */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-teal-600">水果图标</label>
+            <div className="flex flex-wrap gap-2">
+              {emojiChoices.map((e) => (
+                <button
+                  key={e}
+                  onClick={() => setEmoji(e)}
+                  className={cn(
+                    'flex h-10 w-10 items-center justify-center rounded-xl border text-lg transition',
+                    emoji === e
+                      ? 'border-teal-400 bg-teal-50'
+                      : 'border-cream-300 bg-white hover:bg-cream-100'
+                  )}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 元素含量：钾 */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-teal-600">
+              每 100g 含钾量 <span className="text-teal-600/50">(mg)</span> <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="number"
+              value={potassium}
+              onChange={(e) => setPotassium(e.target.value)}
+              placeholder="例如：180"
+              className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-teal-600">
-                水果名称 <span className="text-clay-500">*</span>
-              </label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="例如：柚子"
-                className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
-              />
-              <p className="mt-1 text-[10px] text-teal-600/40">
-                添加后，详情页将自动联网获取真实配图与介绍
-              </p>
-            </div>
-
-            {/* emoji 选择 */}
-            <div>
-              <label className="mb-1 block text-xs font-medium text-teal-600">水果图标</label>
-              <div className="flex flex-wrap gap-2">
-                {emojiChoices.map((e) => (
-                  <button
-                    key={e}
-                    onClick={() => setEmoji(e)}
-                    className={cn(
-                      'flex h-10 w-10 items-center justify-center rounded-xl border text-lg transition',
-                      emoji === e
-                        ? 'border-teal-400 bg-teal-50'
-                        : 'border-cream-300 bg-white hover:bg-cream-100'
-                    )}
-                  >
-                    {e}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 元素含量：钾 / 磷 / 钠 */}
-            <div>
-              <label className="mb-1 block text-xs font-medium text-teal-600">
-                每 100g 含钾量 <span className="text-teal-600/50">(mg)</span> <span className="text-clay-500">*</span>
+                磷 <span className="text-teal-600/50">(mg)</span>
               </label>
               <input
                 type="number"
-                value={potassium}
-                onChange={(e) => setPotassium(e.target.value)}
-                placeholder="例如：180"
-                className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
+                value={phosphorus}
+                onChange={(e) => setPhosphorus(e.target.value)}
+                placeholder="可选"
+                className="w-full rounded-xl border border-cream-300 bg-white px-3 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
               />
             </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-teal-600">
-                  磷 <span className="text-teal-600/50">(mg/100g)</span>
-                </label>
-                <input
-                  type="number"
-                  value={phosphorus}
-                  onChange={(e) => setPhosphorus(e.target.value)}
-                  placeholder="可选"
-                  className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-teal-600">
-                  钠 <span className="text-teal-600/50">(mg/100g)</span>
-                </label>
-                <input
-                  type="number"
-                  value={sodium}
-                  onChange={(e) => setSodium(e.target.value)}
-                  placeholder="可选"
-                  className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-teal-600">
-                  水分 <span className="text-teal-600/50">(ml/100g)</span>
-                </label>
-                <input
-                  type="number"
-                  value={water}
-                  onChange={(e) => setWater(e.target.value)}
-                  placeholder="默认 80"
-                  className="w-full rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
-                />
-              </div>
-            </div>
-
-            {/* 建议 */}
             <div>
-              <label className="mb-1 block text-xs font-medium text-teal-600">食用建议</label>
-              <textarea
-                value={suggestion}
-                onChange={(e) => setSuggestion(e.target.value)}
-                placeholder="可选，例如：可适量食用，建议不超过 150g"
-                rows={2}
-                className="w-full resize-none rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
+              <label className="mb-1 block text-xs font-medium text-teal-600">
+                钠 <span className="text-teal-600/50">(mg)</span>
+              </label>
+              <input
+                type="number"
+                value={sodium}
+                onChange={(e) => setSodium(e.target.value)}
+                placeholder="可选"
+                className="w-full rounded-xl border border-cream-300 bg-white px-3 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
               />
             </div>
-
-            {/* 自动判断等级 */}
-            {potassium && Number(potassium) > 0 && (
-              <div className="rounded-xl bg-cream-100 px-4 py-2.5 text-xs text-teal-600">
-                系统将自动判定为
-                <span
-                  className={cn(
-                    'ml-1.5 rounded-full px-2 py-0.5 font-medium',
-                    LEVEL_COLORS[
-                      Number(potassium) < 150 ? 'low' : Number(potassium) < 200 ? 'medium' : 'high'
-                    ].bg,
-                    LEVEL_COLORS[
-                      Number(potassium) < 150 ? 'low' : Number(potassium) < 200 ? 'medium' : 'high'
-                    ].text
-                  )}
-                >
-                  {LEVEL_TEXT[
-                    Number(potassium) < 150 ? 'low' : Number(potassium) < 200 ? 'medium' : 'high'
-                  ]}
-                </span>
-              </div>
-            )}
-
-            <button
-              onClick={handleSubmit}
-              disabled={!isVaild}
-              className="w-full rounded-xl bg-teal-500 py-3 text-sm font-medium text-white shadow-soft transition hover:bg-teal-600 disabled:opacity-40"
-            >
-              添加水果
-            </button>
-
-            {customCount > 0 && (
-              <p className="text-center text-xs text-teal-600/60">
-                已添加 {customCount} 个自定义水果
-              </p>
-            )}
+            <div>
+              <label className="mb-1 block text-xs font-medium text-teal-600">
+                水分 <span className="text-teal-600/50">(ml)</span>
+              </label>
+              <input
+                type="number"
+                value={water}
+                onChange={(e) => setWater(e.target.value)}
+                placeholder="默认80"
+                className="w-full rounded-xl border border-cream-300 bg-white px-3 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+              />
+            </div>
           </div>
+
+          {/* 建议 */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-teal-600">食用建议</label>
+            <textarea
+              value={suggestion}
+              onChange={(e) => setSuggestion(e.target.value)}
+              placeholder="可选，例如：可适量食用，建议不超过 150g"
+              rows={2}
+              className="w-full resize-none rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+            />
+          </div>
+
+          {/* 自动判断等级 */}
+          {potassium && Number(potassium) > 0 && (
+            <div className="rounded-xl bg-cream-100 px-4 py-2.5 text-xs text-teal-600">
+              系统将自动判定为
+              <span
+                className={cn(
+                  'ml-1.5 rounded-full px-2 py-0.5 font-medium',
+                  LEVEL_COLORS[
+                    Number(potassium) < 150 ? 'low' : Number(potassium) < 200 ? 'medium' : 'high'
+                  ].bg,
+                  LEVEL_COLORS[
+                    Number(potassium) < 150 ? 'low' : Number(potassium) < 200 ? 'medium' : 'high'
+                  ].text
+                )}
+              >
+                {LEVEL_TEXT[
+                  Number(potassium) < 150 ? 'low' : Number(potassium) < 200 ? 'medium' : 'high'
+                ]}
+              </span>
+            </div>
+          )}
+
+          <button
+            onClick={handleSubmit}
+            disabled={!isVaild}
+            className="w-full rounded-xl bg-teal-500 py-3 text-sm font-medium text-white transition hover:bg-teal-600 disabled:opacity-40"
+          >
+            添加水果
+          </button>
+
+          {customCount > 0 && (
+            <p className="text-center text-xs text-teal-600/60">
+              已添加 {customCount} 个自定义水果
+            </p>
+          )}
         </div>
       </motion.div>
-    </motion.div>
+    </>
   );
 }
