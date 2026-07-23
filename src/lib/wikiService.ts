@@ -73,43 +73,131 @@ const FRUIT_NAME_MAP: Record<string, string> = {
   '西柚': 'grapefruit',
 };
 
-/** 药物中文名 → 多组搜索词（获取不同国家/语言版本的药盒图） */
+/** 药物名 → 多组搜索词（获取药盒/药片图片，中文封面优先） */
 const MED_SEARCH_TERMS: Record<string, { cn: string[]; en: string[] }> = {
-  '碳酸钙': {
-    cn: ['碳酸钙片 药盒', '碳酸钙咀嚼片 包装'],
-    en: ['calcium carbonate tablet box', 'calcium carbonate 1500mg packaging'],
+  '硝苯地平控释片': {
+    cn: ['硝苯地平控释片 药盒', '硝苯地平 拜新同'],
+    en: ['nifedipine tablet box', 'nifedipine 30mg adalat'],
   },
-  '司维拉姆': {
-    cn: ['司维拉姆 药盒', '司维拉姆碳酸 盐片剂'],
-    en: ['sevelamer carbonate tablet', 'sevelamer 800mg renvela'],
-  },
-  '碳酸镧': {
-    cn: ['碳酸镧 药盒', '碳酸镧咀嚼片'],
-    en: ['lanthanum carbonate tablet', 'fosrenol lanthanum'],
-  },
-  '骨化三醇': {
-    cn: ['骨化三醇胶囊 药盒', '骨化三醇胶丸'],
-    en: ['calcitriol capsule', 'calcitriol 0.25 rocaltriol'],
-  },
-  '碳酸氢钠': {
-    cn: ['碳酸氢钠片 药盒', '碳酸氢钠片剂 包装'],
-    en: ['sodium bicarbonate tablet', 'sodium bicarbonate 500mg'],
-  },
-  '氨氯地平': {
+  '苯磺酸氨氯地平片': {
     cn: ['氨氯地平片 药盒', '苯磺酸氨氯地平片 包装'],
     en: ['amlodipine tablet box', 'amlodipine besylate 5mg norvasc'],
   },
-  '缬沙坦': {
+  '缬沙坦胶囊': {
     cn: ['缬沙坦胶囊 药盒', '缬沙坦胶囊剂 包装'],
     en: ['valsartan capsule', 'valsartan 80mg diovan'],
   },
-  '重组人促红素': {
+  '氯沙坦钾片': {
+    cn: ['氯沙坦钾片 药盒', '氯沙坦 科素亚'],
+    en: ['losartan tablet box', 'losartan 50mg cozaar'],
+  },
+  '厄贝沙坦片': {
+    cn: ['厄贝沙坦片 药盒', '厄贝沙坦 安博维'],
+    en: ['irbesartan tablet box', 'irbesartan 150mg'],
+  },
+  '酒石酸美托洛尔片': {
+    cn: ['美托洛尔片 药盒', '酒石酸美托洛尔 倍他乐克'],
+    en: ['metoprolol tablet box', 'metoprolol tartrate 50mg'],
+  },
+  '富马酸比索洛尔片': {
+    cn: ['比索洛尔片 药盒', '富马酸比索洛尔 康忻'],
+    en: ['bisoprolol tablet box', 'bisoprolol 5mg'],
+  },
+  '卡托普利片': {
+    cn: ['卡托普利片 药盒', '卡托普利 开博通'],
+    en: ['captopril tablet box', 'captopril 25mg'],
+  },
+  '依那普利片': {
+    cn: ['依那普利片 药盒', '依那普利 悦宁定'],
+    en: ['enalapril tablet box', 'enalapril 10mg'],
+  },
+  '培哚普利叔丁胺片': {
+    cn: ['培哚普利片 药盒', '培哚普利 雅施达'],
+    en: ['perindopril tablet box', 'perindopril 4mg'],
+  },
+  '呋塞米片': {
+    cn: ['呋塞米片 药盒', '呋塞米 速尿'],
+    en: ['furosemide tablet box', 'furosemide 40mg lasix'],
+  },
+  '托拉塞米片': {
+    cn: ['托拉塞米片 药盒', '托拉塞米 特苏敏'],
+    en: ['torasemide tablet box', 'torasemide 10mg'],
+  },
+  '氢氯噻嗪片': {
+    cn: ['氢氯噻嗪片 药盒', '氢氯噻嗪 双氢克尿噻'],
+    en: ['hydrochlorothiazide tablet box', 'hydrochlorothiazide 25mg'],
+  },
+  '螺内酯片': {
+    cn: ['螺内酯片 药盒', '螺内酯 安体舒通'],
+    en: ['spironolactone tablet box', 'spironolactone 25mg aldactone'],
+  },
+  '碳酸钙片': {
+    cn: ['碳酸钙片 药盒', '碳酸钙咀嚼片 包装'],
+    en: ['calcium carbonate tablet box', 'calcium carbonate 1500mg packaging'],
+  },
+  '醋酸钙片': {
+    cn: ['醋酸钙片 药盒', '醋酸钙 结磷钙'],
+    en: ['calcium acetate tablet box', 'calcium acetate 667mg'],
+  },
+  '碳酸司维拉姆片': {
+    cn: ['碳酸司维拉姆片 药盒', '碳酸司维拉姆 诺维乐'],
+    en: ['sevelamer carbonate tablet', 'sevelamer 800mg renvela'],
+  },
+  '盐酸司维拉姆片': {
+    cn: ['盐酸司维拉姆片 药盒', '盐酸司维拉姆 雷诺捷'],
+    en: ['sevelamer hydrochloride tablet', 'renagel sevelamer 800mg'],
+  },
+  '碳酸镧咀嚼片': {
+    cn: ['碳酸镧咀嚼片 药盒', '碳酸镧 福斯利诺'],
+    en: ['lanthanum carbonate tablet', 'fosrenol lanthanum'],
+  },
+  '重组人红细胞生成素注射液': {
     cn: ['重组人促红素 注射液', '促红素 注射'],
     en: ['epoetin injection', 'erythropoietin injection vial'],
   },
-  '蔗糖铁': {
+  '蔗糖铁注射液': {
     cn: ['蔗糖铁 注射液', '蔗糖铁注射液'],
     en: ['iron sucrose injection', 'iron sucrose 100mg vial'],
+  },
+  '多糖铁复合物胶囊': {
+    cn: ['多糖铁复合物 胶囊', '多糖铁 力蜚能'],
+    en: ['iron polysaccharide capsule', 'niferex iron capsule'],
+  },
+  '琥珀酸亚铁片': {
+    cn: ['琥珀酸亚铁片 药盒', '琥珀酸亚铁 速力菲'],
+    en: ['ferrous succinate tablet', 'ferrous succinate iron'],
+  },
+  '骨化三醇胶囊': {
+    cn: ['骨化三醇胶囊 药盒', '骨化三醇胶丸 罗盖全'],
+    en: ['calcitriol capsule', 'calcitriol 0.25 rocaltriol'],
+  },
+  '叶酸片': {
+    cn: ['叶酸片 药盒', '叶酸片剂 包装'],
+    en: ['folic acid tablet box', 'folic acid 5mg'],
+  },
+  '甲钴胺片': {
+    cn: ['甲钴胺片 药盒', '甲钴胺 弥可保'],
+    en: ['mecobalamin tablet box', 'methylcobalamin 500mcg'],
+  },
+  '阿司匹林肠溶片': {
+    cn: ['阿司匹林肠溶片 药盒', '阿司匹林 拜阿司匹灵'],
+    en: ['aspirin enteric coated tablet', 'aspirin 100mg'],
+  },
+  '硫酸氢氯吡格雷片': {
+    cn: ['氯吡格雷片 药盒', '硫酸氢氯吡格雷 波立维'],
+    en: ['clopidogrel tablet box', 'clopidogrel 75mg plavix'],
+  },
+  '碳酸氢钠片': {
+    cn: ['碳酸氢钠片 药盒', '碳酸氢钠片剂 包装'],
+    en: ['sodium bicarbonate tablet', 'sodium bicarbonate 500mg'],
+  },
+  '别嘌醇片': {
+    cn: ['别嘌醇片 药盒', '别嘌醇 痛风利仙'],
+    en: ['allopurinol tablet box', 'allopurinol 100mg'],
+  },
+  '左卡尼汀注射液': {
+    cn: ['左卡尼汀 注射液', '左卡尼汀 左旋肉碱'],
+    en: ['levocarnitine injection', 'carnitine injection vial'],
   },
 };
 

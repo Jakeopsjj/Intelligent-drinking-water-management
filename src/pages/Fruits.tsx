@@ -7,7 +7,7 @@
  * 2. 先查本地库（customFruits + fruits）按 name 匹配
  * 3. 本地有 → 直接打开该水果详情页
  * 4. 本地没有 → 调 searchBaike 拿百度百科候选 → 弹出底部抽屉选择
- * 5. 选中 → 调 apihz.cn 营养API 取钾磷钠水 → 添加 → 打开详情
+ * 5. 选中 → 取营养数据（本地内置 → USDA → OFF 多级兜底）→ 添加 → 打开详情
  * 6. 详情页：百度百科配图 + 摘要 + 信息框 + 结构化章节（形态特征/分布范围/主要价值等）
  *    + 每100g元素含量（钾磷钠水）+ 食用建议 + 记录摄入
  */
@@ -118,7 +118,7 @@ export default function Fruits() {
     }
 
     // 2. 查本地内置百科数据（baikeFruits.ts，30 种常见水果）
-    //    命中则直接添加并打开详情，跳过候选浮层，不依赖 apihz.cn 营养数据是否可用
+    //    命中则直接添加并打开详情，跳过候选浮层，营养数据由本地内置库兜底
     const builtin = lookupBuiltinBaike(keyword);
     if (builtin && builtin.title) {
       setSearching(false);
@@ -401,7 +401,7 @@ function FruitDetail({
     ? info.content.split('\n\n').filter((p) => p.trim())
     : [];
 
-  // 营养数据是否可用（钾磷钠水全为 0 视为暂无精确数据，如 apihz.cn 失败时的占位）
+  // 营养数据是否可用（钾磷钠水全为 0 视为暂无精确数据，如联网失败时的占位）
   const hasNutrition =
     fruit.potassiumPer100g > 0 ||
     fruit.phosphorusPer100g > 0 ||
@@ -597,7 +597,7 @@ function FruitDetail({
                 暂无精确营养数据，请参考百科内容中关于钾含量高低的描述，或咨询医生
               </div>
             )}
-            <p className="mt-2 text-[10px] text-teal-600/30">数据来源：apihz.cn 食物营养API</p>
+            <p className="mt-2 text-[10px] text-teal-600/30">数据来源：《中国食物成分表》第6版 / USDA / Open Food Facts</p>
           </div>
 
           {/* 数据源标注 */}

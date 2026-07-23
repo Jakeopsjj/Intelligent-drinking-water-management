@@ -16,6 +16,8 @@
  * 带内存缓存 + 并发去重。
  */
 
+import { lookupFruitNutrition } from '@/data/fruitNutritionData';
+
 export interface FoodNutrition {
   name: string;          // 食物名称
   potassium: number;     // 钾 mg
@@ -172,16 +174,31 @@ export function fetchFoodNutrition(keyword: string): Promise<FoodNutrition | nul
   return p;
 }
 
-/** 实际请求逻辑：USDA 优先 → Open Food Facts 兜底 */
+/** 实际请求逻辑：本地内置数据 → USDA → Open Food Facts 多级兜底 */
 async function doFetchNutrition(keyword: string): Promise<FoodNutrition | null> {
-  // 策略1：USDA FoodData Central（英文映射命中时，数据最可靠）
+  // 策略1：本地内置营养数据库（《中国食物成分表》第6版，67种水果，零网络依赖）
+  const local = lookupFruitNutrition(keyword);
+  if (local) {
+    return {
+      name: keyword,
+      potassium: local.potassium,
+      phosphorus: local.phosphorus,
+      sodium: local.sodium,
+      water: local.water,
+      energy: local.energy,
+      protein: local.protein,
+      fiber: local.fiber,
+    };
+  }
+
+  // 策略2：USDA FoodData Central（英文映射命中时，数据最可靠）
   const englishName = FRUIT_EN_MAP[keyword] || FRUIT_EN_MAP[keyword.replace(/(子|果|肉)$/, '')];
   if (englishName) {
     const usdaResult = await fetchFromUsda(englishName, keyword);
     if (usdaResult) return usdaResult;
   }
 
-  // 策略2：Open Food Facts（中文检索兜底，覆盖 USDA 无映射的水果）
+  // 策略3：Open Food Facts（中文检索兜底，覆盖 USDA 无映射的水果）
   const offResult = await fetchFromOff(keyword);
   if (offResult) return offResult;
 
