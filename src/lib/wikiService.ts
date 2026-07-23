@@ -69,6 +69,8 @@ const FRUIT_NAME_MAP: Record<string, string> = {
   '柿子': 'persimmon fruit',
   '哈密瓜': 'honeydew melon',
   '蓝莓': 'blueberry',
+  '葡萄柚': 'grapefruit',
+  '西柚': 'grapefruit',
 };
 
 /** 药物中文名 → 多组搜索词（获取不同国家/语言版本的药盒图） */

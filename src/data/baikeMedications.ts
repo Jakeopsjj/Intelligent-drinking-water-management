@@ -4,7 +4,7 @@
  * 用途：当百度百科联网抓取失败（离线、风控拦截、网络异常）时，
  * 作为「肾友笔记」应用药物详情页的本地数据源，保证常用药物始终可展示。
  *
- * 覆盖 30 种肾科常用药物，按类别分组：
+ * 覆盖 30 种肾科常用药物具体剂型，按类别分组：
  * - 降压药（10）：硝苯地平、氨氯地平、缬沙坦、氯沙坦、厄贝沙坦、
  *   美托洛尔、比索洛尔、卡托普利、依那普利、培哚普利
  * - 利尿药（4）：呋塞米、托拉塞米、氢氯噻嗪、螺内酯
@@ -19,13 +19,13 @@
 
 import type { BaikeInfo, BaikeSection } from '@/lib/baikeService';
 
-/** 30 种肾科常用药物的内置百科兜底数据，key 为药物名（小写） */
+/** 30 种肾科常用药物具体剂型的内置百科兜底数据，key 为药物剂型名（运行时小写处理） */
 export const builtinMedicationBaike: Record<string, BaikeInfo> = {
   // ============================================================
   // 降压药（10 种）
   // ============================================================
-  '硝苯地平': {
-    title: '硝苯地平',
+  '硝苯地平控释片': {
+    title: '硝苯地平控释片',
     summary:
       '硝苯地平（Nifedipine）为二氢吡啶类钙通道阻滞剂（CCB），通过抑制 L 型钙通道松弛血管平滑肌，扩张外周动脉和冠状动脉而降低血压、缓解心绞痛。是高血压及肾性高血压的常用降压药，起效快，短效制剂需注意反射性心率增快。',
     content:
@@ -77,7 +77,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '硝苯地平',
+      中文名: '硝苯地平控释片',
       英文名称: 'Nifedipine',
       化学式: 'C17H18N2O6',
       分子量: '346.34',
@@ -87,8 +87,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '氨氯地平': {
-    title: '氨氯地平',
+  '苯磺酸氨氯地平片': {
+    title: '苯磺酸氨氯地平片',
     summary:
       '氨氯地平（Amlodipine）为长效二氢吡啶类钙通道阻滞剂，半衰期长（35-50 小时），每日 1 次给药即可维持 24 小时平稳降压。是 CKD 及透析患者降压治疗的一线药物之一，对容量依赖性高血压效果好。',
     content:
@@ -140,7 +140,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '氨氯地平',
+      中文名: '苯磺酸氨氯地平片',
       英文名称: 'Amlodipine',
       化学式: 'C20H25ClN2O5',
       分子量: '408.88',
@@ -150,8 +150,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '缬沙坦': {
-    title: '缬沙坦',
+  '缬沙坦胶囊': {
+    title: '缬沙坦胶囊',
     summary:
       '缬沙坦（Valsartan）为血管紧张素 II 受体拮抗剂（ARB），选择性阻断 AT1 受体，降压同时可减少尿蛋白、延缓肾功能恶化、保护残余肾功能。干咳发生率低于 ACEI，是 CKD 患者降压及肾保护的优选药物。',
     content:
@@ -204,7 +204,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '缬沙坦',
+      中文名: '缬沙坦胶囊',
       英文名称: 'Valsartan',
       化学式: 'C24H29N5O3',
       分子量: '435.52',
@@ -214,8 +214,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '氯沙坦': {
-    title: '氯沙坦',
+  '氯沙坦钾片': {
+    title: '氯沙坦钾片',
     summary:
       '氯沙坦（Losartan）为首个非肽类血管紧张素 II 受体拮抗剂（ARB），降压同时可减少尿蛋白、保护残余肾功能。其代谢物 EXP3174 降压活性为母药 10-40 倍，并能促进尿酸排泄，适合合并高尿酸血症的肾病患者。',
     content:
@@ -268,7 +268,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '氯沙坦',
+      中文名: '氯沙坦钾片',
       英文名称: 'Losartan',
       化学式: 'C22H23ClN6O',
       分子量: '422.91',
@@ -278,8 +278,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '厄贝沙坦': {
-    title: '厄贝沙坦',
+  '厄贝沙坦片': {
+    title: '厄贝沙坦片',
     summary:
       '厄贝沙坦（Irbesartan）为强效选择性血管紧张素 II 受体拮抗剂（ARB），降压作用强且持久。是糖尿病肾病合并高血压的循证用药，可显著减少尿蛋白、延缓肾功能恶化，特别适合 2 型糖尿病肾病早期干预。',
     content:
@@ -332,7 +332,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '厄贝沙坦',
+      中文名: '厄贝沙坦片',
       英文名称: 'Irbesartan',
       化学式: 'C25H28N6O',
       分子量: '428.53',
@@ -342,8 +342,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '美托洛尔': {
-    title: '美托洛尔',
+  '酒石酸美托洛尔片': {
+    title: '酒石酸美托洛尔片',
     summary:
       '美托洛尔（Metoprolol）为选择性 β1 受体阻滞剂，通过减慢心率、降低心肌收缩力和肾素分泌而降压，并降低心肌耗氧、改善心绞痛和心衰预后。是高血压合并冠心病、心衰、心率增快患者的常用降压药。',
     content:
@@ -396,7 +396,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '美托洛尔',
+      中文名: '酒石酸美托洛尔片',
       英文名称: 'Metoprolol',
       化学式: 'C15H25NO3',
       分子量: '267.36',
@@ -406,8 +406,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '比索洛尔': {
-    title: '比索洛尔',
+  '富马酸比索洛尔片': {
+    title: '富马酸比索洛尔片',
     summary:
       '比索洛尔（Bisoprolol）为高选择性 β1 受体阻滞剂，β1/β2 选择性约为美托洛尔的 2-3 倍。半衰期 10-12 小时，每日 1 次给药即可维持 24 小时平稳降压。适合高血压合并冠心病、心衰患者，对支气管影响小。',
     content:
@@ -460,7 +460,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '比索洛尔',
+      中文名: '富马酸比索洛尔片',
       英文名称: 'Bisoprolol',
       化学式: 'C18H31NO4',
       分子量: '325.44',
@@ -470,8 +470,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '卡托普利': {
-    title: '卡托普利',
+  '卡托普利片': {
+    title: '卡托普利片',
     summary:
       '卡托普利（Captopril）为第一个口服有效的血管紧张素转换酶抑制剂（ACEI），通过抑制 ACE 减少 AngII 生成、抑制缓激肽降解而降压、减少尿蛋白、保护残余肾功能。起效快，是高血压急症及肾性高血压的常用药物。',
     content:
@@ -524,7 +524,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '卡托普利',
+      中文名: '卡托普利片',
       英文名称: 'Captopril',
       化学式: 'C9H15NO3S',
       分子量: '217.29',
@@ -534,8 +534,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '依那普利': {
-    title: '依那普利',
+  '依那普利片': {
+    title: '依那普利片',
     summary:
       '依那普利（Enalapril）为不含巯基的前体型 ACEI，在肝脏水解为活性产物依那普利拉（Enalaprilat）发挥作用。降压、减少尿蛋白、保护残余肾功能，干咳和皮疹发生率低于卡托普利。',
     content:
@@ -588,7 +588,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '依那普利',
+      中文名: '依那普利片',
       英文名称: 'Enalapril',
       化学式: 'C20H28N2O5',
       分子量: '376.45',
@@ -598,8 +598,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '培哚普利': {
-    title: '培哚普利',
+  '培哚普利叔丁胺片': {
+    title: '培哚普利叔丁胺片',
     summary:
       '培哚普利（Perindopril）为长效前体型 ACEI，在肝脏转化为活性产物培哚普利拉，每日 1 次给药即可维持 24 小时平稳降压。降压、减少尿蛋白、保护残余肾功能，并降低心血管事件风险。',
     content:
@@ -652,7 +652,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '培哚普利',
+      中文名: '培哚普利叔丁胺片',
       英文名称: 'Perindopril',
       化学式: 'C19H32N2O5',
       分子量: '368.47',
@@ -665,8 +665,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
   // ============================================================
   // 利尿药（4 种）
   // ============================================================
-  '呋塞米': {
-    title: '呋塞米',
+  '呋塞米片': {
+    title: '呋塞米片',
     summary:
       '呋塞米（Furosemide）为袢利尿剂，抑制髓袢升支粗段 Na⁺-K⁺-2Cl⁻ 同向转运体，利尿作用强、起效快。是急慢性肾衰竭、心力衰竭、肝硬化及水肿患者的常用利尿药，并可短期用于高血压。',
     content:
@@ -719,7 +719,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '呋塞米',
+      中文名: '呋塞米片',
       英文名称: 'Furosemide',
       化学式: 'C12H11ClN2O5S',
       分子量: '330.74',
@@ -729,8 +729,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '托拉塞米': {
-    title: '托拉塞米',
+  '托拉塞米片': {
+    title: '托拉塞米片',
     summary:
       '托拉塞米（Torasemide）为新一代袢利尿剂，作用于髓袢升支粗段 Na⁺-K⁺-2Cl⁻ 同向转运体，利尿作用强、半衰期长（约 3-4 小时）、生物利用度高（80%-90%）、口服吸收稳定。耳毒性低于呋塞米，对糖代谢影响小。',
     content:
@@ -783,7 +783,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '托拉塞米',
+      中文名: '托拉塞米片',
       英文名称: 'Torasemide',
       化学式: 'C16H20N4O3S',
       分子量: '348.42',
@@ -793,8 +793,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '氢氯噻嗪': {
-    title: '氢氯噻嗪',
+  '氢氯噻嗪片': {
+    title: '氢氯噻嗪片',
     summary:
       '氢氯噻嗪（Hydrochlorothiazide）为噻嗪类利尿剂，抑制远端肾小管 Na⁺-Cl⁻ 同向转运体，利尿作用中等、降压温和。是高血压一线降压药之一，可与 ACEI/ARB、CCB 等联用增强降压。',
     content:
@@ -847,7 +847,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '氢氯噻嗪',
+      中文名: '氢氯噻嗪片',
       英文名称: 'Hydrochlorothiazide',
       化学式: 'C7H8ClN3O4S2',
       分子量: '297.74',
@@ -857,8 +857,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '螺内酯': {
-    title: '螺内酯',
+  '螺内酯片': {
+    title: '螺内酯片',
     summary:
       '螺内酯（Spironolactone）为醛固酮受体拮抗剂（保钾利尿剂），竞争性拮抗醛固酮，促进 Na⁺ 排泄、K⁺ 保留。用于水肿、原发性醛固酮增多症、心衰辅助治疗及顽固性高血压。是透析患者高钾血症的重要风险因素。',
     content:
@@ -911,7 +911,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '螺内酯',
+      中文名: '螺内酯片',
       英文名称: 'Spironolactone',
       化学式: 'C24H32O4S',
       分子量: '416.57',
@@ -924,8 +924,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
   // ============================================================
   // 磷结合剂（4 种）
   // ============================================================
-  '碳酸钙': {
-    title: '碳酸钙',
+  '碳酸钙片': {
+    title: '碳酸钙片',
     summary:
       '碳酸钙（Calcium Carbonate）为含钙磷结合剂，随餐服用可在肠道与食物中磷酸根结合形成不溶性磷酸钙随粪便排出，减少磷吸收；同时补充元素钙。是 CKD 透析患者高磷血症最常用的磷结合剂之一。',
     content:
@@ -978,7 +978,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '碳酸钙',
+      中文名: '碳酸钙片',
       英文名称: 'Calcium Carbonate',
       化学式: 'CaCO3',
       分子量: '100.09',
@@ -988,8 +988,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '醋酸钙': {
-    title: '醋酸钙',
+  '醋酸钙片': {
+    title: '醋酸钙片',
     summary:
       '醋酸钙（Calcium Acetate）为含钙磷结合剂，与碳酸钙相比在更低胃酸环境下即可溶解，磷结合效率更高、所需元素钙更少，高钙血症风险相对较低。是 CKD 透析患者高磷血症的常用磷结合剂。',
     content:
@@ -1042,7 +1042,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '醋酸钙',
+      中文名: '醋酸钙片',
       英文名称: 'Calcium Acetate',
       化学式: 'C4H6CaO4',
       分子量: '158.17',
@@ -1052,8 +1052,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '司维拉姆': {
-    title: '司维拉姆',
+  '碳酸司维拉姆片': {
+    title: '碳酸司维拉姆片',
     summary:
       '司维拉姆（Sevelamer）为非钙非铝的磷结合剂（多胺类阳离子聚合物），通过离子交换和氢键在肠道结合磷酸根，不增加钙负荷、几乎不被吸收。适合高血钙或血管钙化风险高的透析患者。',
     content:
@@ -1106,7 +1106,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '司维拉姆',
+      中文名: '碳酸司维拉姆片',
       英文名称: 'Sevelamer',
       化学式: '聚合物（聚烯丙胺交联）',
       分子量: '聚合物',
@@ -1116,8 +1116,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '碳酸镧': {
-    title: '碳酸镧',
+  '碳酸镧咀嚼片': {
+    title: '碳酸镧咀嚼片',
     summary:
       '碳酸镧（Lanthanum Carbonate）为高效的非钙磷结合剂，镧离子在胃酸中释放后在肠道与磷酸根形成极难溶的磷酸镧随粪便排出，磷结合力强、剂量小。适合高血钙、血管钙化风险高或不能耐受大剂量药片的患者。',
     content:
@@ -1170,7 +1170,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '碳酸镧',
+      中文名: '碳酸镧咀嚼片',
       英文名称: 'Lanthanum Carbonate',
       化学式: 'La2(CO3)3',
       分子量: '487.92',
@@ -1183,8 +1183,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
   // ============================================================
   // 促红素 / 铁剂（4 种）
   // ============================================================
-  '重组人促红素': {
-    title: '重组人促红素',
+  '重组人红细胞生成素注射液': {
+    title: '重组人红细胞生成素注射液',
     summary:
       '重组人促红素（Erythropoietin, EPO）为基因重组人红细胞生成素，与骨髓红系前体细胞表面 EPO 受体结合，刺激红系增殖、分化和成熟，提升血红蛋白。用于慢性肾脏病相关肾性贫血的治疗。',
     content:
@@ -1237,7 +1237,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '重组人促红素',
+      中文名: '重组人红细胞生成素注射液',
       英文名称: 'Recombinant Human Erythropoietin',
       化学式: '糖蛋白（165 氨基酸）',
       分子量: '约 30400',
@@ -1247,8 +1247,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '蔗糖铁': {
-    title: '蔗糖铁',
+  '蔗糖铁注射液': {
+    title: '蔗糖铁注射液',
     summary:
       '蔗糖铁（Iron Sucrose）为静脉用铁剂，由多核氢氧化铁（III）与蔗糖形成稳定络合物，静脉给药后由网状内皮系统摄取，缓慢释放铁与转铁蛋白结合。用于口服铁剂不耐受或无效的缺铁性贫血，是透析患者 ESA 治疗的常规铁补充。',
     content:
@@ -1302,7 +1302,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '蔗糖铁',
+      中文名: '蔗糖铁注射液',
       英文名称: 'Iron Sucrose',
       化学式: '多核氢氧化铁（III）-蔗糖络合物',
       分子量: '约 34000-43000',
@@ -1312,8 +1312,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '多糖铁复合物': {
-    title: '多糖铁复合物',
+  '多糖铁复合物胶囊': {
+    title: '多糖铁复合物胶囊',
     summary:
       '多糖铁复合物（Polysaccharide Iron Complex, PIC）为口服铁剂，由多核氢氧化铁（III）与低分子量多糖形成稳定络合物，含元素铁约 46%。口服生物利用度高，胃肠刺激小，是无明确铁过载的轻中度缺铁性贫血的常用口服铁剂。',
     content:
@@ -1366,7 +1366,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '多糖铁复合物',
+      中文名: '多糖铁复合物胶囊',
       英文名称: 'Polysaccharide Iron Complex',
       化学式: '多核氢氧化铁（III）-多糖络合物',
       分子量: '约 50000',
@@ -1376,8 +1376,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '琥珀酸亚铁': {
-    title: '琥珀酸亚铁',
+  '琥珀酸亚铁片': {
+    title: '琥珀酸亚铁片',
     summary:
       '琥珀酸亚铁（Ferrous Succinate）为口服二价铁剂，含元素铁约 35%，口服生物利用度较高，胃肠刺激较硫酸亚铁轻。是缺铁性贫血的常用口服铁剂，可与维生素 C 同服增强吸收。',
     content:
@@ -1430,7 +1430,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '琥珀酸亚铁',
+      中文名: '琥珀酸亚铁片',
       英文名称: 'Ferrous Succinate',
       化学式: 'C4H4FeO4',
       分子量: '171.92',
@@ -1443,8 +1443,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
   // ============================================================
   // 维生素 / 矿物质（3 种）
   // ============================================================
-  '骨化三醇': {
-    title: '骨化三醇',
+  '骨化三醇胶囊': {
+    title: '骨化三醇胶囊',
     summary:
       '骨化三醇（Calcitriol）为 1,25-二羟维生素 D3，是维生素 D 的活性形式，无需经肝肾羟化即可直接作用于肠道、骨骼和甲状旁腺，促进钙磷吸收、调节骨矿化和 PTH 分泌。用于慢性肾脏病继发性甲旁亢及肾性骨病。',
     content:
@@ -1497,7 +1497,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '骨化三醇',
+      中文名: '骨化三醇胶囊',
       英文名称: 'Calcitriol',
       化学式: 'C27H44O3',
       分子量: '416.65',
@@ -1507,8 +1507,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '叶酸': {
-    title: '叶酸',
+  '叶酸片': {
+    title: '叶酸片',
     summary:
       '叶酸（Folic Acid）为水溶性 B 族维生素（维生素 B9），是 DNA 合成和红细胞生成的必需辅酶。用于叶酸缺乏所致巨幼细胞性贫血、妊娠期神经管畸形预防，并参与同型半胱氨酸代谢。CKD 患者同型半胱氨酸升高者可补充。',
     content:
@@ -1561,7 +1561,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '叶酸',
+      中文名: '叶酸片',
       英文名称: 'Folic Acid',
       化学式: 'C19H19N7O6',
       分子量: '441.40',
@@ -1571,8 +1571,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '维生素b12': {
-    title: '维生素 B12',
+  '甲钴胺片': {
+    title: '甲钴胺片',
     summary:
       '维生素 B12（Vitamin B12，钴胺素）为水溶性 B 族维生素，是 DNA 合成、神经髓鞘形成和红细胞生成的必需辅酶。用于维生素 B12 缺乏所致巨幼细胞性贫血和神经病变，CKD 患者同型半胱氨酸升高者可补充。',
     content:
@@ -1625,7 +1625,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '维生素 B12',
+      中文名: '甲钴胺片',
       英文名称: 'Vitamin B12',
       化学式: 'C63H88CoN14O14P',
       分子量: '1355.37',
@@ -1638,8 +1638,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
   // ============================================================
   // 其他（5 种）
   // ============================================================
-  '阿司匹林': {
-    title: '阿司匹林',
+  '阿司匹林肠溶片': {
+    title: '阿司匹林肠溶片',
     summary:
       '阿司匹林（Aspirin）为非选择性环氧合酶（COX）抑制剂，小剂量抗血小板聚集、大剂量抗炎镇痛解热。是心脑血管事件一级和二级预防的核心药物。CKD 患者心血管风险高，常需抗血小板治疗，但出血风险亦增加。',
     content:
@@ -1692,7 +1692,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '阿司匹林',
+      中文名: '阿司匹林肠溶片',
       英文名称: 'Aspirin',
       化学式: 'C9H8O4',
       分子量: '180.16',
@@ -1702,8 +1702,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '氯吡格雷': {
-    title: '氯吡格雷',
+  '硫酸氢氯吡格雷片': {
+    title: '硫酸氢氯吡格雷片',
     summary:
       '氯吡格雷（Clopidogrel）为噻吩吡啶类前体型抗血小板药，在肝脏经 CYP2C19 转化为活性代谢物，不可逆抑制血小板 P2Y12 受体（ADP 受体），抑制血小板聚集。用于心脑血管事件二级预防，是阿司匹林不耐受或支架术后的优选。',
     content:
@@ -1756,7 +1756,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '氯吡格雷',
+      中文名: '硫酸氢氯吡格雷片',
       英文名称: 'Clopidogrel',
       化学式: 'C16H16ClNO2S',
       分子量: '321.82',
@@ -1766,8 +1766,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '碳酸氢钠': {
-    title: '碳酸氢钠',
+  '碳酸氢钠片': {
+    title: '碳酸氢钠片',
     summary:
       '碳酸氢钠（Sodium Bicarbonate）为弱碱性抗酸药和碱化剂，口服后中和胃酸、提高血碳酸氢根浓度，纠正代谢性酸中毒、碱化尿液。是 CKD 患者代谢性酸中毒纠正的常用药物，目标血碳酸氢根 22-26mmol/L。',
     content:
@@ -1820,7 +1820,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '碳酸氢钠',
+      中文名: '碳酸氢钠片',
       英文名称: 'Sodium Bicarbonate',
       化学式: 'NaHCO3',
       分子量: '84.01',
@@ -1830,8 +1830,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '别嘌醇': {
-    title: '别嘌醇',
+  '别嘌醇片': {
+    title: '别嘌醇片',
     summary:
       '别嘌醇（Allopurinol）为黄嘌呤氧化酶抑制剂，抑制尿酸合成，降低血尿酸。是痛风和高尿酸血症的一线降尿酸药。CKD 患者高尿酸血症常见，需根据肾功能调整剂量，警惕别嘌醇超敏反应综合征（DRESS、SJS/TEN）。',
     content:
@@ -1885,7 +1885,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '别嘌醇',
+      中文名: '别嘌醇片',
       英文名称: 'Allopurinol',
       化学式: 'C5H4N4O',
       分子量: '136.11',
@@ -1895,8 +1895,8 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
     image: '',
   },
 
-  '左卡尼汀': {
-    title: '左卡尼汀',
+  '左卡尼汀注射液': {
+    title: '左卡尼汀注射液',
     summary:
       '左卡尼汀（L-Carnitine，左旋肉碱）为长链脂肪酸进入线粒体进行 β-氧化的必需载体，参与能量代谢。透析患者因透析丢失易致肉碱缺乏，补充左卡尼汀可改善贫血、肌痉挛、心肌功能和乏力，是透析相关肉碱缺乏的辅助治疗。',
     content:
@@ -1949,7 +1949,7 @@ export const builtinMedicationBaike: Record<string, BaikeInfo> = {
       },
     ],
     infobox: {
-      中文名: '左卡尼汀',
+      中文名: '左卡尼汀注射液',
       英文名称: 'L-Carnitine',
       化学式: 'C7H15NO3',
       分子量: '161.20',

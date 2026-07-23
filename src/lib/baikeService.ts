@@ -52,21 +52,35 @@ const builtinBaikeData: Record<string, BaikeInfo> = (() => {
 /**
  * 查询本地内置百科数据。
  * 支持精确匹配 + 模糊匹配（包含/被包含），适配用户输入变体（如"桂圆"匹配"龙眼"）。
- * @returns 本地命中返回 BaikeInfo（标记 _builtin）；未命中返回 null
+ *
+ * 关键修复：包含匹配与被包含匹配均选「最长」内置 key，避免短 key 误覆盖长 key。
+ * 例：搜索"葡萄柚"时，"葡萄".length=2 与（如有）"葡萄柚".length=3 竞争，选最长避免误命中"葡萄"。
+ * 药物内置 key 已统一为具体剂型名（如"碳酸司维拉姆片"而非统称"司维拉姆"），
+ * 搜索统称时通过被包含匹配命中对应具体剂型。
+ *
+ * @returns 本地命中返回 BaikeInfo；未命中返回 null
  */
 export function lookupBuiltinBaike(keyword: string): BaikeInfo | null {
   const key = keyword.trim().toLowerCase();
   if (!key) return null;
-  // 1. 精确匹配
+  // 1. 精确匹配（如"碳酸司维拉姆片"、"葡萄柚"直接命中）
   if (builtinBaikeData[key]) return { ...builtinBaikeData[key] };
-  // 2. 去除常见后缀后匹配（如"硝苯地平片"→"硝苯地平"、"柚子肉"→"柚子"）
+  // 2. 去除常见剂型后缀后精确匹配（如"硝苯地平控释片片"→"硝苯地平控释片"）
   const stripped = key.replace(/(片|胶囊|注射液|口服液|缓释片|控释片|分散片|颗粒|丸|膏|露|素|果|肉|子|类)$/, '');
   if (stripped !== key && builtinBaikeData[stripped]) return { ...builtinBaikeData[stripped] };
-  // 3. 包含匹配：内置 key 包含在用户输入中（如"硝苯地平缓释片"包含"硝苯地平"）
+  // 3. 包含匹配：内置 key 包含在用户输入中（如"苯磺酸氨氯地平片"包含"氨氯地平片"）
+  //    选最长匹配 key，避免"葡萄"误覆盖"葡萄柚"（"葡萄柚".includes("葡萄")为真但应优先更长匹配）
+  let bestIncludeLen = 0;
+  let bestInclude: BaikeInfo | null = null;
   for (const [k, v] of Object.entries(builtinBaikeData)) {
-    if (k.length >= 2 && key.includes(k)) return { ...v };
+    if (k.length >= 2 && key.includes(k) && k.length > bestIncludeLen) {
+      bestIncludeLen = k.length;
+      bestInclude = { ...v };
+    }
   }
-  // 4. 被包含匹配：用户输入是内置 key 的子串（如"柚"匹配"柚子"）
+  if (bestInclude) return bestInclude;
+  // 4. 被包含匹配：用户输入是内置 key 的子串（如"柚"匹配"柚子"、"司维拉姆"匹配"碳酸司维拉姆片"）
+  //    同样选最长，优先匹配更具体的剂型
   let bestLen = 0;
   let best: BaikeInfo | null = null;
   for (const [k, v] of Object.entries(builtinBaikeData)) {
