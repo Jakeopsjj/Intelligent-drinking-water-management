@@ -42,8 +42,8 @@ export interface BaikeInfo {
   infobox?: Record<string, string>;
 }
 
-/** 请求超时（毫秒） */
-const TIMEOUT = 12000;
+/** 请求超时（毫秒）—— 提升至 15s 应对 CORS 代理慢响应 */
+const TIMEOUT = 15000;
 
 /** 模拟手机浏览器的 User-Agent（浏览器环境会忽略此 forbidden header，Capacitor 原生 HTTP 可识别） */
 const MOBILE_UA =
@@ -56,17 +56,37 @@ const MOBILE_UA =
 const CORS_PROXIES: Array<(url: string) => string> = [
   (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
   (url: string) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
+  (url: string) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(url)}`,
 ];
 
-/** 详情持久化缓存（localStorage + 内存，离线二次访问）+ 并发去重（参考 wikiService.ts 的 cache/pending 模式） */
+/** 详情持久化缓存（localStorage + 内存，离线二次访问）+ 并发去重 */
 const baikeCache = new PersistentCache<BaikeInfo | null>({ prefix: 'baike_cache_', maxEntries: 80 });
+/** 内存临时缓存（仅本次会话），用于「失败不持久化」策略：避免失败永久卡死，下次重启应用仍可重试 */
+const baikeMemoryCache = new Map<string, BaikeInfo | null>();
 const baikePending = new Map<string, Promise<BaikeInfo | null>>();
 
-/** 风控/验证页特征关键词，命中任一即视为被拦截 */
-const BLOCK_KEYWORDS = ['验证码', '安全验证', '百度安全验证', 'wappass.baidu.com'];
+/**
+ * 风控/验证页特征关键词。
+ *
+ * 判定策略（避免误杀正常词条）：
+ * - wappass.baidu.com（百度安全验证页 URL）→ 单独命中即视为拦截
+ * - 「百度安全验证」+「验证码」必须同时出现才算拦截
+ * - 「请完成下方验证」单独命中即视为拦截
+ *
+ * 旧策略「单关键词命中即拦截」会导致正常词条被误判为空（问题3根因）。
+ */
+const BLOCK_KEYWORDS_STRONG = ['wappass.baidu.com', '请完成下方验证', 'baidu.com/secures'];
+const BLOCK_KEYWORDS_PAIR = ['百度安全验证', '验证码'];
 
 /**
  * 抓取并解析百度百科词条。
+ *
+ * 关键修复（问题3）：检索逻辑漏洞
+ * - 命中「持久化缓存」时直接返回（仅缓存成功结果）
+ * - 命中「内存临时缓存」时也直接返回（包含失败 null，仅本次会话有效）
+ * - 不持久化 null，避免下次联网恢复后仍读出空数据
+ *
  * @param keyword 词条名（中文）
  * @returns 解析结果；完全失败或被风控拦截返回 null
  */
@@ -74,24 +94,35 @@ export function fetchBaikeInfo(keyword: string): Promise<BaikeInfo | null> {
   const key = keyword.trim().toLowerCase();
   if (!key) return Promise.resolve(null);
 
-  // 命中缓存（含失败缓存 null）直接返回，避免重复请求
+  // 1. 命中持久化缓存（仅成功结果）直接返回
   if (baikeCache.has(key)) {
     return Promise.resolve(baikeCache.get(key) ?? null);
   }
 
-  // 并发去重：同一关键词的并发调用复用同一个 Promise
+  // 2. 命中内存临时缓存（含失败 null，仅本次会话）也返回，避免短时间内重复打请求
+  if (baikeMemoryCache.has(key)) {
+    return Promise.resolve(baikeMemoryCache.get(key) ?? null);
+  }
+
+  // 3. 并发去重：同一关键词的并发调用复用同一个 Promise
   const inflight = baikePending.get(key);
   if (inflight) return inflight;
 
   const p = doFetchBaike(keyword.trim())
     .then((result) => {
-      baikeCache.set(key, result);
+      if (result) {
+        // 成功：持久化到 localStorage，离线二次访问直接读本地
+        baikeCache.set(key, result);
+      } else {
+        // 失败：只存内存，下次重启应用可重新尝试联网
+        // 修复问题3：原策略持久化 null 导致后续永远读出空数据
+        baikeMemoryCache.set(key, null);
+      }
       baikePending.delete(key);
       return result;
     })
     .catch(() => {
-      // 兜底：异常时缓存 null，避免对失败关键词反复打请求
-      baikeCache.set(key, null);
+      baikeMemoryCache.set(key, null);
       baikePending.delete(key);
       return null;
     });
@@ -173,11 +204,25 @@ async function fetchHtml(url: string): Promise<string | null> {
   return null;
 }
 
-/** 检测页面是否被风控拦截（验证码 / 安全验证页） */
+/**
+ * 检测页面是否被风控拦截（验证码 / 安全验证页）。
+ *
+ * 修复问题3：原策略只命中任一关键词即判定拦截，
+ * 但百度百科正文模板内含「安全验证」等防御性反爬提示文字，
+ * 导致正常词条被误判为空。
+ *
+ * 新策略：
+ * - 强关键词单独命中（wappass.baidu.com 等）即拦截
+ * - 弱关键词对（百度安全验证 + 验证码）必须同时出现才拦截
+ * - 检查范围扩展到前 32KB（验证页脚本通常在前部，但部分延迟加载）
+ */
 function isBlockedPage(html: string): boolean {
-  // 只检查前 8KB：验证页通常在头部注入跳转脚本
-  const head = html.slice(0, 8192);
-  return BLOCK_KEYWORDS.some((kw) => head.includes(kw));
+  const head = html.slice(0, 32768);
+  // 强关键词：单独命中即视为风控页
+  if (BLOCK_KEYWORDS_STRONG.some((kw) => head.includes(kw))) return true;
+  // 弱关键词对：必须同时出现
+  if (BLOCK_KEYWORDS_PAIR.every((kw) => head.includes(kw))) return true;
+  return false;
 }
 
 /** 安全执行：失败返回 undefined，不抛错 */
@@ -211,84 +256,108 @@ function parseTitle(doc: Document): string {
   return '';
 }
 
-/** 解析摘要：.lemma-summary / .J-summary / meta description，取前 200 字 */
+/** 解析摘要：.lemma-summary / .J-summary / meta description，取前 400 字（提升信息密度） */
 function parseSummary(doc: Document): string {
-  // 1. 优先取正文摘要块
+  // 1. 优先取正文摘要块（扩展多个选择器，适配新旧版百度百科 DOM 结构）
   const summaryEl =
     doc.querySelector('.lemma-summary') ||
     doc.querySelector('.J-summary') ||
-    doc.querySelector('.summary');
+    doc.querySelector('.summary') ||
+    doc.querySelector('.lemma-content > .para') ||
+    doc.querySelector('.abstract');
   if (summaryEl) {
     const text = elText(summaryEl);
-    if (text) return text.slice(0, 200);
+    if (text) return text.slice(0, 400);
   }
   // 2. 降级：meta description（getAttribute 已自动解码实体）
   const meta = doc.querySelector('meta[name="description"]');
   const content = (meta?.getAttribute('content') || '').trim();
-  if (content) return content.slice(0, 200);
+  if (content) return content.slice(0, 400);
   return '';
 }
 
-/** 解析正文：.para / .J-lemma-content 段落，最多前 8 段，用 \n\n 连接 */
+/**
+ * 解析正文段落：最多前 20 段（提升内容完整性）。
+ *
+ * 修复问题2：原策略只取 8 段，长词条信息严重不全（如「碳酸司维拉姆片」有药理、适应症、
+ * 不良反应、注意事项等多个段落，8 段不足覆盖）。
+ */
 function parseContent(doc: Document): string {
   const container =
     doc.querySelector('.J-lemma-content') ||
     doc.querySelector('.main-content') ||
+    doc.querySelector('.lemma-content') ||
+    doc.querySelector('#bodyContent') ||
     doc.body;
   if (!container) return '';
 
   const paras: string[] = [];
-  // 收集段落：优先 .para / .J-para-content，兜底用 p
-  const paraEls = container.querySelectorAll('.para, .J-para-content, p');
+  // 收集段落：多种选择器组合，适配不同版本的百度百科 DOM
+  const paraEls = container.querySelectorAll(
+    '.para, .J-para-content, .para_X, p.para, div > p, p'
+  );
+  const seen = new Set<string>();
   for (const el of paraEls) {
-    if (paras.length >= 8) break;
+    if (paras.length >= 20) break;
     const text = elText(el);
-    if (text && text.length >= 2) paras.push(text);
+    // 跳过过短/重复段落
+    if (!text || text.length < 2) continue;
+    if (seen.has(text)) continue;
+    seen.add(text);
+    paras.push(text);
   }
   return paras.join('\n\n');
 }
 
-/** 解析主图：.summary-img img（含懒加载 data-src）或 og:image meta */
+/** 解析主图：扩展选择器适配新版百度百科 DOM，覆盖 .summary-img / .summary-pic / .J-summary-img 等 */
 function parseMainImage(doc: Document): string {
-  // 1. 摘要配图
-  const img = doc.querySelector('.summary-img img, .summary img, .lemma-picture img');
+  // 1. 摘要配图（多版本选择器）
+  const img = doc.querySelector(
+    '.summary-img img, .summary-pic img, .J-summary-img img, .summary img, .lemma-picture img, .lemma-content img'
+  );
   const src = normalizeImgUrl(img);
   if (src) return src;
   // 2. 降级：og:image meta
   const og = doc.querySelector('meta[property="og:image"]');
   const ogc = (og?.getAttribute('content') || '').trim();
   if (ogc) return toAbsoluteUrl(ogc);
+  // 3. 降级：itemprop image
+  const itemImg = doc.querySelector('img[itemprop="image"]');
+  const itemSrc = normalizeImgUrl(itemImg);
+  if (itemSrc) return itemSrc;
   return '';
 }
 
-/** 解析多图：.main-content img / .album-list img，最多 5 张，过滤 icon/logo（width<100） */
+/** 解析多图：扩展选择器，最多 8 张，过滤 icon/logo（width<100） */
 function parseImages(doc: Document): string[] {
   const imgs = doc.querySelectorAll(
-    '.main-content img, .album-list img, .lemma-content img',
+    '.main-content img, .album-list img, .lemma-content img, .summary-pic img, .J-summary-img img, .para img'
   );
   const urls: string[] = [];
   const seen = new Set<string>();
   for (const img of imgs) {
-    if (urls.length >= 5) break;
+    if (urls.length >= 8) break;
     const url = normalizeImgUrl(img);
     if (!url || seen.has(url)) continue;
     // 过滤小图标 / logo：width 属性 < 100 或 URL 含 icon/logo/sprite
     const w = parseInt(img.getAttribute('width') || '0', 10);
     if (w > 0 && w < 100) continue;
-    if (/icon|logo|sprite|blank\.gif|placeholder/i.test(url)) continue;
+    if (/icon|logo|sprite|blank\.gif|placeholder|loading\.gif|baike_med/i.test(url)) continue;
     seen.add(url);
     urls.push(url);
   }
   return urls;
 }
 
-/** 解析信息框：.basicInfo / .lemmaWgt-promotion 内 dt/dd 键值对 */
+/** 解析信息框：扩展选择器，覆盖 .basicInfo / .lemmaWgt-promotion / .basic-info / .J-basic-info */
 function parseInfobox(doc: Document): Record<string, string> {
   const result: Record<string, string> = {};
   const container =
     doc.querySelector('.basicInfo') ||
     doc.querySelector('.lemmaWgt-promotion') ||
-    doc.querySelector('.basic-info');
+    doc.querySelector('.basic-info') ||
+    doc.querySelector('.J-basic-info') ||
+    doc.querySelector('.basicInfo-item-wrap');
   if (!container) return result;
 
   // 1. 优先按 dl 内 dt/dd 配对（百度百科信息框标准结构）
@@ -305,10 +374,10 @@ function parseInfobox(doc: Document): Record<string, string> {
 
   // 2. 降级：按行表 .basicInfo-item / .item 内 label/value 配对
   if (Object.keys(result).length === 0) {
-    const items = container.querySelectorAll('.basicInfo-item, .item');
+    const items = container.querySelectorAll('.basicInfo-item, .item, .J-basic-info-item');
     for (const item of items) {
-      const label = item.querySelector('.label, dt, .name');
-      const value = item.querySelector('.value, dd, .text');
+      const label = item.querySelector('.label, dt, .name, .basicInfo-item-name');
+      const value = item.querySelector('.value, dd, .text, .basicInfo-item-value');
       const k = elText(label);
       const v = elText(value);
       if (k && v) result[k] = v;

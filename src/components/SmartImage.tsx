@@ -71,11 +71,13 @@ export default function SmartImage({
       )}
 
       {/* 实际 img：始终渲染以触发 onLoad/onError，通过 opacity 控制淡入 */}
+      {/* referrerPolicy="no-referrer" 解决百度百科图片 CDN 防盗链问题（bkimg.cdn.bcebos.com 拒绝外部 referer） */}
       <img
         ref={imgRef}
         src={src}
         alt={alt}
         loading={lazy ? 'lazy' : 'eager'}
+        referrerPolicy="no-referrer"
         onLoad={() => setStatus('loaded')}
         onError={() => setStatus('error')}
         className={cn(

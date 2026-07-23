@@ -344,43 +344,52 @@ host=github.com" 2>/dev/null | grep "^password=" | cut -d= -f2-)
     # 创建新 release（body 必须量化罗列实质性改动明细，禁止笼统描述）
     local release_body="肾友笔记 $tag 更新明细\\n\\n"
     release_body="${release_body}## 功能新增\\n"
-    release_body="${release_body}- 数据分层架构：水果（维基百科）与药物（百度百科）双模块采用「本地静态预置 + 在线网络兜底」二级加载策略\\n"
-    release_body="${release_body}- 新增 SmartImage 智能图片组件：异步懒加载 + 加载中占位图 + 加载失败兜底视图 + 排版自适应\\n"
-    release_body="${release_body}- 新增 useOnlineStatus 网络状态检测 hook：navigator.onLine + online/offline 事件监听\\n"
-    release_body="${release_body}- 新增 PersistentCache 通用持久化缓存：LRU 淘汰 + 容量超限自动回收\\n"
+    release_body="${release_body}- wikiService 新增 fetchWikiFullPage：基于 action=parse API 获取维基百科完整词条（首段 lead + 章节段落 + 信息框 + 图集）\\n"
+    release_body="${release_body}- WikiSection 类型：暴露章节标题 + 段落列表，详情页按章节结构化渲染\\n"
+    release_body="${release_body}- EntityInfo 接口扩展：新增 lead / sections / infobox 字段，详情页全字段渲染词条描述、品类属性、形态参数、图集\\n"
     release_body="${release_body}\\n## 逻辑修改\\n"
-    release_body="${release_body}- baikeService：内存缓存升级为 localStorage 持久化，离线二次访问直接读本地\\n"
-    release_body="${release_body}- wikiService：EntityInfo 缓存 + 搜索结果缓存均持久化到 localStorage\\n"
-    release_body="${release_body}- 水果搜索流程：本地库未命中 → 维基百科 search API 候选列表 → 用户选择 → 营养+维基并发获取\\n"
-    release_body="${release_body}- 药物详情页：全部内容切换为百度百科数据源（摘要/基本信息/详细内容/配图）\\n"
-    release_body="${release_body}- 水果详情页：除每100g元素含量板块（apihz.cn）外全部使用维基百科内容\\n"
+    release_body="${release_body}- 水果检索流程修复：去掉 searchWikiFruits 中附加的「 fruit 植物」后缀，改为只搜关键词本身（原后缀导致中英混合搜索命中率骤降）\\n"
+    release_body="${release_body}- 药物检索逻辑修复：fetchBaikeInfo 不再持久化 null 到 localStorage，改为内存临时缓存（避免失败永久卡死，下次重启应用可重新联网尝试）\\n"
+    release_body="${release_body}- 风控检测策略修复：isBlockedPage 由单关键词命中改为「强关键词单独命中 / 弱关键词对（百度安全验证 + 验证码）同时出现」二段式判定\\n"
+    release_body="${release_body}- baikeService 失败缓存分离：成功结果落 localStorage（离线二次访问），失败结果仅存内存 Map\\n"
+    release_body="${release_body}- doFetchFruit 改用 fetchWikiFullPage，summary API 降级为兜底\\n"
     release_body="${release_body}\\n## UI 调整\\n"
-    release_body="${release_body}- 水果/药物详情页抽屉：bg-white → bg-white/80 backdrop-blur-xl 玻璃材质，透出底层液态玻璃视觉层\\n"
-    release_body="${release_body}- 水果候选选择浮层同步玻璃化\\n"
-    release_body="${release_body}- 详情页配图：motion.img 替换为 SmartImage（三态：loading 旋转占位 / loaded 淡入 / error 兜底）\\n"
-    release_body="${release_body}\\n## 数据策略优化\\n"
-    release_body="${release_body}- 网络数据本地持久化：百度百科/维基百科/维基搜索结果均落地 localStorage，实现离线二次访问\\n"
-    release_body="${release_body}- LRU 淘汰策略：百科缓存上限 80 条，搜索缓存上限 50 条，超出自动淘汰最旧\\n"
-    release_body="${release_body}- 容量超限容错：localStorage QuotaExceededError 时自动回收一半条目重试\\n"
-    release_body="${release_body}\\n## 问题修复\\n"
-    release_body="${release_body}- 无网络时详情页不再卡在 loading：显示 WifiOff 提示 + 「仅展示已缓存数据」友好说明\\n"
-    release_body="${release_body}- 图片加载失败不再显示空白：SmartImage error 态显示 ImageOff 图标 + 提示文字\\n"
-    release_body="${release_body}- 长文本排版溢出：百科摘要/正文/维基介绍加 break-words 自适应换行\\n"
+    release_body="${release_body}- 水果详情页结构重排：图集（横向滚动）→ 词条简介（lead）→ 基本信息（infobox）→ 详细内容（sections 按章节）→ 每100g元素含量 → 食用建议\\n"
+    release_body="${release_body}- 信息框键值对从 8 项扩展至 10 项，新增 sm:grid-cols-2 双列布局\\n"
+    release_body="${release_body}- 图集横向滚动卡片：h-40 w-64，主图 + 多图合并去重展示\\n"
+    release_body="${release_body}- 段落渲染：维基章节带 h5 小标题 + 段落列表，结构层次清晰\\n"
     release_body="${release_body}\\n## 接口适配\\n"
-    release_body="${release_body}- 维基百科 search API（action=query&list=search）适配水果候选搜索\\n"
-    release_body="${release_body}- 百度百科 HTML 页面 DOMParser 解析：摘要/正文/配图/信息框全字段提取\\n"
-    release_body="${release_body}- apihz.cn 食物营养API 持续用于每100g钾磷钠水数据获取\\n"
+    release_body="${release_body}- 维基百科 action=parse API（page={title}&prop=text|images|properties）适配完整词条解析\\n"
+    release_body="${release_body}- 维基百科 search API 参数优化：srlimit 8→12，新增 srprop=snippet|sectiontitle，过滤 Help/Wikipedia/User 命名空间\\n"
+    release_body="${release_body}- 百度百科 CORS 代理扩充：从 2 个增至 4 个（allorigins/corsproxy/thingproxy/codetabs 轮换）\\n"
+    release_body="${release_body}- 百度百科 fetchHtml 超时：12s → 15s\\n"
+    release_body="${release_body}\\n## 数据策略优化\\n"
+    release_body="${release_body}- 水果详情页图文：维基百科完整章节段落（替代前 200 字摘要），按 H2/H3 标题划分，过滤参考文献/外部链接/参见等元章节\\n"
+    release_body="${release_body}- 药物详情页正文：段落数量从 8 段提升至 20 段，覆盖药理/适应症/不良反应/注意事项等全量字段\\n"
+    release_body="${release_body}- 药物摘要：从前 200 字扩展至前 400 字，信息密度翻倍\\n"
+    release_body="${release_body}- 药物信息框解析选择器扩展：新增 .basic-info / .J-basic-info / .basicInfo-item-wrap 等\\n"
+    release_body="${release_body}- 维基百科图片解析：优先 .thumb/figure/.thumbimage，兜底 upload.wikimedia.org 全量 img\\n"
+    release_body="${release_body}\\n## 问题修复\\n"
+    release_body="${release_body}- 问题1 修复：水果检索命中率异常——根因 searchWikiFruits 附加「 fruit 植物」后缀导致中英混合搜索命中率为 0，已移除\\n"
+    release_body="${release_body}- 问题1 修复：水果详情页百科内容缺失——从 summary API（200 字摘要）升级为 parse API（完整章节段落+信息框+图集）\\n"
+    release_body="${release_body}- 问题2 修复：药物详情图片加载失败——SmartImage 添加 referrerPolicy=no-referrer 解决 bkimg.cdn.bcebos.com 防盗链\\n"
+    release_body="${release_body}- 问题2 修复：药物详情文本信息不全——正文段落数 8→20，摘要 200→400 字，多图 5→8 张\\n"
+    release_body="${release_body}- 问题3 修复：药物检索误判为空——isBlockedPage 单关键词命中导致正常词条被风控误判，改为二段式判定\\n"
+    release_body="${release_body}- 问题3 修复：null 持久化缓存导致永久失败——fetchBaikeInfo 失败仅存内存，重启应用后可重新尝试联网\\n"
+    release_body="${release_body}- 维基百科消歧义页处理：尝试 name → name（水果）→ name（植物）→ name（食品）多个标题变体\\n"
+
+    # 用 jq 构造 JSON body，避免 bash 字符串嵌套 JSON 时 body 被截断为空
+    # （历史问题：双引号/反斜杠/换行符直接嵌入 -d JSON 字符串会破坏结构，导致 release body 为空）
+    # release_body 里的 \\n 是字面字符，sed 转为真换行符后让 jq 当字符串传给 JSON body 字段
+    local release_json
+    release_json=$(jq -n \
+        --arg tag "$tag" \
+        --arg body "$(printf '%s' "$release_body" | sed 's/\\n/\n/g')" \
+        '{tag_name: $tag, target_commitish: "main", name: ($tag + " Debug + Release APK"), body: $body, draft: false, prerelease: false}')
 
     local response=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
         -H "Content-Type: application/json" \
-        "https://api.github.com/repos/$repo/releases" -d "{
-        \"tag_name\": \"$tag\",
-        \"target_commitish\": \"main\",
-        \"name\": \"$tag Debug + Release APK\",
-        \"body\": \"$release_body\",
-        \"draft\": false,
-        \"prerelease\": false
-    }")
+        "https://api.github.com/repos/$repo/releases" --data "$release_json")
 
     local release_id=$(echo "$response" | grep '"id"' | head -1 | grep -o '[0-9]*')
 

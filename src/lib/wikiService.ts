@@ -17,13 +17,27 @@ import { PersistentCache } from './persistentCache';
 
 export type EntityKind = 'fruit' | 'medication';
 
+/** 完整词条的章节结构（按维基百科章节标题划分） */
+export interface WikiSection {
+  /** 章节标题（如「形态特性」「分布范围」「主要价值」） */
+  title: string;
+  /** 该章节下的段落文本列表（已去标签） */
+  paragraphs: string[];
+}
+
 export interface EntityInfo {
   /** 真实配图 URL（主图/封面） */
   image?: string;
-  /** 多张配图 URL（药物详情页展示多张药盒图） */
+  /** 多张配图 URL（详情页图集） */
   images?: string[];
-  /** 维基百科摘要（介绍） */
+  /** 维基百科摘要（介绍）—— 兼容字段，保留前 200 字 */
   description?: string;
+  /** 完整首段（lead section，无标题的引言） */
+  lead?: string;
+  /** 完整章节列表（详情页正文段落） */
+  sections?: WikiSection[];
+  /** 信息框键值对（如「界」「门」「目」「科」「属」「种」） */
+  infobox?: Record<string, string>;
 }
 
 const cache = new PersistentCache<EntityInfo>({ prefix: 'wiki_cache_', maxEntries: 80 });
@@ -182,19 +196,215 @@ async function doFetchMedication(name: string): Promise<EntityInfo> {
   return {};
 }
 
-/** 水果：获取配图 + 介绍 */
+/** 水果：获取完整词条（信息框 + 章节段落 + 图集） */
 async function doFetchFruit(name: string): Promise<EntityInfo> {
-  const commonsSearchTerm = FRUIT_NAME_MAP[name] ?? `${name} fruit`;
-  const commonsImage = await tryWikimediaCommons(commonsSearchTerm);
-  if (commonsImage) {
-    const desc = await tryWikipediaDescription(name, 'fruit');
-    return { image: commonsImage, description: desc };
+  // 1. 并发：维基百科完整词条 + Commons 真实配图
+  const [fullPage, commonsImage] = await Promise.all([
+    fetchWikiFullPage(name),
+    tryWikimediaCommons(FRUIT_NAME_MAP[name] ?? `${name} fruit`),
+  ]);
+
+  // 2. 兜底：完整词条失败时再走 summary API
+  if (!fullPage) {
+    const summary = await tryWikipediaSummary(name, 'fruit');
+    if (!summary.image && commonsImage) summary.image = commonsImage;
+    if (!summary.images && commonsImage) summary.images = [commonsImage];
+    return summary;
   }
 
-  const wikiInfo = await tryWikipediaSummary(name, 'fruit');
-  if (wikiInfo.image || wikiInfo.description) return wikiInfo;
+  // 3. 合并图片：维基图片优先，Commons 补充
+  const allImages: string[] = [];
+  const seen = new Set<string>();
+  const pushImg = (u?: string) => {
+    if (u && !seen.has(u)) {
+      seen.add(u);
+      allImages.push(u);
+    }
+  };
+  pushImg(commonsImage);
+  if (fullPage.images) fullPage.images.forEach(pushImg);
 
-  return {};
+  return {
+    image: fullPage.images?.[0] || commonsImage,
+    images: allImages.slice(0, 6),
+    description: fullPage.lead?.slice(0, 200),
+    lead: fullPage.lead,
+    sections: fullPage.sections,
+    infobox: fullPage.infobox,
+  };
+}
+
+/**
+ * 维基百科完整词条解析（action=parse API）
+ *
+ * 流程：
+ * - 尝试多个标题变体：name → name（水果） → name（植物） → name（食品）
+ * - 调用 parse API 拿到完整 HTML 片段
+ * - DOMParser 解析：infobox / 首段 lead / 章节段落 / 图集
+ *
+ * 返回 null 表示所有标题变体都失败。
+ */
+async function fetchWikiFullPage(name: string): Promise<{
+  lead?: string;
+  sections?: WikiSection[];
+  images?: string[];
+  infobox?: Record<string, string>;
+} | null> {
+  // 标题变体：苹果 → 苹果 → 苹果（水果） → 苹果（植物） → 苹果（食品）
+  const titles = [name, `${name}（水果）`, `${name}（植物）`, `${name}（食品）`];
+  for (const title of titles) {
+    try {
+      const params = new URLSearchParams({
+        action: 'parse',
+        page: title,
+        prop: 'text|images|properties',
+        format: 'json',
+        origin: '*',
+        redirects: '1',
+        disablelimitreport: '1',
+      });
+      const res = await fetch(
+        `https://zh.wikipedia.org/w/api.php?${params.toString()}`,
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (!res.ok) continue;
+      const data = await res.json();
+      // 消歧义页 / 不存在
+      if (data?.error) continue;
+      const page = data?.parse;
+      if (!page) continue;
+
+      const html: string = page.text?.['*'] || '';
+      if (!html) continue;
+
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const root = doc.querySelector('.mw-parser-output') || doc.body;
+
+      // 信息框
+      const infobox = parseWikiInfobox(root);
+
+      // 首段 lead（无标题的引言 p）
+      const lead = parseWikiLead(root);
+
+      // 章节段落
+      const sections = parseWikiSections(root);
+
+      // 图集
+      const images = parseWikiImages(root);
+
+      if (!lead && sections.length === 0 && (!images || images.length === 0)) {
+        continue;
+      }
+
+      return { lead, sections, images, infobox };
+    } catch {
+      // 继续尝试下一个标题
+    }
+  }
+  return null;
+}
+
+/** 解析维基百科信息框（infobox biota / infobox food 等） */
+function parseWikiInfobox(root: Element): Record<string, string> | undefined {
+  const table = root.querySelector('table.infobox, table.biota, table.wikitable.infobox');
+  if (!table) return undefined;
+  const result: Record<string, string> = {};
+  const rows = table.querySelectorAll('tr');
+  for (const tr of rows) {
+    const th = tr.querySelector('th');
+    const td = tr.querySelector('td');
+    if (th && td) {
+      // 移除 sup/sub/cite 等附加信息
+      tr.querySelectorAll('sup, .reference, .noprint').forEach((n) => n.remove());
+      const k = (th.textContent || '').replace(/\u00a0/g, ' ').trim();
+      const v = (td.textContent || '').replace(/\u00a0/g, ' ').trim();
+      if (k && v && k.length < 20 && v.length < 100 && !k.includes('\n')) {
+        result[k] = v;
+      }
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+/** 解析首段 lead：mw-parser-output 下第一个非空 <p>（排除坐标/消歧义等元信息） */
+function parseWikiLead(root: Element): string | undefined {
+  const paras = root.querySelectorAll('p');
+  for (const p of paras) {
+    p.querySelectorAll('sup, .reference, .noprint, .mw-empty-elt, style').forEach((n) => n.remove());
+    const text = (p.textContent || '').replace(/\u00a0/g, ' ').trim();
+    // 过滤空段、坐标段、消歧义段
+    if (text && text.length > 20 && !text.startsWith('坐标') && !text.includes('消歧义')) {
+      return text;
+    }
+  }
+  return undefined;
+}
+
+/** 解析章节段落：按 H2/H3 标题划分 */
+function parseWikiSections(root: Element): WikiSection[] {
+  const sections: WikiSection[] = [];
+  let current: WikiSection | null = null;
+
+  for (const node of Array.from(root.children)) {
+    const tag = node.tagName.toLowerCase();
+    if (tag === 'h2' || tag === 'h3') {
+      const headline = node.querySelector('.mw-headline');
+      const title = (headline?.textContent || node.textContent || '').trim();
+      // 跳过「参考文献」「外部链接」「参见」等
+      if (title && !/参考文献|外部链接|参见|注释|扩展阅读/.test(title)) {
+        current = { title, paragraphs: [] };
+        sections.push(current);
+      } else {
+        current = null;
+      }
+    } else if (tag === 'p' && current) {
+      node.querySelectorAll('sup, .reference, .noprint, .mw-empty-elt, style').forEach((n) => n.remove());
+      const text = (node.textContent || '').replace(/\u00a0/g, ' ').trim();
+      if (text && text.length > 10) {
+        current.paragraphs.push(text);
+      }
+    }
+  }
+  // 过滤空章节
+  return sections.filter((s) => s.paragraphs.length > 0);
+}
+
+/** 解析图集：thumb 图 + 直接 img */
+function parseWikiImages(root: Element): string[] {
+  const urls: string[] = [];
+  const seen = new Set<string>();
+  // 1. 缩略图（图说图）
+  const thumbs = root.querySelectorAll('.thumb img, figure img, .thumbimage');
+  for (const img of thumbs) {
+    if (urls.length >= 6) break;
+    const src =
+      img.getAttribute('data-src') ||
+      img.getAttribute('src') ||
+      '';
+    if (!src) continue;
+    // 跳过 icon / svg / placeholder
+    if (/icon|logo|svg|OOjs|placeholder|Edit-clear/i.test(src)) continue;
+    const url = src.startsWith('//') ? `https:${src}` : src;
+    if (!seen.has(url)) {
+      seen.add(url);
+      urls.push(url);
+    }
+  }
+  // 2. 兜底：所有 img
+  if (urls.length === 0) {
+    const imgs = root.querySelectorAll('img');
+    for (const img of imgs) {
+      if (urls.length >= 6) break;
+      const src = img.getAttribute('src') || '';
+      if (!src || /icon|logo|svg|OOjs|Edit-clear|\/static\//i.test(src)) continue;
+      const url = src.startsWith('//') ? `https:${src}` : src;
+      if (!seen.has(url) && (src.includes('upload.wikimedia') || src.includes('/thumb/'))) {
+        seen.add(url);
+        urls.push(url);
+      }
+    }
+  }
+  return urls;
 }
 
 /** 维基百科 REST summary API —— 获取图片和摘要 */
@@ -362,14 +572,19 @@ export function searchWikiFruits(keyword: string): Promise<WikiSearchItem[]> {
 }
 
 async function doSearchWikiFruits(keyword: string): Promise<WikiSearchItem[]> {
-  // 追加 ' fruit 植物' 提升水果/植物精准度，但保留 keyword 主体
+  // 注意：不再附加 ' fruit 植物' 等后缀。
+  // 原因：中文维基百科 search API 对中英混合搜索词命中率极差，
+  // 比如搜「苹果 fruit 植物」会返回稀疏结果甚至空，导致正常品类检索为空。
+  // 改为只搜关键词本身，命中所有相关词条，由用户从候选列表选择。
   const params = new URLSearchParams({
     action: 'query',
     list: 'search',
-    srsearch: `${keyword} fruit 植物`,
+    srsearch: keyword,
     format: 'json',
     origin: '*',
-    srlimit: '8',
+    srlimit: '12',
+    srprop: 'snippet|sectiontitle',
+    srinfo: 'totalhits',
   });
   const res = await fetch(
     `https://zh.wikipedia.org/w/api.php?${params.toString()}`,
@@ -382,9 +597,16 @@ async function doSearchWikiFruits(keyword: string): Promise<WikiSearchItem[]> {
     | undefined;
   if (!Array.isArray(results)) return [];
 
-  // 过滤消歧义页
+  // 过滤消歧义页 + 帮助页 + 用户页
   return results
-    .filter((r) => r.title && !r.title.includes('消歧义'))
+    .filter(
+      (r) =>
+        r.title &&
+        !r.title.includes('消歧义') &&
+        !r.title.startsWith('Help:') &&
+        !r.title.startsWith('Wikipedia:') &&
+        !r.title.startsWith('User:')
+    )
     .map((r) => ({
       title: r.title,
       description: r.snippet ? stripHtml(r.snippet) : undefined,

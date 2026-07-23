@@ -356,13 +356,35 @@ function FruitDetail({
   onClose: () => void;
 }) {
   const w = Number(weight) || 0;
-  const { image, description, loading } = useEntityInfo(
+  const {
+    image,
+    images,
+    description,
+    lead,
+    sections,
+    infobox,
+    loading,
+  } = useEntityInfo(
     fruit.name,
     'fruit',
     fruit.image,
     fruit.description
   );
   const isOnline = useOnlineStatus();
+
+  // 信息框键值对（过滤过短/无效项）
+  const infoboxEntries = infobox
+    ? Object.entries(infobox).filter(([, v]) => v && v.length > 1).slice(0, 10)
+    : [];
+
+  // 图集（主图 + 多图，去重）
+  const allImages = (() => {
+    const all = [
+      ...(image ? [image] : []),
+      ...(images || []),
+    ].filter((v, i, a) => v && a.indexOf(v) === i);
+    return all.slice(0, 6);
+  })();
 
   return (
     <>
@@ -410,13 +432,18 @@ function FruitDetail({
         </div>
 
         <div className="space-y-4 px-6 pb-6 pt-4">
-          {/* 水果配图 */}
-          {image ? (
-            <SmartImage
-              src={image}
-              alt={fruit.name}
-              className="h-40 w-full rounded-2xl"
-            />
+          {/* 图集（主图 + 多图，横向滚动） */}
+          {allImages.length > 0 ? (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {allImages.map((img, i) => (
+                <SmartImage
+                  key={i}
+                  src={img}
+                  alt={`${fruit.name} ${i + 1}`}
+                  className="h-40 w-64 flex-shrink-0 rounded-2xl"
+                />
+              ))}
+            </div>
           ) : loading ? (
             isOnline ? (
               <div className="flex h-40 w-full items-center justify-center rounded-2xl bg-cream-100">
@@ -430,7 +457,63 @@ function FruitDetail({
             )
           ) : null}
 
-          {/* 核心：每100g元素含量 */}
+          {/* 维基百科引言（lead，完整首段） */}
+          {lead && (
+            <div className="rounded-2xl border border-cream-200 bg-cream-50 p-4">
+              <h4 className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-teal-700">
+                <Info className="h-4 w-4" /> 词条简介
+              </h4>
+              <p className="text-sm leading-relaxed break-words text-teal-600/80">{lead}</p>
+            </div>
+          )}
+
+          {/* 信息框（界/门/目/科/属/种等分类学条目） */}
+          {infoboxEntries.length > 0 && (
+            <div className="rounded-2xl border border-cream-200 p-4">
+              <h4 className="mb-2 text-sm font-medium text-teal-700">基本信息</h4>
+              <dl className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                {infoboxEntries.map(([k, v]) => (
+                  <div key={k} className="flex gap-2 text-sm">
+                    <dt className="flex-shrink-0 text-teal-600/60">{k}</dt>
+                    <dd className="break-words text-teal-700">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+
+          {/* 维基百科完整章节段落（形态特性/分布范围/主要价值等） */}
+          {sections && sections.length > 0 && (
+            <div className="rounded-2xl border border-cream-200 p-4">
+              <h4 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-teal-700">
+                <ChevronRight className="h-4 w-4" /> 详细内容
+              </h4>
+              <div className="space-y-3">
+                {sections.map((section, i) => (
+                  <div key={i}>
+                    <h5 className="mb-1 text-sm font-medium text-teal-700/90">{section.title}</h5>
+                    <div className="space-y-1.5">
+                      {section.paragraphs.map((p, j) => (
+                        <p key={j} className="text-sm leading-relaxed break-words text-teal-600/80">{p}</p>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 兼容兜底：无 sections 时使用 description（维基摘要） */}
+          {!lead && !sections?.length && description && (
+            <div className="rounded-2xl border border-cream-200 p-4">
+              <h4 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-teal-700">
+                <Info className="h-4 w-4" /> 维基介绍
+              </h4>
+              <p className="text-sm leading-relaxed break-words text-teal-600/80">{description}</p>
+            </div>
+          )}
+
+          {/* 核心：每100g元素含量（保留模块） */}
           <div className="rounded-2xl bg-cream-50 p-4">
             <h4 className="mb-3 text-sm font-medium text-teal-700">每 100g 元素含量</h4>
             <div className="grid grid-cols-2 gap-3">
@@ -463,16 +546,12 @@ function FruitDetail({
                 </div>
               </div>
             </div>
+            <p className="mt-2 text-[10px] text-teal-600/30">数据来源：apihz.cn 食物营养API</p>
           </div>
 
-          {/* 维基介绍（fruit.description 为维基摘要；无 description 则不展示） */}
-          {description && (
-            <div className="rounded-2xl border border-cream-200 p-4">
-              <h4 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-teal-700">
-                <Info className="h-4 w-4" /> 维基介绍
-              </h4>
-              <p className="text-sm leading-relaxed break-words text-teal-600/80">{description}</p>
-            </div>
+          {/* 数据源标注 */}
+          {(lead || sections?.length) && (
+            <p className="px-1 text-[10px] text-teal-600/30">图文来源：维基百科</p>
           )}
 
           {/* 食用建议 */}
