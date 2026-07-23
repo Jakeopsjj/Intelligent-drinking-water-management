@@ -104,8 +104,30 @@ ensure_android_sdk() {
     rm -rf "$ANDROID_SDK/cmdline-tools/latest" 2>/dev/null
     mv "$ANDROID_SDK/cmdline-tools/cmdline-tools" "$ANDROID_SDK/cmdline-tools/latest"
 
-    yes | "$ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" \
-        "platforms;android-36" "build-tools;36.0.0" "platform-tools" 2>&1 | tail -5
+    # CI 环境（无 TTY，stdin=EOF）下 sdkmanager 会因 license 提示卡住，
+    # `yes | ... | tail` 管道也会因 tail 提前关闭触发 SIGPIPE（exit 141）。
+    # 方案：先显式预接受所有 license（写入 $ANDROID_SDK/licenses/），
+    # 再用 sdkmanager --licenses 二次确认，最后非交互安装包（stdin</dev/null）。
+    mkdir -p "$ANDROID_SDK/licenses"
+    # android-sdk-license（platform/build-tools 通用 license hash）
+    printf "\n8933bad161af4178b1185d1a37fbf41ea5269c55\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n" \
+        > "$ANDROID_SDK/licenses/android-sdk-license"
+    # android-sdk-preview-license（部分 build-tools 需要）
+    printf "\n84831b9409646a918e30573bab4c9c91346d8abd\n" \
+        > "$ANDROID_SDK/licenses/android-sdk-preview-license"
+    info "已预写入 Android SDK license（CI 非交互模式）"
+
+    set +e
+    "$ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" --licenses \
+        > /tmp/sdkmanager-licenses.log 2>&1 </dev/null
+    "$ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" \
+        "platforms;android-36" "build-tools;36.0.0" "platform-tools" \
+        > /tmp/sdkmanager-install.log 2>&1 </dev/null
+    local sdk_rc=$?
+    set -e
+    if [ $sdk_rc -ne 0 ]; then
+        warn "sdkmanager 安装返回非 0（$sdk_rc），日志见 /tmp/sdkmanager-install.log"
+    fi
 
     # sdkmanager 可能因网络失败，备用方案：直接下载 zip
     if [ ! -d "$ANDROID_SDK/platforms/android-36" ]; then
