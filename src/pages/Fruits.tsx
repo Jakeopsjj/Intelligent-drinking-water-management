@@ -25,6 +25,7 @@ import { useOverlayBackHandler } from '@/hooks/useOverlayBackHandler';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useBaikeInfo } from '@/hooks/useBaikeInfo';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useEntityImage } from '@/hooks/useEntityImage';
 import SmartImage from '@/components/SmartImage';
 import type { Fruit } from '@/types';
 
@@ -318,11 +319,16 @@ function FruitCard({
   onClick: () => void;
   onDelete?: () => void;
 }) {
+  const image = useEntityImage(fruit.name, 'fruit');
   return (
     <div className="flex items-center justify-between rounded-2xl border border-cream-200 bg-white p-4 transition hover:border-teal-300 hover:shadow-sm">
       <button onClick={onClick} className="flex flex-1 items-center gap-3 text-left">
-        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-cream-50 text-2xl">
-          {fruit.emoji}
+        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-cream-50 text-2xl overflow-hidden">
+          {image ? (
+            <SmartImage src={image} alt={fruit.name} className="h-full w-full" />
+          ) : (
+            fruit.emoji
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
