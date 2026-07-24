@@ -42,12 +42,14 @@ error() { echo -e "${RED}[ERROR]${NC} $1"; }
 # ============================================================
 # 0. 自动递增版本号
 #    - patch 位 +1（如 2.15.0 → 2.15.1，2.15.9 → 2.16.0）
-#    - 同步更新 package.json 的 version、build.gradle 的 versionName/versionCode
+#    - 同步更新 package.json 的 version、build.gradle 的 versionName/versionCode、
+#      src/lib/updateChecker.ts 的 APP_VERSION（三处必须一致，否则 check-version 会失败）
 #    - 纯 bash/sed 实现，不依赖 node/python
 # ============================================================
 bump_version() {
     local pkg="$PROJECT_ROOT/package.json"
     local gradle="$ANDROID_DIR/app/build.gradle"
+    local updater="$PROJECT_ROOT/src/lib/updateChecker.ts"
 
     # 读取当前版本号（package.json 的 "version" 字段）
     local cur
@@ -81,6 +83,16 @@ bump_version() {
     cur_code=$(grep 'versionCode' "$gradle" | head -1 | sed 's/.*versionCode[[:space:]]*\([0-9][0-9]*\).*/\1/')
     new_code=$((cur_code + 1))
     sed -i "s/versionCode[[:space:]]*[0-9][0-9]*/versionCode $new_code/" "$gradle"
+
+    # 4. 同步 src/lib/updateChecker.ts 的 APP_VERSION（单引号字符串）
+    #    格式：export const APP_VERSION = 'x.y.z';
+    #    若文件不存在则跳过（非阻断，部分分支可能无此文件）
+    if [ -f "$updater" ]; then
+        sed -i "s/export const APP_VERSION[[:space:]]*=[[:space:]]*'[^']*'/export const APP_VERSION = '$new'/" "$updater"
+        info "  已同步 updateChecker.ts: APP_VERSION = '$new'"
+    else
+        warn "  updateChecker.ts 不存在，跳过同步"
+    fi
 }
 
 # ============================================================
