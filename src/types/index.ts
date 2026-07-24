@@ -281,3 +281,186 @@ export interface MedicationPlanItem {
   notes?: string;         // 备注（如"饭后服用"）
   createdAt: number;      // 创建时间
 }
+
+// ============ 化验报告 ============
+
+/** 化验指标项 */
+export interface LabMetric {
+  /** 指标键名 */
+  key: LabMetricKey;
+  /** 数值 */
+  value: number;
+  /** 单位 */
+  unit: string;
+}
+
+/** 化验指标键名 */
+export type LabMetricKey =
+  | 'hemoglobin'       // 血红蛋白
+  | 'creatinine'       // 血肌酐
+  | 'bun'              // 尿素氮
+  | 'potassium'        // 血钾
+  | 'phosphorus'       // 血磷
+  | 'calcium'          // 血钙
+  | 'pth'              // 甲状旁腺激素
+  | 'albumin'          // 白蛋白
+  | 'tsat'             // 转铁蛋白饱和度
+  | 'ferritin'         // 铁蛋白
+  | 'crp'              // C反应蛋白
+  | 'uricAcid';        // 尿酸
+
+/** 化验指标元数据（名称、单位、正常范围） */
+export interface LabMetricMeta {
+  key: LabMetricKey;
+  label: string;
+  unit: string;
+  /** 透析患者目标范围（下限） */
+  min: number;
+  /** 透析患者目标范围（上限） */
+  max: number;
+  /** 指标说明 */
+  description: string;
+  /** 偏低时的建议 */
+  lowAdvice?: string;
+  /** 偏高时的建议 */
+  highAdvice?: string;
+}
+
+/** 化验指标元数据常量 */
+export const LAB_METRICS: LabMetricMeta[] = [
+  {
+    key: 'hemoglobin',
+    label: '血红蛋白',
+    unit: 'g/L',
+    min: 110,
+    max: 120,
+    description: '反映贫血状况，透析患者目标 110-120 g/L',
+    lowAdvice: '血红蛋白偏低，建议评估促红素用量和铁储备，必要时调整治疗方案',
+    highAdvice: '血红蛋白偏高，促红素可能需减量，注意血栓风险',
+  },
+  {
+    key: 'creatinine',
+    label: '血肌酐',
+    unit: 'μmol/L',
+    min: 400,
+    max: 800,
+    description: '反映肾功能，透析患者通常显著升高',
+    lowAdvice: '血肌酐偏低可能提示营养不足，需评估蛋白质摄入',
+    highAdvice: '血肌酐偏高，可能与透析充分性有关，建议评估透析处方',
+  },
+  {
+    key: 'bun',
+    label: '尿素氮',
+    unit: 'mmol/L',
+    min: 7.1,
+    max: 14.3,
+    description: '反映蛋白质代谢和透析充分性',
+    lowAdvice: '尿素氮偏低，可能提示蛋白质摄入不足',
+    highAdvice: '尿素氮偏高，可能与蛋白质摄入过多或透析不充分有关',
+  },
+  {
+    key: 'potassium',
+    label: '血钾',
+    unit: 'mmol/L',
+    min: 3.5,
+    max: 5.5,
+    description: '电解质平衡，透析患者需严格控制',
+    lowAdvice: '血钾偏低，注意补充含钾食物，避免低钾心律失常',
+    highAdvice: '血钾偏高！严格控制高钾食物摄入，警惕心律失常风险',
+  },
+  {
+    key: 'phosphorus',
+    label: '血磷',
+    unit: 'mmol/L',
+    min: 0.87,
+    max: 1.45,
+    description: '磷代谢指标，透析患者目标 0.87-1.45',
+    lowAdvice: '血磷偏低，注意磷结合剂用量',
+    highAdvice: '血磷偏高，加强低磷饮食，调整磷结合剂用量',
+  },
+  {
+    key: 'calcium',
+    label: '血钙',
+    unit: 'mmol/L',
+    min: 2.1,
+    max: 2.54,
+    description: '钙磷代谢平衡，透析患者目标 2.1-2.54',
+    lowAdvice: '血钙偏低，注意钙剂和活性维生素D补充',
+    highAdvice: '血钙偏高，注意钙剂减量，监测血管钙化风险',
+  },
+  {
+    key: 'pth',
+    label: '甲状旁腺激素',
+    unit: 'pg/mL',
+    min: 150,
+    max: 300,
+    description: '骨矿物质代谢指标，透析患者目标 150-300',
+    lowAdvice: 'PTH偏低，注意低转运骨病风险',
+    highAdvice: 'PTH偏高，注意继发性甲旁亢，评估拟钙剂使用',
+  },
+  {
+    key: 'albumin',
+    label: '白蛋白',
+    unit: 'g/L',
+    min: 40,
+    max: 55,
+    description: '反映营养状态，透析患者目标 ≥40 g/L',
+    lowAdvice: '白蛋白偏低，提示营养不良，需增加蛋白质摄入',
+    highAdvice: '白蛋白正常偏高，营养状态良好',
+  },
+  {
+    key: 'tsat',
+    label: '转铁蛋白饱和度',
+    unit: '%',
+    min: 20,
+    max: 50,
+    description: '铁利用指标，透析患者目标 20-50%',
+    lowAdvice: 'TSAT偏低，铁利用不足，建议补充静脉铁剂',
+    highAdvice: 'TSAT偏高，注意铁过量风险',
+  },
+  {
+    key: 'ferritin',
+    label: '铁蛋白',
+    unit: 'ng/mL',
+    min: 200,
+    max: 500,
+    description: '铁储备指标，透析患者目标 200-500',
+    lowAdvice: '铁蛋白偏低，铁储备不足，建议补铁',
+    highAdvice: '铁蛋白偏高，暂停补铁，注意铁过载风险',
+  },
+  {
+    key: 'crp',
+    label: 'C反应蛋白',
+    unit: 'mg/L',
+    min: 0,
+    max: 10,
+    description: '炎症指标，反映体内炎症状态',
+    lowAdvice: 'CRP正常，无明显炎症',
+    highAdvice: 'CRP偏高，提示体内有炎症，需进一步排查感染或慢性炎症',
+  },
+  {
+    key: 'uricAcid',
+    label: '尿酸',
+    unit: 'μmol/L',
+    min: 200,
+    max: 420,
+    description: '嘌呤代谢指标',
+    lowAdvice: '尿酸偏低，一般无临床意义',
+    highAdvice: '尿酸偏高，注意低嘌呤饮食，必要时药物干预',
+  },
+];
+
+/** 化验报告记录 */
+export interface LabReport {
+  id: string;
+  /** 报告日期时间戳 */
+  date: number;
+  /** 医院名称（可选） */
+  hospital?: string;
+  /** 指标列表 */
+  metrics: LabMetric[];
+  /** 备注 */
+  note?: string;
+  /** 创建时间 */
+  createdAt: number;
+}

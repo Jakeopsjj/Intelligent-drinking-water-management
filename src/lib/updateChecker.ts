@@ -16,7 +16,7 @@ const GITHUB_OWNER = 'Jakeopsjj';
 const GITHUB_REPO = 'Intelligent-drinking-water-management';
 
 /** 当前版本号（从 package.json 编译时注入，这里硬编码同步） */
-export const APP_VERSION = '2.20.0';
+export const APP_VERSION = '2.21.0';
 
 /** 存储键：上次查看更新内容的版本号 */
 const LAST_VIEWED_VERSION_KEY = 'last_viewed_version';
@@ -27,6 +27,21 @@ const LAST_VIEWED_VERSION_KEY = 'last_viewed_version';
  * 格式：按版本号索引，值为 Markdown 格式的更新内容
  */
 const LOCAL_CHANGELOG: Record<string, string> = {
+  '2.21.0': `### 新增功能
+
+- **化验报告管理**：新增透析患者血液化验报告录入与追踪功能，覆盖12项核心指标（血红蛋白、血肌酐、尿素氮、血钾、血磷、血钙、甲状旁腺激素、白蛋白、转铁蛋白饱和度、铁蛋白、C反应蛋白、尿酸）
+- **化验指标异常预警**：录入指标后自动与透析患者目标范围对比，偏低/偏高自动标色预警，并提供针对性建议
+- **化验指标趋势曲线**：支持查看单项指标的历史趋势曲线图，含目标范围参考线，直观展示指标变化趋势
+- **化验报告历史归档**：所有化验报告按时间排序永久保存，支持查看详情与删除
+
+### 交互优化
+
+- 底部导航新增「化验」入口，快捷访问化验报告功能
+- 化验报告录入表单支持实时异常值标色反馈
+
+### 缺陷修复
+
+- 无`,
   '2.20.0': `### 新增功能
 
 - **版本更新日志系统**：新增 APP 内置「检查更新」功能完整更新日志展示，支持本地内置 changelog 降级方案，网络不可用时仍可查看版本更新内容

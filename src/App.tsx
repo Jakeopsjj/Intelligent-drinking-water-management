@@ -9,6 +9,7 @@ import Diet from '@/pages/Diet';
 import Medications from '@/pages/Medications';
 import MedicationPlan from '@/pages/MedicationPlan';
 import DialysisLog from '@/pages/DialysisLog';
+import LabReport from '@/pages/LabReport';
 import Settings from '@/pages/Settings';
 import Onboarding from '@/pages/Onboarding';
 import PermissionsGate, { hasAcceptedPermissions } from '@/components/PermissionsGate';
@@ -79,6 +80,7 @@ function AppRoutes() {
           <Route path="/records" element={<Records />} />
           <Route path="/diet" element={<Diet />} />
           <Route path="/dialysis-log" element={<DialysisLog />} />
+          <Route path="/lab-report" element={<LabReport />} />
           <Route path="/medications" element={<Medications />} />
           <Route path="/medication-plan" element={<MedicationPlan />} />
           <Route path="/settings" element={<Settings />} />
