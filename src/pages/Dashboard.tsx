@@ -93,6 +93,8 @@ export default function Dashboard() {
     { label: '钾', value: todayMetrics.potassium, unit: 'mg', icon: <HeartPulse className="h-3 w-3" />, limit: settings.dailyPotassiumLimit, current: todayMetrics.potassium },
     { label: '磷', value: todayMetrics.phosphorus, unit: 'mg', icon: <Bone className="h-3 w-3" />, limit: settings.dailyPhosphorusLimit, current: todayMetrics.phosphorus },
     { label: '钠', value: todayMetrics.sodium, unit: 'mg', icon: <Soup className="h-3 w-3" />, limit: settings.dailySodiumLimit, current: todayMetrics.sodium },
+    { label: '体重', value: todayMetrics.latestWeight > 0 ? todayMetrics.latestWeight.toFixed(1) : '--', unit: 'kg', icon: <Scale className="h-3 w-3" />, limit: 0, current: 0 },
+    { label: '血压', value: todayMetrics.latestSystolic > 0 && todayMetrics.latestDiastolic > 0 ? `${todayMetrics.latestSystolic}/${todayMetrics.latestDiastolic}` : '--/--', unit: '', icon: <Heart className="h-3 w-3" />, limit: 0, current: 0 },
     { label: '服药', value: todayMetrics.medicationCount, unit: '次', icon: <Pill className="h-3 w-3" />, limit: 0, current: 0 },
   ];
 
@@ -275,7 +277,7 @@ export default function Dashboard() {
               );
             })}
           </div>
-          <p className="mt-1.5 text-[10px] text-teal-600/35">← 左右滑动查看全部 7 项指标 →</p>
+          <p className="mt-1.5 text-[10px] text-teal-600/35">← 左右滑动查看全部 9 项指标 →</p>
         </div>
       </motion.section>
 

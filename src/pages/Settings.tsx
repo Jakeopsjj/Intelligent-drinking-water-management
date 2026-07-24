@@ -164,13 +164,33 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <motion.header
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between"
       >
-        <h1 className="font-serif text-3xl font-semibold text-teal-700">设置</h1>
-        <p className="mt-1 text-sm text-teal-600/60">个性化你的健康限额</p>
+        <div>
+          <h1 className="font-serif text-2xl font-semibold text-teal-700">设置</h1>
+          <p className="text-xs text-teal-600/60">个性化你的健康限额</p>
+        </div>
+        <button
+          onClick={handleSave}
+          className={cn(
+            'flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition',
+            saved
+              ? 'bg-sage-500 text-white'
+              : 'bg-teal-500 text-white hover:bg-teal-600'
+          )}
+        >
+          {saved ? (
+            <>
+              <Check className="h-4 w-4" /> 已保存
+            </>
+          ) : (
+            '保存'
+          )}
+        </button>
       </motion.header>
 
       {/* 个人信息 */}
@@ -178,37 +198,34 @@ export default function Settings() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="glass-card relative overflow-hidden rounded-3xl p-6"
+        className="glass-card relative overflow-hidden rounded-3xl p-4"
       >
         <div className="glass-orb -right-10 -top-10 h-32 w-32 bg-teal-300/20" />
         <div className="glass-shimmer" />
         <div className="relative z-10">
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-3 flex items-center gap-2">
           <User className="h-4 w-4 text-teal-500" />
-          <h2 className="font-serif text-lg font-semibold text-teal-700">个人信息</h2>
+          <h2 className="font-serif text-base font-semibold text-teal-700">个人信息</h2>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* 头像 */}
-          <div className="glass-tile flex items-center gap-4 rounded-xl p-3">
+          <div className="glass-tile flex items-center gap-3 rounded-xl p-2.5">
             <button
               onClick={() => setShowAvatarPicker(true)}
-              className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-cream-300 bg-cream-100 transition hover:border-teal-400"
+              className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-cream-300 bg-cream-100 transition hover:border-teal-400"
               aria-label="修改头像"
             >
               <AvatarView value={settings.userAvatar} />
-              <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-teal-500 text-white shadow-sm">
-                <Camera className="h-3 w-3" />
+              <span className="absolute bottom-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-teal-500 text-white shadow-sm">
+                <Camera className="h-2.5 w-2.5" />
               </span>
             </button>
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium text-teal-700">头像</div>
-              <div className="mt-0.5 text-xs text-teal-600/60">
-                点击头像可更换为内置图标或上传自定义图片
-              </div>
               <button
                 onClick={() => setShowAvatarPicker(true)}
-                className="mt-1 text-xs font-medium text-teal-600 underline"
+                className="mt-0.5 text-xs font-medium text-teal-600 underline"
               >
                 更换头像
               </button>
@@ -220,7 +237,7 @@ export default function Settings() {
               value={settings.userName ?? ''}
               onChange={(e) => updateSettings({ userName: e.target.value })}
               placeholder="例如：肾友"
-              className="glass-tile w-full rounded-xl px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
+              className="glass-tile w-full rounded-xl px-4 py-2 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
             />
           </Field>
 
@@ -229,7 +246,7 @@ export default function Settings() {
               value={settings.dialysisSchedule ?? ''}
               onChange={(e) => updateSettings({ dialysisSchedule: e.target.value })}
               placeholder="例如：周一 / 周三 / 周五"
-              className="glass-tile w-full rounded-xl px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
+              className="glass-tile w-full rounded-xl px-4 py-2 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
             />
           </Field>
         </div>
@@ -241,17 +258,17 @@ export default function Settings() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="glass-card relative overflow-hidden rounded-3xl p-6"
+        className="glass-card relative overflow-hidden rounded-3xl p-4"
       >
         <div className="glass-orb -left-10 -top-10 h-32 w-32 bg-sage-300/20" style={{ animationDelay: '1.5s' }} />
         <div className="glass-shimmer" />
         <div className="relative z-10">
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-3 flex items-center gap-2">
           <HeartPulse className="h-4 w-4 text-teal-500" />
-          <h2 className="font-serif text-lg font-semibold text-teal-700">每日限额</h2>
+          <h2 className="font-serif text-base font-semibold text-teal-700">每日限额</h2>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <Field
             label="摄水量限额"
             hint="医生建议的每日最大摄水量（含汤水）"
@@ -268,7 +285,7 @@ export default function Settings() {
 
           <Field
             label="水果摄入限额"
-            hint="每日水果总重量限额（存储以 g 为单位，便于精确计算）"
+            hint="每日水果总重量限额"
             icon={<Citrus className="h-3.5 w-3.5" />}
           >
             <NumberInput
@@ -282,7 +299,7 @@ export default function Settings() {
 
           <Field
             label="钾摄入限额"
-            hint="每日钾元素摄入上限（一般 2000-3000mg）"
+            hint="一般 2000-3000mg"
             icon={<HeartPulse className="h-3.5 w-3.5" />}
           >
             <NumberInput
@@ -296,7 +313,7 @@ export default function Settings() {
 
           <Field
             label="磷摄入限额"
-            hint="每日磷元素摄入上限（建议 800-1000mg）"
+            hint="建议 800-1000mg"
             icon={<Atom className="h-3.5 w-3.5" />}
           >
             <NumberInput
@@ -310,7 +327,7 @@ export default function Settings() {
 
           <Field
             label="钠摄入限额"
-            hint="每日钠元素摄入上限（约 5g 食盐 = 2000mg 钠）"
+            hint="约 5g 食盐 = 2000mg 钠"
             icon={<Waves className="h-3.5 w-3.5" />}
           >
             <NumberInput
@@ -322,26 +339,6 @@ export default function Settings() {
             />
           </Field>
         </div>
-
-        <div className="mt-6 flex items-center justify-end gap-3">
-          <button
-            onClick={handleSave}
-            className={cn(
-              'flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition',
-              saved
-                ? 'bg-sage-500 text-white'
-                : 'bg-teal-500 text-white hover:bg-teal-600'
-            )}
-          >
-            {saved ? (
-              <>
-                <Check className="h-4 w-4" /> 已保存
-              </>
-            ) : (
-              '保存设置'
-            )}
-          </button>
-        </div>
         </div>
       </motion.section>
 
@@ -350,36 +347,36 @@ export default function Settings() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="glass-card relative overflow-hidden rounded-3xl p-6"
+        className="glass-card relative overflow-hidden rounded-3xl p-4"
       >
         <div className="glass-orb -right-10 -bottom-10 h-32 w-32 bg-clay-300/20" style={{ animationDelay: '3s' }} />
         <div className="glass-shimmer" />
         <div className="relative z-10">
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-3 flex items-center gap-2">
           <CalendarClock className="h-4 w-4 text-teal-500" />
-          <h2 className="font-serif text-lg font-semibold text-teal-700">数据管理</h2>
+          <h2 className="font-serif text-base font-semibold text-teal-700">数据管理</h2>
         </div>
 
-        <div className="glass-tile flex items-center justify-between rounded-2xl px-4 py-3">
+        <div className="glass-tile flex items-center justify-between rounded-2xl px-4 py-2.5">
           <div>
             <div className="text-sm font-medium text-teal-700">记录总数</div>
-            <div className="mt-0.5 text-xs text-teal-600/60">
+            <div className="text-xs text-teal-600/60">
               {recordCount} 条本地记录
             </div>
           </div>
-          <span className="font-serif text-2xl font-semibold text-teal-600">{recordCount}</span>
+          <span className="font-serif text-xl font-semibold text-teal-600">{recordCount}</span>
         </div>
 
         {/* 数据导出 */}
-        <div className="mt-3 rounded-2xl bg-teal-50 px-4 py-3">
+        <div className="mt-2 rounded-2xl bg-teal-50 px-4 py-2.5">
           <div className="flex items-center gap-2">
             <Download className="h-4 w-4 text-teal-500" />
             <div className="text-sm font-medium text-teal-700">数据导出</div>
           </div>
           <div className="mt-0.5 text-xs text-teal-600/70">
-            选择合适的格式导出，分享菜单里选「保存到文件」
+            选择合适的格式导出
           </div>
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="mt-2 grid grid-cols-3 gap-2">
             <ExportButton
               kind="json"
               label="JSON 备份"
@@ -419,13 +416,13 @@ export default function Settings() {
         </div>
 
         {/* 数据导入 */}
-        <div className="mt-3 rounded-2xl bg-sky-50 px-4 py-3">
+        <div className="mt-2 rounded-2xl bg-sky-50 px-4 py-2.5">
           <div className="flex items-center gap-2">
             <Upload className="h-4 w-4 text-sky-500" />
             <div className="text-sm font-medium text-sky-700">恢复数据</div>
           </div>
           <div className="mt-0.5 text-xs text-sky-600/70">
-            从 JSON 备份文件恢复记录（覆盖或合并）
+            从 JSON 备份文件恢复（覆盖或合并）
           </div>
           <input
             ref={fileInputRef}
@@ -475,7 +472,7 @@ export default function Settings() {
           </div>
         )}
 
-        <div className="mt-3 rounded-2xl bg-clay-50 px-4 py-3">
+        <div className="mt-2 rounded-2xl bg-clay-50 px-4 py-2.5">
           <div className="text-sm font-medium text-clay-600">清空所有记录</div>
           <div className="mt-0.5 text-xs text-clay-600/70">
             此操作不可撤销，请谨慎操作
@@ -512,21 +509,21 @@ export default function Settings() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="glass-card relative overflow-hidden rounded-3xl p-6"
+        className="glass-card relative overflow-hidden rounded-3xl p-4"
       >
         <div className="glass-orb -left-8 -bottom-8 h-24 w-24 bg-teal-300/20" style={{ animationDelay: '1s' }} />
         <div className="glass-shimmer" />
         <div className="relative z-10">
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-3 flex items-center gap-2">
             <Info className="h-4 w-4 text-teal-500" />
-            <h2 className="font-serif text-lg font-semibold text-teal-700">关于</h2>
+            <h2 className="font-serif text-base font-semibold text-teal-700">关于</h2>
           </div>
 
           {/* 应用信息 */}
-          <div className="glass-tile flex items-center justify-between rounded-2xl px-4 py-3">
+          <div className="glass-tile flex items-center justify-between rounded-2xl px-4 py-2.5">
             <div>
               <div className="text-sm font-medium text-teal-700">肾友笔记</div>
-              <div className="mt-0.5 text-xs text-teal-600/60">
+              <div className="text-xs text-teal-600/60">
                 专注透析患者健康管理
               </div>
             </div>
@@ -537,46 +534,35 @@ export default function Settings() {
             )}
           </div>
 
-          {/* 检查更新 */}
-          <button
-            onClick={handleCheckUpdate}
-            disabled={checking}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-teal-50 px-4 py-3 text-sm font-medium text-teal-600 transition hover:bg-teal-100 disabled:opacity-60"
-          >
-            {checking ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" /> 正在检查更新...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4" /> 检查更新
-              </>
-            )}
-          </button>
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={handleCheckUpdate}
+              disabled={checking}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-teal-50 px-3 py-2.5 text-xs font-medium text-teal-600 transition hover:bg-teal-100 disabled:opacity-60"
+            >
+              {checking ? (
+                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> 检查中...</>
+              ) : (
+                <><RefreshCw className="h-3.5 w-3.5" /> 检查更新</>
+              )}
+            </button>
+            <button
+              onClick={() => window.open(GITHUB_REPO_URL, '_blank')}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-cream-300 bg-white px-3 py-2.5 text-xs font-medium text-teal-600 transition hover:bg-cream-100"
+            >
+              <Github className="h-3.5 w-3.5" /> GitHub
+            </button>
+            <button
+              onClick={() => setShowFeedback(true)}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-teal-50 px-3 py-2.5 text-xs font-medium text-teal-600 transition hover:bg-teal-100"
+            >
+              <MessageSquare className="h-3.5 w-3.5" /> 反馈
+            </button>
+          </div>
           {checkResult && (
-            <p className="mt-2 text-center text-[10px] text-teal-600/50">
-              {checkResult}
-            </p>
+            <p className="mt-2 text-center text-[10px] text-teal-600/50">{checkResult}</p>
           )}
-
-          {/* GitHub 项目链接 */}
-          <button
-            onClick={() => window.open(GITHUB_REPO_URL, '_blank')}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-cream-300 bg-white px-4 py-3 text-sm font-medium text-teal-600 transition hover:bg-cream-100"
-          >
-            <Github className="h-4 w-4" /> GitHub 项目
-          </button>
-
-          {/* 意见反馈 */}
-          <button
-            onClick={() => setShowFeedback(true)}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-teal-50 px-4 py-3 text-sm font-medium text-teal-600 transition hover:bg-teal-100"
-          >
-            <MessageSquare className="h-4 w-4" /> 意见反馈
-          </button>
-
-          {/* 隐私说明 */}
-          <p className="mt-3 text-center text-[10px] text-teal-600/40">
+          <p className="mt-2 text-center text-[10px] text-teal-600/40">
             所有数据均存储在本地，注重隐私保护
           </p>
         </div>
@@ -668,12 +654,12 @@ function Field({
 }) {
   return (
     <div>
-      <div className="mb-1.5 flex items-center gap-1.5">
+      <div className="mb-1 flex items-center gap-1.5">
         {icon && <span className="text-teal-500">{icon}</span>}
-        <label className="text-sm font-medium text-teal-700">{label}</label>
+        <label className="text-xs font-medium text-teal-700">{label}</label>
       </div>
       {children}
-      {hint && <p className="mt-1 text-[10px] text-teal-600/50">{hint}</p>}
+      {hint && <p className="mt-0.5 text-[10px] text-teal-600/50">{hint}</p>}
     </div>
   );
 }
@@ -701,7 +687,7 @@ function NumberInput({
       <div className="glass-tile flex flex-1 items-center rounded-xl">
         <button
           onClick={() => handleChange(value - step)}
-          className="flex h-10 w-10 items-center justify-center text-teal-600 hover:bg-cream-100"
+          className="flex h-9 w-9 items-center justify-center text-teal-600 hover:bg-cream-100"
         >
           −
         </button>
@@ -710,11 +696,11 @@ function NumberInput({
           value={value}
           step={step}
           onChange={(e) => handleChange(Number(e.target.value))}
-          className="w-full bg-transparent py-2.5 text-center text-sm font-medium text-teal-700 focus:outline-none"
+          className="w-full bg-transparent py-2 text-center text-sm font-medium text-teal-700 focus:outline-none"
         />
         <button
           onClick={() => handleChange(value + step)}
-          className="flex h-10 w-10 items-center justify-center text-teal-600 hover:bg-cream-100"
+          className="flex h-9 w-9 items-center justify-center text-teal-600 hover:bg-cream-100"
         >
           +
         </button>

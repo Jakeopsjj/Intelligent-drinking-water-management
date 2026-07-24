@@ -12,7 +12,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, Loader2, ChevronRight, BellRing, Clock, Pill as PillIcon, Check, WifiOff } from 'lucide-react';
+import { Search, X, Loader2, ChevronRight, BellRing, Clock, Pill as PillIcon, Check, Trash2, WifiOff } from 'lucide-react';
 import { useMedicationsStore } from '@/store/useMedicationsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useMedicationPlanStore } from '@/store/useMedicationPlanStore';
@@ -243,7 +243,7 @@ export default function Medications() {
   );
 }
 
-/** 药物卡片 */
+/** 药物卡片 —— 紧凑预览卡片，仅展示摘要信息，点击进入详情 */
 function MedicationCard({
   med,
   onClick,
@@ -259,52 +259,46 @@ function MedicationCard({
 }) {
   const cat = MEDICATION_CATEGORIES[med.category];
   return (
-    <div className="glass-tile group flex items-center justify-between rounded-2xl p-4 transition hover:scale-[1.01]">
-      <div className="flex items-start justify-between">
-        <button onClick={onClick} className="flex flex-1 items-center gap-3 text-left">
-          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-cream-50 text-2xl">
-            {med.emoji}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-medium text-teal-700">{med.name}</h3>
-            {med.purpose && (
-              <p className="mt-0.5 truncate text-xs text-teal-600/60">{med.purpose}</p>
-            )}
-            <div className="mt-1.5 flex items-center gap-2">
-              <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', cat.bg, cat.color)}>
-                {cat.name}
-              </span>
-              <span className="text-[10px] text-teal-600/50">
-                {med.usage.defaultDose}{med.usage.unit} · {med.usage.frequency}
-              </span>
-            </div>
-          </div>
-        </button>
+    <div
+      onClick={onClick}
+      className="glass-tile group flex cursor-pointer items-center gap-3 rounded-2xl p-4 transition hover:scale-[1.01] active:scale-[0.99]"
+    >
+      {/* 左侧：图标 + 信息 */}
+      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-cream-50 text-2xl">
+        {med.emoji}
       </div>
-      <div className="mt-3 flex items-center gap-2">
-        <button
-          onClick={onQuickAdd}
-          className="flex items-center gap-1.5 rounded-lg bg-sage-50 px-3 py-1.5 text-xs font-medium text-sage-600 transition hover:bg-sage-100"
-        >
-          {saved ? <Check className="h-3.5 w-3.5" /> : <PillIcon className="h-3.5 w-3.5" />}
-          {saved ? '已记录' : '记录服药'}
-        </button>
-        <button
-          onClick={onClick}
-          className="flex items-center gap-1.5 rounded-lg bg-cream-100 px-3 py-1.5 text-xs font-medium text-teal-600 transition hover:bg-cream-200"
-        >
-          详情
-          <ChevronRight className="h-3.5 w-3.5" />
-        </button>
-        {onDelete && (
-          <button
-            onClick={onDelete}
-            className="ml-auto text-xs text-red-400 hover:text-red-600"
-          >
-            删除
-          </button>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <h3 className="truncate text-sm font-medium text-teal-700">{med.name}</h3>
+          <span className={cn('flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium', cat.bg, cat.color)}>
+            {cat.name}
+          </span>
+        </div>
+        <p className="mt-0.5 truncate text-xs text-teal-600/60">
+          {med.usage.defaultDose}{med.usage.unit} · {med.usage.frequency} · {med.usage.timing}
+        </p>
+      </div>
+      {/* 右侧：快速记录按钮 */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onQuickAdd(); }}
+        className={cn(
+          'flex-shrink-0 rounded-xl px-3 py-2 text-xs font-medium transition',
+          saved
+            ? 'bg-sage-500 text-white'
+            : 'bg-sage-50 text-sage-600 hover:bg-sage-100'
         )}
-      </div>
+      >
+        {saved ? <Check className="h-3.5 w-3.5" /> : '记录'}
+      </button>
+      {/* 删除按钮（仅自定义药物） */}
+      {onDelete && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          className="flex-shrink-0 rounded-lg p-1.5 text-xs text-red-400 hover:bg-red-50 hover:text-red-600"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }
