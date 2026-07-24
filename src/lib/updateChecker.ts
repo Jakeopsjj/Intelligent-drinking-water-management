@@ -5,6 +5,7 @@
  * - 比较版本号判断是否有更新
  * - 提供 APK 下载链接
  * - 版本号持久化（用于判断更新后首次打开）
+ * - 内置本地更新日志，网络不可用时降级展示
  */
 
 import { App as CapacitorApp } from '@capacitor/app';
@@ -19,6 +20,32 @@ export const APP_VERSION = '2.19.0';
 
 /** 存储键：上次查看更新内容的版本号 */
 const LAST_VIEWED_VERSION_KEY = 'last_viewed_version';
+
+/**
+ * 本地内置更新日志
+ * 当 GitHub API 不可用时作为降级展示方案
+ * 格式：按版本号索引，值为 Markdown 格式的更新内容
+ */
+const LOCAL_CHANGELOG: Record<string, string> = {
+  '2.19.0': `### 新增功能
+
+- **透析数据统计分析模块**：首页新增透析数据仪表盘，自动核算每日摄水量与剩余饮水限额；记录透析前后体重并自动计算体重增长差值；归档历次超滤量、血压、心率数据，新增趋势曲线图直观展示指标变化
+- **透析专项日志系统**：支持录入每次透析相关信息（透析日期、时长、超滤量、干体重等），可登记透析中各类不适症状（抽筋、低血压、胃痛、乏力、头痛、恶心等），永久保存历史记录，方便长期随访查看
+- **健康指标智能预警**：针对体重涨幅超标、每日摄水量超限、血压数值异常（收缩压/舒张压）等场景增加预警提示，帮助及时发现健康风险
+- **饮食百科透析评估**：查询水果、食材时重点展示钾、磷含量，新增透析人群专属饮食评估（高钾/中钾/低钾分级、磷含量评估），提供透析人群食用建议与安全摄入指导
+- **本地数据自动备份与恢复**：支持定期自动备份（默认每6小时），保留最近3个备份；支持手动备份与备份列表管理；支持从备份恢复数据，保障用户长期记录数据安全
+
+### 交互优化
+
+- 优化饮食百科图文加载容错逻辑，避免空白、加载失败
+- 优化记录展示组件交互体验
+- 设置页面新增备份管理区域，支持备份开关、备份状态显示、历史备份列表
+
+### 缺陷修复
+
+- 修复版本号打包不一致问题，新增版本号校验机制，确保构建版本、应用内显示版本、更新检查版本三处统一
+- 修复数据导出文件格式问题`,
+};
 
 export interface ReleaseInfo {
   /** 版本号（如 "2.9.0"） */
@@ -89,7 +116,34 @@ export async function fetchLatestRelease(): Promise<ReleaseInfo> {
 }
 
 /**
+ * 获取本地内置 Release 信息（网络不可用时的降级方案）
+ * @param version 目标版本号，默认取当前 APP_VERSION
+ */
+export function getLocalReleaseInfo(version?: string): ReleaseInfo {
+  const v = version ?? APP_VERSION;
+  const body = LOCAL_CHANGELOG[v] ?? '';
+  return {
+    version: v,
+    name: `v${v}`,
+    body,
+    htmlUrl: GITHUB_RELEASES_URL,
+    debugApkUrl: undefined,
+    releaseApkUrl: undefined,
+    publishedAt: new Date().toISOString(),
+    prerelease: false,
+  };
+}
+
+/**
+ * 获取当前版本的本地更新日志内容
+ */
+export function getLocalChangelog(): string {
+  return LOCAL_CHANGELOG[APP_VERSION] ?? '';
+}
+
+/**
  * 判断是否有可用更新
+ * 优先从 GitHub API 获取，网络失败时降级使用本地日志
  */
 export async function checkForUpdate(): Promise<{ hasUpdate: boolean; release?: ReleaseInfo }> {
   try {
@@ -98,7 +152,11 @@ export async function checkForUpdate(): Promise<{ hasUpdate: boolean; release?: 
     const hasUpdate = compareVersions(release.version, currentVersion) > 0;
     return { hasUpdate, release };
   } catch {
-    return { hasUpdate: false };
+    // 网络不可用，返回本地版本信息
+    return {
+      hasUpdate: false,
+      release: getLocalReleaseInfo(),
+    };
   }
 }
 

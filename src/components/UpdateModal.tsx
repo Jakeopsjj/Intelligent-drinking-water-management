@@ -19,6 +19,7 @@ import {
   getCurrentVersion,
   setLastViewedVersion,
   compareVersions,
+  getLocalReleaseInfo,
   GITHUB_RELEASES_URL,
   type ReleaseInfo,
 } from '@/lib/updateChecker';
@@ -55,7 +56,8 @@ export default function UpdateModal({ open, onClose, mode, release: releaseProp 
           setLoading(false);
         })
         .catch(() => {
-          setError('无法获取更新信息，请检查网络后重试');
+          // 网络不可用，降级使用本地内置更新日志
+          setRelease(getLocalReleaseInfo());
           setLoading(false);
         });
     } else {
