@@ -16,7 +16,7 @@ const GITHUB_OWNER = 'Jakeopsjj';
 const GITHUB_REPO = 'Intelligent-drinking-water-management';
 
 /** 当前版本号（从 package.json 编译时注入，这里硬编码同步） */
-export const APP_VERSION = '2.22.0';
+export const APP_VERSION = '2.23.0';
 
 /** 存储键：上次查看更新内容的版本号 */
 const LAST_VIEWED_VERSION_KEY = 'last_viewed_version';

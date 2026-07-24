@@ -611,7 +611,293 @@ input[type="number"] {
   .liquid-bg-fallback,
   .liquid-bubble,
   .ripple-dot,
-  .glass-shimmer {
+  .glass-shimmer,
+  .weather-raindrop,
+  .weather-snowflake,
+  .weather-cloud,
+  .weather-fog-band,
+  .weather-sun-rays,
+  .weather-sun-glow,
+  .weather-moon,
+  .weather-lightning-layer {
     animation: none !important;
+  }
+}
+
+/* ============================================================
+   动态天气背景层（基于实时天气切换粒子效果）
+   渲染层级：z-index: -1，与 LiquidGlassBackground 同层
+   DOM 顺序在 LiquidGlassBackground 之后，因此叠加在玻璃纹理之上
+   ============================================================ */
+.weather-bg-root {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* 氛围色调渐变层：根据天气类型 + 日夜切换 */
+.weather-bg-mood {
+  position: absolute;
+  inset: 0;
+  transition: background 1.2s ease;
+}
+
+/* ---------- 雨滴层 ---------- */
+.weather-rain-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.weather-raindrop {
+  position: absolute;
+  top: -30px;
+  width: 1.4px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(180, 200, 220, 0.55) 40%,
+    rgba(220, 235, 250, 0.75) 100%
+  );
+  border-radius: 1px;
+  animation-name: rain-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes rain-fall {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-20px, 110vh, 0);
+  }
+}
+
+/* ---------- 雪花层 ---------- */
+.weather-snow-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.weather-snowflake {
+  position: absolute;
+  top: -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.4));
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+  animation-name: snow-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes snow-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(calc(var(--drift-x, 30px) * 0.5), 50vh, 0) rotate(180deg);
+  }
+  100% {
+    transform: translate3d(var(--drift-x, 30px), 110vh, 0) rotate(360deg);
+  }
+}
+
+/* ---------- 云朵层 ---------- */
+.weather-cloud-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.weather-cloud {
+  position: absolute;
+  left: -200px;
+  width: 180px;
+  height: 60px;
+  background:
+    radial-gradient(ellipse at 25% 50%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.4) 45%, transparent 70%),
+    radial-gradient(ellipse at 55% 60%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.35) 50%, transparent 75%),
+    radial-gradient(ellipse at 80% 50%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.3) 50%, transparent 70%);
+  filter: blur(2px);
+  border-radius: 50%;
+  animation-name: cloud-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes cloud-drift {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(100vw + 220px));
+  }
+}
+
+/* ---------- 雾层 ---------- */
+.weather-fog-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.weather-fog-band {
+  position: absolute;
+  left: -50%;
+  width: 200%;
+  height: 80px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(230, 235, 240, 0.5) 30%,
+    rgba(245, 248, 252, 0.7) 50%,
+    rgba(230, 235, 240, 0.5) 70%,
+    transparent 100%
+  );
+  filter: blur(20px);
+  animation-name: fog-drift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  will-change: transform;
+}
+
+@keyframes fog-drift {
+  0% {
+    transform: translateX(-10%);
+  }
+  100% {
+    transform: translateX(10%);
+  }
+}
+
+/* ---------- 太阳光晕（晴天白天） ---------- */
+.weather-sun-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.weather-sun-glow {
+  position: absolute;
+  top: -8%;
+  right: -6%;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 240, 200, 0.65) 0%,
+    rgba(255, 220, 150, 0.35) 30%,
+    rgba(255, 200, 120, 0.15) 55%,
+    transparent 75%
+  );
+  filter: blur(8px);
+  animation: sun-pulse 8s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+
+@keyframes sun-pulse {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.08);
+  }
+}
+
+.weather-sun-rays {
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 400px;
+  height: 400px;
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      rgba(255, 235, 180, 0.08) 8deg,
+      transparent 16deg,
+      rgba(255, 235, 180, 0.10) 24deg,
+      transparent 32deg,
+      rgba(255, 235, 180, 0.07) 40deg,
+      transparent 48deg,
+      rgba(255, 235, 180, 0.09) 56deg,
+      transparent 64deg,
+      rgba(255, 235, 180, 0.06) 72deg,
+      transparent 80deg
+    );
+  border-radius: 50%;
+  filter: blur(4px);
+  animation: sun-rays-rotate 80s linear infinite;
+  will-change: transform;
+}
+
+@keyframes sun-rays-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ---------- 月亮（晴夜） ---------- */
+.weather-moon-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.weather-moon {
+  position: absolute;
+  top: 8%;
+  right: 10%;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(245, 245, 230, 0.95) 0%, rgba(220, 225, 235, 0.6) 60%, rgba(180, 190, 210, 0.3) 100%);
+  box-shadow:
+    0 0 30px rgba(220, 225, 240, 0.5),
+    0 0 80px rgba(180, 195, 220, 0.3),
+    inset -8px -8px 20px rgba(120, 130, 150, 0.4);
+  animation: moon-glow 12s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+
+@keyframes moon-glow {
+  0%, 100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+/* ---------- 闪电闪光（雷暴） ---------- */
+.weather-lightning-layer {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  animation: lightning-flash 12s steps(1) infinite;
+  will-change: background;
+}
+
+@keyframes lightning-flash {
+  0%, 92%, 94%, 96%, 100% {
+    background: transparent;
+  }
+  93% {
+    background: rgba(255, 255, 255, 0.5);
+  }
+  95% {
+    background: rgba(255, 255, 255, 0.65);
   }
 }
