@@ -134,34 +134,35 @@ npm run check-version:fix
 
 | 路径 | 说明 |
 |------|------|
-| `/opt/android-sdk/` | Android SDK（Platform 36 + Build Tools 36 + Platform Tools） |
+| `/opt/android-sdk/` | Android SDK（Platform 36 + Build Tools 36 + Platform Tools + cmdline-tools） |
 | `/root/.android/debug.keystore` | Debug 签名密钥 |
 | `/workspace/android/kidneynotes.keystore` | Release 签名密钥 |
 | `/root/.local/share/mise/installs/java/17.0.2/` | JDK 17（Gradle 构建必需） |
 | `/root/.local/share/mise/installs/gradle/8.14.4/` | Gradle 8.14.4 |
 | `/workspace/node_modules/` | npm 依赖 |
 | `/root/.gradle/caches/` | Gradle 依赖缓存 |
-| `/tmp/cmdline-tools.zip` | Android SDK 命令行工具（备用） |
-| `/tmp/platform-36.zip` | Android Platform 36（备用） |
+| `/tmp/cmdline-tools.zip` | Android SDK 命令行工具（备用，可重新下载） |
 
 ### 环境变量
 
 构建脚本会自动设置以下环境变量：
 - `JAVA_HOME=/root/.local/share/mise/installs/java/17.0.2`
 - `ANDROID_HOME=/opt/android-sdk`
+- `ANDROID_SDK_ROOT=/opt/android-sdk`
+- `_JAVA_OPTIONS=-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false`（强制 IPv4）
 
 ### 构建配置文件
 
 以下文件已提交到 git，不要删除或修改：
 
-- `android/build.gradle` - 顶层构建脚本（含阿里云 Maven 镜像）
+- `android/build.gradle` - 顶层构建脚本（含腾讯/阿里云/华为云/清华四组国内 Maven 镜像）
 - `android/variables.gradle` - SDK 版本配置
 - `scripts/build-apk.sh` - 自动化构建脚本
 - `CLAUDE.md` - 本规则文件
 
-以下文件被 gitignore 忽略（机器相关），由 `build-apk.sh` 自动创建：
-- `android/gradle.properties` - Gradle 配置（代理、JDK 路径、内存、cgroup 修复）
-- `android/local.properties` - Android SDK 路径
+以下文件被 gitignore 忽略（机器相关），需手动创建（参见错误记录 #14）：
+- `android/gradle.properties` - Gradle 配置（代理、JDK 路径、内存、cgroup 修复、强制 IPv4）
+- `android/local.properties` - Android SDK 路径（`sdk.dir=/opt/android-sdk`）
 
 ### APK 下载
 
@@ -193,8 +194,9 @@ npm run check-version:fix
 ### 注意事项
 
 - **Java 版本**：必须使用 JDK 17 构建，不能用 JDK 25（Capacitor 插件不兼容）
-- **Maven 镜像**：使用阿里云镜像（maven.aliyun.com）加速依赖下载
-- **代理**：容器内需要通过 `127.0.0.1:18080` 代理访问外网，已在 gradle.properties 中配置
+- **Maven 镜像**：使用腾讯/阿里云/华为云/清华四组国内镜像加速依赖下载（见 build.gradle）
+- **代理（必需）**：容器网络架构强制要求外网流量通过 `127.0.0.1:18080` 代理，**不能关闭**。JVM 直连外网会被网络策略阻止（5s 超时）。已在 gradle.properties 中配置 systemProp.https.proxyHost
+- **强制 IPv4**：容器中 IPv6 不可达，需在 gradle.properties 中配置 `systemProp.java.net.preferIPv4Stack=true`，避免 "Network is unreachable" 错误
 - **Cgroup bug**：JDK 17.0.2 在 cgroup v2 容器中有 bug，需在 jvmargs 中添加 `-XX:-UseContainerSupport`
 - **Capacitor 插件**：所有 `@capacitor/*` 插件的 `jvmToolchain(21)` 需改为 `jvmToolchain(17)`，构建脚本会自动处理
 
@@ -384,7 +386,131 @@ gh release create vX.Y.Z \
 
 ---
 
+### 12. JVM 在容器中无法直连外网，必须通过代理 ⚠️
+
+**错误现象**：
+- `curl` 能访问国内镜像（HTTP 200），但 Gradle JVM 报错 `Connect timed out`
+- 错误信息：`Got socket exception during request. It might be caused by SSL misconfiguration > Network is unreachable`
+- 添加 `systemProp.java.net.preferIPv4Stack=true` 后变为 `Connect to mirrors.cloud.tencent.com:443 failed: Connect timed out`
+
+**根因**：
+- 容器网络架构强制要求外网流量通过代理 `127.0.0.1:18080`
+- JVM 的 Socket 直连会被网络策略阻止（5s 超时）
+- `curl` 之所以能访问，是因为它自动读取了环境变量 `HTTP_PROXY`/`HTTPS_PROXY`，实际上也走了代理
+- "全程关闭代理" 在当前容器中**无法实现**，关闭代理后 JVM 完全无法联网
+
+**验证方法**：
+```java
+// JVM 直连外网 IP（超时）
+Socket s = new Socket();
+s.connect(new InetSocketAddress("111.161.120.105", 443), 5000); // 超时
+
+// JVM 通过代理（成功，90ms）
+Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", 18080));
+Socket s = new Socket(proxy);
+s.connect(new InetSocketAddress("maven.aliyun.com", 443), 5000); // 成功
+```
+
+**解决**：保留代理配置 `systemProp.https.proxyHost=127.0.0.1:18080`，配合国内镜像使用。代理本身能正常访问国内镜像（HTTP 200, 0.04s），无超时问题。
+
+**预防**：不要尝试关闭代理。容器网络架构决定了代理是必需的，不是可选的。
+
+---
+
+### 13. IPv6 不可达导致 Gradle 报 "Network is unreachable" ⚠️
+
+**错误现象**：
+- Gradle 报错：`Got socket exception during request. It might be caused by SSL misconfiguration > Network is unreachable`
+- "Network is unreachable" 是 IPv6 错误（IPv4 错误是 "Connection refused" 或 "No route to host"）
+
+**根因**：
+- 容器中 `/proc/sys/net/ipv6/conf/all/disable_ipv6` 返回 `0`（IPv6 未禁用）
+- 但 IPv6 实际不可达（容器网络命名空间限制）
+- JVM 解析 DNS 时优先返回 IPv6 地址，连接 IPv6 失败后报 "Network is unreachable"
+
+**解决**：在 `gradle.properties` 中添加：
+```properties
+# 强制 IPv4，避免 IPv6 不可达
+systemProp.java.net.preferIPv4Stack=true
+systemProp.java.net.preferIPv6Addresses=false
+```
+
+**注意**：
+- `org.gradle.jvmargs` 中的 `-Djava.net.preferIPv4Stack=true` 只作用于 JVM 进程，不作用于 Gradle HTTP 客户端
+- 必须用 `systemProp.` 前缀才能让 Gradle HTTP 客户端生效
+- buildscript 解析时机很早，`systemProp` 可能还未加载，建议同时设置环境变量 `_JAVA_OPTIONS` 和 `GRADLE_OPTS`
+
+---
+
+### 14. Android SDK 全新环境需重新下载 ⚠️
+
+**错误现象**：
+- Gradle 报错：`SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable`
+- 或：`WARNING: The following problems were found when resolving the SDK location: Directory does not exist`
+- `/opt/android-sdk/` 目录不存在，备用文件 `/tmp/cmdline-tools.zip`、`/tmp/platform-36.zip` 也不存在
+
+**根因**：全新容器环境，Android SDK 未预装
+
+**解决**：从零下载安装 Android SDK
+```bash
+# 1. 下载 cmdline-tools（走代理）
+mkdir -p /opt/android-sdk/cmdline-tools
+curl -L -o /tmp/cmdline-tools.zip -x http://127.0.0.1:18080 \
+  "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+unzip -q /tmp/cmdline-tools.zip -d /opt/android-sdk/cmdline-tools/
+mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest
+
+# 2. 创建 debug keystore
+mkdir -p /root/.android
+keytool -genkey -v -keystore /root/.android/debug.keystore -alias androiddebugkey \
+  -dname "CN=Android Debug,O=Android,C=US" -storepass android -keypass android \
+  -keyalg RSA -keysize 2048 -validity 10000
+
+# 3. 接受 license + 安装 SDK 组件
+export JAVA_HOME=/root/.local/share/mise/installs/java/17.0.2
+export ANDROID_HOME=/opt/android-sdk
+export ANDROID_SDK_ROOT=/opt/android-sdk
+export _JAVA_OPTIONS="-Djava.net.preferIPv4Stack=true"
+export HTTPS_PROXY=http://127.0.0.1:18080
+PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+yes | sdkmanager --licenses --proxy=http --proxy_host=127.0.0.1 --proxy_port=18080
+yes | sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" \
+  --proxy=http --proxy_host=127.0.0.1 --proxy_port=18080
+
+# 4. 创建 local.properties（被 gitignore 忽略，需手动创建）
+echo "sdk.dir=/opt/android-sdk" > /workspace/android/local.properties
+```
+
+**预防**：每次构建前检查 `/opt/android-sdk/platforms/android-36/` 是否存在，不存在则按上述流程安装。
+
+---
+
 ## 版本变更记录
+
+### v2.23.0 (2026-07-24)
+
+**新增功能：**
+- **实时天气动态背景**：基于位置的天气感知系统
+  - 集成 Open-Meteo API（免费无需 Key）+ ipapi.co IP 定位，自动获取用户当前位置的实时天气数据
+  - 根据天气类型（晴/云/阴/雾/毛毛雨/雨/大雨/雪/雷暴）切换不同的粒子动画
+  - 晴天白天：太阳光晕 + 旋转光线；晴天夜晚：月亮 + 月光晕
+  - 多云/阴天：漂浮云朵；雾天：多层雾带漂移
+  - 雨/大雨：CSS 驱动雨滴下落（密度可调）；雪：旋转飘落的雪花；雷暴：大雨 + 闪电闪光
+  - 日夜自适应：白天/夜晚氛围色调自动切换
+  - 智能缓存：位置缓存 2 小时、天气缓存 30 分钟，减少 API 请求
+  - 自动刷新：30 分钟定时刷新 + 页面可见性恢复刷新 + 网络恢复刷新
+  - 完整支持 Open-Meteo WMO Weather Code 标准
+
+**构建优化：**
+- Gradle 国内镜像配置：新增腾讯云、阿里云、华为云、清华大学四组国内 Maven 镜像，按优先级依次尝试
+- 末尾保留 google()/mavenCentral() 作为兜底，避免私有包缺失
+- 强制 IPv4（systemProp.java.net.preferIPv4Stack=true），解决容器 IPv6 不可达问题
+- 修复 Gradle 下载超时失败问题
+
+**规则完善：**
+- 新增错误记录 #12：JVM 在容器中无法直连外网，必须通过代理
+- 新增错误记录 #13：IPv6 不可达导致 Gradle 报 "Network is unreachable"
+- 新增错误记录 #14：Android SDK 全新环境需重新下载
 
 ### v2.20.0 (2026-07-24)
 
