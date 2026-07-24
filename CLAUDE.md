@@ -487,6 +487,30 @@ echo "sdk.dir=/opt/android-sdk" > /workspace/android/local.properties
 
 ## 版本变更记录
 
+### v2.24.0 (2026-07-24)
+
+**新增功能：**
+- **动态天气背景主题系统（WallpaperWeather 复刻版）**：完全复刻 WallpaperWeather 效果
+  - 底层风景图（Pexels 在线 4K + 离线本地资源兜底）+ 上层 Canvas 粒子动画
+  - 天气逻辑：Open-Meteo API + 日出日落时段划分（清晨/正午/傍晚/夜晚）
+  - WMO 天气编码映射：覆盖晴/云/阴/雾/毛毛雨/雨/大雨/雪/雷暴 9 种天气
+  - 背景素材两种模式：在线 Pexels API + 离线本地资源包（36 静态图 + 16 视频）
+  - Canvas 粒子动画：云层/雨滴/雪花/雾气/星光/闪电，透明不遮挡 APP 控件
+  - 安卓 WebView 承载主题：全屏无 HUD，原生定位通过 JSBridge 注入网页
+  - 容错优化：API 失败→离线素材→兜底渐变三级降级
+  - 设备性能自适应：粒子数量 30/60/100 三档（根据 CPU 核心数和内存）
+
+**交付内容：**
+- 单文件 HTML 天气主题（`android/app/src/main/assets/weather_theme/index.html`）
+- 天气-关键词映射 JS 对象（`weather-keywords.js`，36 静态 + 16 视频）
+- 安卓 WebView Activity（`WeatherThemeActivity.java` + `LocationHelper.java`）
+- 离线素材下载关键词清单（`docs/OFFLINE_ASSETS_LIST.md`，含批量下载脚本）
+- 打包部署步骤指南（`docs/WEATHER_THEME_INTEGRATION.md`，含三种集成方案）
+
+**集成变更：**
+- AndroidManifest 注册 WeatherThemeActivity + 新增定位权限
+- React 层通过 iframe 嵌入 HTML 主题作为全局背景（WeatherThemeBackground 组件）
+
 ### v2.23.0 (2026-07-24)
 
 **新增功能：**
