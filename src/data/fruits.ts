@@ -399,6 +399,7 @@ export const DEFAULT_SETTINGS = {
   dailySodiumLimit: 2000, // 每日钠摄入限额 mg（约 5g 食盐）
   dailyFruitLimit: 200, // 每日水果限额 g
   dailyUltrafiltrationTarget: 500, // 每日超滤目标 ml
+  dryWeight: 0, // 干体重 kg（0 表示未设置）
   userName: '',
   userAvatar: '🧑',
   dialysisSchedule: '周一 / 周三 / 周五',

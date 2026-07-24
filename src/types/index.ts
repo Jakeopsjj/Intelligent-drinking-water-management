@@ -158,6 +158,7 @@ export interface UserSettings {
   dailySodiumLimit: number; // 每日钠摄入限额 mg
   dailyFruitLimit: number; // 每日水果限额 g
   dailyUltrafiltrationTarget: number; // 每日超滤目标 ml
+  dryWeight: number; // 干体重 kg（透析后目标体重）
   userName?: string;
   userAvatar?: string; // 用户头像（emoji 或 data:image base64 字符串）
   dialysisSchedule?: string; // 透析日程备注

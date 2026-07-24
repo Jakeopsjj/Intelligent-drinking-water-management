@@ -16,6 +16,7 @@ interface MetricCardProps {
   showProgress?: boolean;
   inverseProgress?: boolean;
   showWave?: boolean;
+  onClick?: () => void;
 }
 
 const themeIconBg: Record<string, string> = {
@@ -49,6 +50,7 @@ const MetricCard: FC<MetricCardProps> = ({
   showProgress = true,
   inverseProgress = false,
   showWave = true,
+  onClick,
 }) => {
   const ratio = limit > 0 ? current / limit : 0;
   const status = inverseProgress
@@ -81,8 +83,13 @@ const MetricCard: FC<MetricCardProps> = ({
     <div
       className={cn(
         'glass-card relative flex min-h-[148px] flex-col overflow-hidden rounded-[28px] p-5 transition-all duration-300',
-        'hover:-translate-y-0.5'
+        'hover:-translate-y-0.5',
+        onClick && 'cursor-pointer'
       )}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
     >
       {/* 流动反光 */}
       <div className="glass-shimmer" />

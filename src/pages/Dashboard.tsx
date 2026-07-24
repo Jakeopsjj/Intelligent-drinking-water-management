@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Droplets,
@@ -15,22 +15,19 @@ import {
   Scale,
   Heart,
   Timer,
-  Calendar,
+  AlertTriangle,
+  ClipboardCheck,
+  ArrowUp,
+  Minus,
 } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
-import {
-  WaterQuickRecord,
-  UltrafiltrationQuickRecord,
-  FruitQuickRecord,
-  MedicationQuickRecord,
-  WeightQuickRecord,
-  BloodPressureQuickRecord,
-} from '@/components/QuickRecordCard';
+import QuickRecordModal, { type RecordType } from '@/components/QuickRecordModal';
 import RecordItem from '@/components/RecordItem';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { formatDateLong, getTodayKey } from '@/utils/date';
 import { getProgressStatus, getDailyMetrics } from '@/utils/calc';
+import { cn } from '@/lib/utils';
 
 function gToKgNum(g: number): string {
   if (!Number.isFinite(g)) return '0';
@@ -50,6 +47,14 @@ export default function Dashboard() {
   );
 
   const userName = settings.userName?.trim() || '肾友';
+
+  const [recordModal, setRecordModal] = useState<{ open: boolean; type: RecordType | null }>({
+    open: false,
+    type: null,
+  });
+
+  const openRecord = (type: RecordType) => setRecordModal({ open: true, type });
+  const closeRecord = () => setRecordModal({ open: false, type: null });
 
   const waterStatus = getProgressStatus(todayMetrics.water, settings.dailyWaterLimit);
   const potassiumStatus = getProgressStatus(todayMetrics.potassium, settings.dailyPotassiumLimit);
@@ -85,6 +90,14 @@ export default function Dashboard() {
     if (minDays === 1) return { days: 1, label: '明天是透析日' };
     return { days: minDays, label: `距下次透析 ${minDays} 天` };
   }, [settings.dialysisSchedule]);
+
+  // 干体重 & 体液增长
+  const dryWeight = settings.dryWeight > 0 ? settings.dryWeight : null;
+  const fluidGain = dryWeight && todayMetrics.latestWeight > 0
+    ? todayMetrics.latestWeight - dryWeight
+    : null;
+  const fluidGainWarning = fluidGain !== null && fluidGain >= 2;
+  const fluidGainAlert = fluidGain !== null && fluidGain >= 3;
 
   const overviewItems = [
     { label: '饮水', value: todayMetrics.water, unit: 'ml', icon: <Droplets className="h-3 w-3" />, limit: settings.dailyWaterLimit, current: todayMetrics.water },
@@ -152,8 +165,17 @@ export default function Dashboard() {
         className="grid grid-cols-3 gap-3"
       >
         {/* 体重 */}
-        <div className="glass-card relative overflow-hidden rounded-[24px] p-4">
-          <div className="glass-orb -right-4 -top-4 h-20 w-20 bg-indigo-300/15" />
+        <div
+          className={cn(
+            'glass-card relative overflow-hidden rounded-[24px] p-4 cursor-pointer',
+            fluidGainAlert && 'ring-2 ring-clay-400/60'
+          )}
+          onClick={() => openRecord('weight')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRecord('weight'); } }}
+        >
+          <div className={cn('glass-orb -right-4 -top-4 h-20 w-20', fluidGainAlert ? 'bg-clay-300/25' : 'bg-indigo-300/15')} />
           <div className="glass-shimmer" />
           <div className="relative z-10">
             <div className="flex items-center gap-1.5 text-[10px] text-indigo-600/60">
@@ -161,16 +183,51 @@ export default function Dashboard() {
               体重
             </div>
             <div className="mt-1.5">
-              <span className="text-xl font-bold text-indigo-700">
+              <span className={cn('text-xl font-bold', fluidGainAlert ? 'text-clay-600' : 'text-indigo-700')}>
                 {todayMetrics.latestWeight > 0 ? todayMetrics.latestWeight.toFixed(1) : '--'}
               </span>
               <span className="ml-0.5 text-xs text-indigo-600/40">kg</span>
             </div>
+            {dryWeight && todayMetrics.latestWeight > 0 && fluidGain !== null && (
+              <div className="mt-0.5">
+                {fluidGain >= 3 ? (
+                  <span className="flex items-center gap-0.5 text-[10px] font-medium text-clay-600">
+                    <AlertTriangle className="h-3 w-3" />
+                    超干体重 {fluidGain.toFixed(1)} kg
+                  </span>
+                ) : fluidGain >= 2 ? (
+                  <span className="flex items-center gap-0.5 text-[10px] text-amber-600">
+                    <ArrowUp className="h-3 w-3" />
+                    高于干体重 {fluidGain.toFixed(1)} kg
+                  </span>
+                ) : fluidGain > 0 ? (
+                  <span className="text-[10px] text-indigo-600/50">
+                    干体重 {dryWeight.toFixed(1)} kg
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-0.5 text-[10px] text-sage-600">
+                    <Minus className="h-3 w-3" />
+                    已达干体重
+                  </span>
+                )}
+              </div>
+            )}
+            {dryWeight && todayMetrics.latestWeight <= 0 && (
+              <div className="mt-0.5 text-[10px] text-indigo-600/40">
+                干体重 {dryWeight.toFixed(1)} kg
+              </div>
+            )}
           </div>
         </div>
 
         {/* 血压 */}
-        <div className="glass-card relative overflow-hidden rounded-[24px] p-4">
+        <div
+          className="glass-card relative overflow-hidden rounded-[24px] p-4 cursor-pointer"
+          onClick={() => openRecord('bloodPressure')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRecord('bloodPressure'); } }}
+        >
           <div className="glass-orb -right-4 -top-4 h-20 w-20 bg-red-300/15" />
           <div className="glass-shimmer" />
           <div className="relative z-10">
@@ -224,6 +281,62 @@ export default function Dashboard() {
           </div>
         </div>
       </motion.section>
+
+      {/* 透析日提醒 / 体液增长预警 */}
+      {dialysisCountdown?.days === 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.04, ease: [0.16, 1, 0.3, 1] }}
+          className="glass-card relative overflow-hidden rounded-[24px] p-4"
+        >
+          <div className="glass-orb -right-6 -top-6 h-24 w-24 bg-teal-300/20" />
+          <div className="glass-shimmer" />
+          <div className="relative z-10 flex items-start gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-teal-100/80 text-teal-600">
+              <ClipboardCheck className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-serif text-sm font-semibold text-teal-700">今天是透析日</h3>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {['测量体重', '测量血压', '准备透析用品', '确认透析时间'].map((tip) => (
+                  <span key={tip} className="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-medium text-teal-600">
+                    {tip}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </motion.section>
+      )}
+
+      {fluidGainWarning && (
+        <motion.section
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.04, ease: [0.16, 1, 0.3, 1] }}
+          className={cn(
+            'glass-card relative overflow-hidden rounded-[24px] p-4',
+            fluidGainAlert ? 'border-l-4 border-clay-400' : 'border-l-4 border-amber-400'
+          )}
+        >
+          <div className={cn('glass-orb -right-4 -top-4 h-20 w-20', fluidGainAlert ? 'bg-clay-300/25' : 'bg-amber-300/20')} />
+          <div className="glass-shimmer" />
+          <div className="relative z-10 flex items-center gap-3">
+            <AlertTriangle className={cn('h-5 w-5 flex-shrink-0', fluidGainAlert ? 'text-clay-500' : 'text-amber-500')} />
+            <div>
+              <p className={cn('text-sm font-medium', fluidGainAlert ? 'text-clay-700' : 'text-amber-700')}>
+                {fluidGainAlert
+                  ? `体液增长已达 ${fluidGain!.toFixed(1)} kg，请立即联系医生`
+                  : `体液增长 ${fluidGain!.toFixed(1)} kg，请注意控水`}
+              </p>
+              <p className="mt-0.5 text-[11px] text-teal-600/50">
+                干体重 {dryWeight!.toFixed(1)} kg · 当前 {todayMetrics.latestWeight.toFixed(1)} kg
+              </p>
+            </div>
+          </div>
+        </motion.section>
+      )}
 
       {/* 今日总览：指标横向滑动 */}
       <motion.section
@@ -296,6 +409,7 @@ export default function Dashboard() {
           unit="ml"
           theme="teal"
           description={todayMetrics.fruitWater > 0 ? `含水果水 ${todayMetrics.fruitWater} ml` : undefined}
+          onClick={() => openRecord('water')}
         />
         <MetricCard
           title="超滤量"
@@ -305,6 +419,7 @@ export default function Dashboard() {
           unit="ml"
           theme="teal"
           description="透析当日累计"
+          onClick={() => openRecord('ultrafiltration')}
         />
         <MetricCard
           title="水果摄入"
@@ -316,6 +431,7 @@ export default function Dashboard() {
           displayUnit="kg"
           theme="sage"
           description={todayMetrics.fruitWater > 0 ? `贡献水分 ${todayMetrics.fruitWater} ml` : undefined}
+          onClick={() => openRecord('fruit')}
         />
         <MetricCard
           title="钾摄入"
@@ -346,26 +462,11 @@ export default function Dashboard() {
         />
       </motion.section>
 
-      {/* 快速记录区 */}
-      <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-        className="grid grid-cols-1 gap-3 lg:grid-cols-3"
-      >
-        <WaterQuickRecord />
-        <UltrafiltrationQuickRecord />
-        <WeightQuickRecord />
-        <BloodPressureQuickRecord />
-        <FruitQuickRecord />
-        <MedicationQuickRecord />
-      </motion.section>
-
       {/* 今日记录列表 */}
       <motion.section
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.45, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
         className="glass-card relative overflow-hidden rounded-[28px] p-5"
       >
         <div className="glass-orb -left-6 -bottom-6 h-24 w-24 bg-sage-300/18" style={{ animationDelay: '3s' }} />
@@ -373,9 +474,18 @@ export default function Dashboard() {
         <div className="relative z-10">
           <div className="flex items-center justify-between">
             <h2 className="font-serif text-base font-semibold text-teal-700">今日记录</h2>
-            <span className="whitespace-nowrap rounded-full bg-sage-50 px-2.5 py-0.5 text-[11px] font-medium text-sage-600">
-              {todayMetrics.records.length} 条
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => openRecord('medication')}
+                className="flex items-center gap-1 rounded-full bg-teal-50 px-2.5 py-0.5 text-[11px] font-medium text-teal-600 hover:bg-teal-100 transition"
+              >
+                <Pill className="h-3 w-3" />
+                记录服药
+              </button>
+              <span className="whitespace-nowrap rounded-full bg-sage-50 px-2.5 py-0.5 text-[11px] font-medium text-sage-600">
+                {todayMetrics.records.length} 条
+              </span>
+            </div>
           </div>
           <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
             {todayMetrics.records.length > 0 ? (
@@ -388,12 +498,19 @@ export default function Dashboard() {
                   <Droplets className="h-6 w-6 text-teal-600/30" />
                 </div>
                 <p className="mt-3 text-sm text-teal-600/60">今日还没有记录</p>
-                <p className="mt-1 text-xs text-teal-600/40">点击上方卡片开始记录</p>
+                <p className="mt-1 text-xs text-teal-600/40">点击指标卡片开始记录</p>
               </div>
             )}
           </div>
         </div>
       </motion.section>
+
+      {/* 统一快速记录弹窗 */}
+      <QuickRecordModal
+        open={recordModal.open}
+        type={recordModal.type}
+        onClose={closeRecord}
+      />
     </div>
   );
 }

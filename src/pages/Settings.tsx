@@ -249,6 +249,17 @@ export default function Settings() {
               className="glass-tile w-full rounded-xl px-4 py-2 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
             />
           </Field>
+
+          <Field label="干体重" hint="透析后目标体重，用于计算体液增长">
+            <input
+              type="number"
+              step="0.1"
+              value={settings.dryWeight > 0 ? settings.dryWeight : ''}
+              onChange={(e) => updateSettings({ dryWeight: e.target.value ? Number(e.target.value) : 0 })}
+              placeholder="例如：65.0"
+              className="glass-tile w-full rounded-xl px-4 py-2 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400"
+            />
+          </Field>
         </div>
         </div>
       </motion.section>

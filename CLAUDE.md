@@ -83,6 +83,19 @@ gh release create vX.Y.Z \
 
 ---
 
+## 强制规则 2：版本号同步
+
+**每次发布新版本前，必须同步更新以下两处版本号：**
+
+| 文件 | 字段 | 说明 |
+|------|------|------|
+| `package.json` | `version` | npm 包版本号 |
+| `src/lib/updateChecker.ts` | `APP_VERSION` | 应用内版本检查常量 |
+
+两个版本号必须保持一致，否则更新检查功能会失效。
+
+---
+
 ## 构建环境说明
 
 ### 不可删除的依赖
@@ -276,3 +289,26 @@ Module '"@/utils/calc"' has no exported member 'getTodayKey'
 ```typescript
 import { getTodayKey } from '@/utils/date';
 ```
+
+---
+
+## 版本变更记录
+
+### v2.19.0 (2026-07-24)
+
+**UI 优化：**
+- 移除 Dashboard 中冗余的快速记录区（6 个 QuickRecordCard），改为统一 QuickRecordModal 弹窗
+- 点击摄水量/超滤量/水果摄入 MetricCard 弹出对应录入表单
+- 点击体重/血压核心体征卡片弹出对应录入表单
+- 服药记录入口移至「今日记录」标题栏
+
+**新功能：干体重管理**
+- 新增 `dryWeight` 设置项（Settings 页面），用于记录透析后目标体重
+- Dashboard 体重卡片展示干体重对比（已达干体重/高于干体重/超干体重三档状态）
+- 体液增长预警：≥2kg 显示注意事项，≥3kg 显示紧急提醒（红色边框+联系医生建议）
+- 透析日当天显示准备清单卡片（测量体重、测量血压、准备透析用品、确认透析时间）
+
+**版本管理：**
+- package.json 版本号同步更新为 2.19.0
+- src/lib/updateChecker.ts APP_VERSION 同步更新为 2.19.0
+- 新增「强制规则 2：版本号同步」规则
