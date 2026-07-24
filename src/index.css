@@ -104,7 +104,7 @@ input[type="number"] {
   50%, 100% { animation-name: wave-move-right; }
 }
 
-/* ===== 液态玻璃 / 边缘折射 / 水滴 / 反光 动效系统 ===== */
+/* ===== 液态玻璃 / 边缘折射 / 水滴 / 反光 动效系统（增强版）===== */
 
 /* 液态玻璃卡片基底：半透明 + 模糊 + 折射感 */
 .glass-card {
@@ -122,6 +122,34 @@ input[type="number"] {
     0 4px 24px -6px rgba(45, 95, 93, 0.12),
     0 1px 2px -1px rgba(255, 255, 255, 0.5),
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.6);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s ease;
+}
+
+/* 悬浮态：轻微上浮 + 增强阴影（纵深层次感） */
+.glass-card.glass-hoverable:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 32px -4px rgba(45, 95, 93, 0.16),
+    0 2px 4px -1px rgba(255, 255, 255, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
+/* 高亮玻璃卡片：更亮、更通透（用于强调区域） */
+.glass-card-highlight {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.65) 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(240, 248, 244, 0.55) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow:
+    0 6px 28px -4px rgba(45, 95, 93, 0.14),
+    0 1px 2px -1px rgba(255, 255, 255, 0.6),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 /* 动画进行中：禁用 backdrop-filter 避免逐帧重绘掉帧抖动 */
@@ -397,13 +425,13 @@ input[type="number"] {
 
 @keyframes bubble-rise {
   0% {
-    transform: translate3d(0, 0, 0) scale(0.6);
+    transform: translate3d(0, 0, 0) scale(0.5);
     opacity: 0;
   }
-  10% { opacity: 0.6; }
-  90% { opacity: 0.4; }
+  8% { opacity: 0.5; }
+  85% { opacity: 0.35; }
   100% {
-    transform: translate3d(20px, -110vh, 0) scale(1.1);
+    transform: translate3d(var(--drift-x, 20px), -110vh, 0) scale(1.15);
     opacity: 0;
   }
 }

@@ -1,15 +1,15 @@
 /**
- * 饮食板块 —— 今日膳食管理
+ * 饮食板块 —— 今日膳食管理（增强版）
  *
  * 定位：
- * - 水果板块 = 水果百科查询/管理（知识库：搜索、添加、查看百科详情）
- * - 饮食板块 = 今日膳食记录（记录入口：快速添加、营养分析、餐次管理）
+ * - 水果板块 = 水果百科查询/管理（知识库）
+ * - 饮食板块 = 今日膳食记录（营养追踪 + 快速记录）
  *
- * 功能：
- * 1. 今日营养摄入进度（钾/磷/钠/水分）环形/进度条展示
- * 2. 今日已摄入水果列表（按时间排序，支持删除）
- * 3. 快速添加水果（搜索 + 常吃水果快捷选择 + 重量/单位输入）
- * 4. 膳食小贴士
+ * 视觉升级：
+ * - 统一液态玻璃效果
+ * - 营养进度条微型进度条
+ * - 膳食建议动态面板
+ * - 更流畅的过渡动画
  */
 
 import { useState, useMemo } from 'react';
@@ -19,7 +19,7 @@ import {
   X, Droplet, FlaskConical, Beaker, Atom,
   UtensilsCrossed, Plus, Search,
   Trash2, Clock, AlertTriangle, CheckCircle2,
-  Lightbulb, ChevronRight,
+  Lightbulb, ChevronRight, Sparkles,
 } from 'lucide-react';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
@@ -93,10 +93,8 @@ export default function Diet() {
       current: todayMetrics.potassium,
       limit: settings.dailyPotassiumLimit,
       unit: 'mg',
-      color: 'orange',
-      bgClass: 'bg-orange-50',
-      textClass: 'text-orange-600',
       barClass: 'bg-orange-400',
+      bgClass: 'from-orange-50 to-amber-50',
       tip: '高钾可能影响心律',
     },
     {
@@ -106,10 +104,8 @@ export default function Diet() {
       current: todayMetrics.phosphorus,
       limit: settings.dailyPhosphorusLimit,
       unit: 'mg',
-      color: 'blue',
-      bgClass: 'bg-blue-50',
-      textClass: 'text-blue-600',
       barClass: 'bg-blue-400',
+      bgClass: 'from-blue-50 to-sky-50',
       tip: '高磷可能致皮肤瘙痒',
     },
     {
@@ -119,10 +115,8 @@ export default function Diet() {
       current: todayMetrics.sodium,
       limit: settings.dailySodiumLimit,
       unit: 'mg',
-      color: 'purple',
-      bgClass: 'bg-purple-50',
-      textClass: 'text-purple-600',
       barClass: 'bg-purple-400',
+      bgClass: 'from-purple-50 to-violet-50',
       tip: '高钠影响血压和水肿',
     },
     {
@@ -132,10 +126,8 @@ export default function Diet() {
       current: todayMetrics.water,
       limit: settings.dailyWaterLimit,
       unit: 'ml',
-      color: 'cyan',
-      bgClass: 'bg-cyan-50',
-      textClass: 'text-cyan-600',
       barClass: 'bg-cyan-400',
+      bgClass: 'from-cyan-50 to-teal-50',
       tip: `含水果水 ${todayMetrics.fruitWater} ml`,
     },
   ];
@@ -156,7 +148,7 @@ export default function Diet() {
       list.push('水分摄入已接近限额，注意控制饮水量');
     }
     if (list.length === 0) {
-      list.push('今日饮食控制良好，继续保持 👍');
+      list.push('今日饮食控制良好，继续保持');
       list.push('推荐选择低钾水果：苹果、梨、葡萄、草莓等');
     }
     return list;
@@ -165,86 +157,107 @@ export default function Diet() {
   return (
     <div className="space-y-4">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between"
+      >
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-600">
+          <div className="glass-tile flex h-10 w-10 items-center justify-center rounded-2xl text-orange-600">
             <UtensilsCrossed className="h-5 w-5" />
           </div>
           <div>
             <h1 className="font-serif text-xl font-semibold text-teal-700">今日饮食</h1>
             <p className="text-xs text-teal-600/60">
-              {todayFruitRecords.length} 条记录 · 水果摄入 {(todayMetrics.fruit / 1000).toFixed(2)} kg
+              {todayFruitRecords.length} 条记录 · 水果 {(todayMetrics.fruit / 1000).toFixed(2)} kg
             </p>
           </div>
         </div>
         <button
           onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-sage-500 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-teal-500/20 transition active:scale-95"
+          className="glass-btn flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-medium text-teal-700 active:scale-95"
         >
           <Plus className="h-4 w-4" />
           记录
         </button>
-      </div>
+      </motion.div>
 
       {/* 营养摄入总览 */}
       <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
         className="glass-card relative overflow-hidden rounded-[24px] p-5"
       >
-        <div className="glass-orb -right-6 -top-6 h-24 w-24 bg-orange-300/20" />
-        <div className="relative z-10 flex items-center justify-between">
-          <h2 className="font-serif text-base font-semibold text-teal-700">营养摄入</h2>
-          {totalExceeded ? (
-            <span className="flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-medium text-red-600">
-              <AlertTriangle className="h-3 w-3" />
-              注意超标
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 rounded-full bg-sage-50 px-2.5 py-1 text-[10px] font-medium text-sage-600">
-              <CheckCircle2 className="h-3 w-3" />
-              控制良好
-            </span>
-          )}
-        </div>
-        <div className="relative z-10 mt-4 grid grid-cols-2 gap-3">
-          {nutrients.map((n) => {
-            const percent = Math.min((n.current / n.limit) * 100, 100);
-            const status = getProgressStatus(n.current, n.limit);
-            return (
-              <div key={n.key} className={cn('rounded-2xl p-3', n.bgClass)}>
-                <div className="flex items-center justify-between">
-                  <div className={cn('flex items-center gap-1.5', n.textClass)}>
-                    {n.icon}
-                    <span className="text-sm font-medium">{n.label}</span>
-                  </div>
-                  <span className={cn(
-                    'text-[10px] font-medium',
-                    status === 'exceeded' ? 'text-red-500' : status === 'warning' ? 'text-amber-500' : 'text-teal-600/50'
-                  )}>
-                    {Math.round(percent)}%
-                  </span>
-                </div>
-                <div className="mt-2">
-                  <div className="text-lg font-bold text-teal-700">
-                    {n.current >= 1000 ? (n.current / 1000).toFixed(1) : Math.round(n.current)}
-                    <span className="ml-0.5 text-xs font-normal text-teal-600/40">
-                      {n.current >= 1000 && n.unit === 'mg' ? 'g' : n.unit}
+        <div className="glass-orb -right-6 -top-6 h-24 w-24 bg-orange-300/15" />
+        <div className="glass-shimmer" />
+        <div className="relative z-10">
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif text-base font-semibold text-teal-700">营养摄入</h2>
+            {totalExceeded ? (
+              <span className="flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-medium text-red-600">
+                <AlertTriangle className="h-3 w-3" />
+                注意超标
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 rounded-full bg-sage-50 px-2.5 py-1 text-[10px] font-medium text-sage-600">
+                <CheckCircle2 className="h-3 w-3" />
+                控制良好
+              </span>
+            )}
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {nutrients.map((n, i) => {
+              const percent = Math.min((n.current / n.limit) * 100, 100);
+              const status = getProgressStatus(n.current, n.limit);
+              return (
+                <motion.div
+                  key={n.key}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + i * 0.05 }}
+                  className={cn(
+                    'glass-tile rounded-2xl p-3',
+                    `bg-gradient-to-br ${n.bgClass}`
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-teal-700">
+                      {n.icon}
+                      <span className="text-sm font-medium">{n.label}</span>
+                    </div>
+                    <span className={cn(
+                      'text-[10px] font-medium',
+                      status === 'exceeded' ? 'text-red-500' : status === 'warning' ? 'text-amber-500' : 'text-teal-600/50'
+                    )}>
+                      {Math.round(percent)}%
                     </span>
                   </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/60">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${percent}%` }}
-                      transition={{ duration: 0.6, delay: 0.1 }}
-                      className={cn('h-full rounded-full', n.barClass, status === 'exceeded' && 'bg-red-400')}
-                    />
+                  <div className="mt-2">
+                    <div className="text-lg font-bold text-teal-700">
+                      {n.current >= 1000 ? (n.current / 1000).toFixed(1) : Math.round(n.current)}
+                      <span className="ml-0.5 text-xs font-normal text-teal-600/40">
+                        {n.current >= 1000 && n.unit === 'mg' ? 'g' : n.unit}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/60">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percent}%` }}
+                        transition={{ duration: 0.6, delay: 0.15 + i * 0.05 }}
+                        className={cn(
+                          'h-full rounded-full',
+                          n.barClass,
+                          status === 'exceeded' && 'bg-red-400'
+                        )}
+                      />
+                    </div>
+                    <p className="mt-1 text-[10px] text-teal-600/40">{n.tip}</p>
                   </div>
-                  <p className="mt-1 text-[10px] text-teal-600/40">{n.tip}</p>
-                </div>
-              </div>
-            );
-          })}
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       </motion.section>
 
@@ -252,10 +265,11 @@ export default function Diet() {
       <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        transition={{ delay: 0.15 }}
         className="glass-card relative overflow-hidden rounded-[24px] p-5"
       >
-        <div className="glass-orb -left-6 -bottom-6 h-20 w-20 bg-teal-300/20" />
+        <div className="glass-orb -left-6 -bottom-6 h-20 w-20 bg-teal-300/18" />
+        <div className="glass-shimmer" />
         <div className="relative z-10">
           <div className="flex items-center justify-between">
             <h2 className="font-serif text-base font-semibold text-teal-700">今日记录</h2>
@@ -281,8 +295,8 @@ export default function Diet() {
               })
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cream-100">
-                  <UtensilsCrossed className="h-6 w-6 text-teal-600/30" />
+                <div className="glass-tile flex h-14 w-14 items-center justify-center rounded-2xl">
+                  <UtensilsCrossed className="h-6 w-6 text-teal-600/25" />
                 </div>
                 <p className="mt-3 text-sm text-teal-600/60">今日还没有饮食记录</p>
                 <p className="mt-1 text-xs text-teal-600/40">点击右上角「记录」开始记录吧</p>
@@ -292,45 +306,52 @@ export default function Diet() {
         </div>
       </motion.section>
 
-      {/* 膳食小贴士 */}
+      {/* 膳食小贴士 —— 增强玻璃态 */}
       <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="rounded-2xl border border-amber-200/50 bg-gradient-to-br from-amber-50 to-orange-50 p-4"
+        className="glass-card relative overflow-hidden rounded-[24px] p-5"
       >
-        <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
-            <Lightbulb className="h-4 w-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-medium text-amber-800">膳食建议</h3>
-            <div className="mt-2 space-y-1.5">
-              {tips.map((tip, i) => (
-                <p key={i} className="flex items-start gap-1.5 text-xs leading-relaxed text-amber-700">
-                  <span className="mt-1 h-1 w-1 flex-shrink-0 rounded-full bg-amber-400" />
-                  {tip}
-                </p>
-              ))}
+        <div className="glass-orb -right-8 -top-4 h-20 w-20 bg-amber-300/15" />
+        <div className="glass-shimmer" />
+        <div className="relative z-10">
+          <div className="flex items-start gap-3">
+            <div className="glass-tile flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-amber-600">
+              <Lightbulb className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-medium text-teal-700">膳食建议</h3>
+              <div className="mt-2 space-y-1.5">
+                {tips.map((tip, i) => (
+                  <p key={i} className="flex items-start gap-1.5 text-xs leading-relaxed text-teal-600/70">
+                    <span className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-teal-400" />
+                    {tip}
+                  </p>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </motion.section>
 
       {/* 去水果板块 */}
-      <button
+      <motion.button
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
         onClick={() => navigate('/fruits')}
-        className="flex w-full items-center justify-between rounded-2xl border border-cream-200 bg-white p-4 text-left transition hover:border-teal-300 hover:shadow-sm"
+        className="glass-tile flex w-full items-center justify-between rounded-2xl p-4 text-left transition hover:scale-[1.01]"
       >
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-50 text-2xl">🍎</div>
+          <span className="text-2xl">🍎</span>
           <div>
             <h3 className="text-sm font-medium text-teal-700">查询水果营养</h3>
             <p className="text-xs text-teal-600/50">搜索水果、查看百科详情、添加自定义水果</p>
           </div>
         </div>
         <ChevronRight className="h-5 w-5 text-teal-600/30" />
-      </button>
+      </motion.button>
 
       {/* 添加记录抽屉 */}
       <AnimatePresence>
@@ -371,8 +392,8 @@ function TodayRecordItem({
   const timeStr = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
 
   return (
-    <div className="group flex items-center gap-3 rounded-xl bg-white/60 p-3 transition hover:bg-white">
-      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-cream-100 text-2xl">
+    <div className="glass-tile group flex items-center gap-3 rounded-xl p-3 transition hover:scale-[1.005]">
+      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-2xl">
         {fruit?.emoji || record.fruitEmoji || '🍽️'}
       </div>
       <div className="min-w-0 flex-1">
@@ -453,14 +474,14 @@ function AddRecordDrawer({
   return (
     <>
       <motion.div
-        className="fixed inset-0 z-[100] bg-black/40"
+        className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
       />
       <motion.div
-        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[90vh] overflow-y-auto rounded-t-3xl bg-white/95 backdrop-blur-xl"
+        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[90vh] overflow-y-auto rounded-t-3xl bg-white/90 backdrop-blur-xl"
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
@@ -474,7 +495,7 @@ function AddRecordDrawer({
           </h3>
           <button
             onClick={selected ? () => setSelected(null) : onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-cream-100 text-teal-600 transition hover:bg-cream-200"
+            className="glass-tile flex h-8 w-8 items-center justify-center rounded-full text-teal-600 transition hover:scale-105"
           >
             <X className="h-5 w-5" />
           </button>
@@ -490,7 +511,7 @@ function AddRecordDrawer({
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="搜索水果名称"
                 autoFocus
-                className="w-full rounded-xl border border-cream-300 bg-white py-3 pl-10 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+                className="glass-tile w-full rounded-xl py-3 pl-10 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:outline-none focus:ring-2 focus:ring-teal-400/30"
               />
             </div>
 
@@ -506,7 +527,7 @@ function AddRecordDrawer({
                 <button
                   key={fruit.id}
                   onClick={() => selectFruit(fruit)}
-                  className="flex flex-col items-center gap-1 rounded-xl border border-cream-200 bg-white p-3 transition hover:border-teal-300 hover:bg-teal-50/50 active:scale-95"
+                  className="glass-tile flex flex-col items-center gap-1 rounded-xl p-3 transition hover:scale-[1.03] active:scale-95"
                 >
                   <span className="text-3xl">{fruit.emoji}</span>
                   <span className="text-xs font-medium text-teal-700">{fruit.name}</span>
@@ -590,7 +611,7 @@ function WeightSelector({
   return (
     <div className="space-y-4 px-6 pb-6 pt-3">
       {/* 选中水果信息 */}
-      <div className="flex items-center gap-3 rounded-2xl bg-cream-50 p-4">
+      <div className="glass-tile flex items-center gap-3 rounded-2xl p-4">
         <span className="text-4xl">{fruit.emoji}</span>
         <div>
           <div className="flex items-center gap-2">
@@ -628,7 +649,7 @@ function WeightSelector({
                   'rounded-lg border px-3.5 py-2 text-xs font-medium transition',
                   isActive
                     ? 'border-teal-400 bg-teal-100 text-teal-700 shadow-sm'
-                    : 'border-cream-300 bg-white text-teal-600 hover:bg-cream-50'
+                    : 'glass-tile text-teal-600 hover:scale-[1.02]'
                 )}
               >
                 {preset.label}
@@ -648,13 +669,13 @@ function WeightSelector({
             onChange={(e) => setWeight(e.target.value)}
             placeholder="输入重量"
             autoFocus
-            className="min-w-0 flex-1 rounded-xl border border-cream-300 bg-white px-4 py-3 text-base font-medium text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+            className="glass-tile min-w-0 flex-1 rounded-xl px-4 py-3 text-base font-medium text-teal-700 placeholder:text-teal-600/40 focus:outline-none focus:ring-2 focus:ring-teal-400/30"
             onKeyDown={(e) => e.key === 'Enter' && onConfirm()}
           />
           <select
             value={unit}
             onChange={(e) => setUnit(e.target.value as WeightUnit)}
-            className="rounded-xl border border-cream-300 bg-white px-3 py-3 text-sm font-medium text-teal-700 focus:border-teal-400 focus:outline-none"
+            className="glass-tile rounded-xl px-3 py-3 text-sm font-medium text-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-400/30"
           >
             {WEIGHT_UNITS.map((u) => (
               <option key={u.key} value={u.key}>
@@ -667,7 +688,7 @@ function WeightSelector({
 
       {/* 营养预览 */}
       {weightGrams > 0 && (
-        <div className="rounded-2xl bg-teal-50/50 p-4 ring-1 ring-teal-100">
+        <div className="glass-tile rounded-2xl p-4">
           <p className="mb-2 text-xs font-medium text-teal-600/70">
             {formatDecimal(weightGrams >= 1000 ? weightGrams / 1000 : weightGrams, weightGrams >= 1000 ? 2 : 0)}
             {weightGrams >= 1000 ? ' kg' : ' g'} {fruit.name} 营养含量
@@ -706,7 +727,7 @@ function NutrientPreview({
   colorClass: string;
 }) {
   return (
-    <div className="rounded-xl bg-white p-2.5">
+    <div className="rounded-xl bg-white/70 p-2.5">
       <div className="text-[10px] text-teal-600/50">{label}</div>
       <div className={cn('text-base font-bold', colorClass)}>
         {formatDecimal(value, 1)}

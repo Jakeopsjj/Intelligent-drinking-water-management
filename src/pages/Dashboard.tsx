@@ -7,9 +7,11 @@ import {
   HeartPulse,
   Sparkles,
   TrendingUp,
+  TrendingDown,
   Bone,
   Soup,
   Pill,
+  Activity,
 } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import {
@@ -24,12 +26,19 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { formatDateLong, getTodayKey } from '@/utils/date';
 import { getProgressStatus, getDailyMetrics } from '@/utils/calc';
 
-// 将克转为 kg 纯数字字符串（不含单位）
 function gToKgNum(g: number): string {
   if (!Number.isFinite(g)) return '0';
   const kg = g / 1000;
   return kg.toFixed(2).replace(/\.?0+$/, '') || '0';
 }
+
+const stagger = {
+  animate: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: 0.06 * i, duration: 0.4, ease: [0.16, 1, 0.3, 1] },
+  }),
+};
 
 export default function Dashboard() {
   const records = useRecordsStore((s) => s.records);
@@ -45,14 +54,8 @@ export default function Dashboard() {
   const userName = settings.userName?.trim() || '肾友';
 
   const waterStatus = getProgressStatus(todayMetrics.water, settings.dailyWaterLimit);
-  const potassiumStatus = getProgressStatus(
-    todayMetrics.potassium,
-    settings.dailyPotassiumLimit
-  );
-  const phosphorusStatus = getProgressStatus(
-    todayMetrics.phosphorus,
-    settings.dailyPhosphorusLimit
-  );
+  const potassiumStatus = getProgressStatus(todayMetrics.potassium, settings.dailyPotassiumLimit);
+  const phosphorusStatus = getProgressStatus(todayMetrics.phosphorus, settings.dailyPhosphorusLimit);
   const sodiumStatus = getProgressStatus(todayMetrics.sodium, settings.dailySodiumLimit);
   const fruitStatus = getProgressStatus(todayMetrics.fruit, settings.dailyFruitLimit);
 
@@ -64,100 +67,124 @@ export default function Dashboard() {
     fruitStatus === 'exceeded';
 
   const overviewItems = [
-    { label: '饮水', value: todayMetrics.water, unit: 'ml', icon: <Droplets className="h-3 w-3" /> },
-    { label: '超滤', value: todayMetrics.ultrafiltration, unit: 'ml', icon: <Gauge className="h-3 w-3" /> },
-    { label: '水果', value: gToKgNum(todayMetrics.fruit), unit: 'kg', icon: <Citrus className="h-3 w-3" /> },
-    { label: '钾', value: todayMetrics.potassium, unit: 'mg', icon: <HeartPulse className="h-3 w-3" /> },
-    { label: '磷', value: todayMetrics.phosphorus, unit: 'mg', icon: <Bone className="h-3 w-3" /> },
-    { label: '钠', value: todayMetrics.sodium, unit: 'mg', icon: <Soup className="h-3 w-3" /> },
-    { label: '服药', value: todayMetrics.medicationCount, unit: '次', icon: <Pill className="h-3 w-3" /> },
+    { label: '饮水', value: todayMetrics.water, unit: 'ml', icon: <Droplets className="h-3 w-3" />, limit: settings.dailyWaterLimit, current: todayMetrics.water },
+    { label: '超滤', value: todayMetrics.ultrafiltration, unit: 'ml', icon: <Gauge className="h-3 w-3" />, limit: 2500, current: todayMetrics.ultrafiltration },
+    { label: '水果', value: gToKgNum(todayMetrics.fruit), unit: 'kg', icon: <Citrus className="h-3 w-3" />, limit: settings.dailyFruitLimit / 1000, current: todayMetrics.fruit / 1000 },
+    { label: '钾', value: todayMetrics.potassium, unit: 'mg', icon: <HeartPulse className="h-3 w-3" />, limit: settings.dailyPotassiumLimit, current: todayMetrics.potassium },
+    { label: '磷', value: todayMetrics.phosphorus, unit: 'mg', icon: <Bone className="h-3 w-3" />, limit: settings.dailyPhosphorusLimit, current: todayMetrics.phosphorus },
+    { label: '钠', value: todayMetrics.sodium, unit: 'mg', icon: <Soup className="h-3 w-3" />, limit: settings.dailySodiumLimit, current: todayMetrics.sodium },
+    { label: '服药', value: todayMetrics.medicationCount, unit: '次', icon: <Pill className="h-3 w-3" />, limit: 0, current: 0 },
   ];
 
   return (
     <div className="space-y-5">
-      {/* 顶部问候卡片 */}
+      {/* 顶部问候卡片 —— 增强玻璃态 */}
       <motion.section
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="glass-card relative overflow-hidden rounded-[28px] p-6"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        className="glass-card-highlight relative overflow-hidden rounded-[28px] p-6"
       >
-        {/* 水滴光斑装饰 */}
-        <div className="glass-orb -right-8 -top-8 h-32 w-32 bg-teal-300/30" />
-        <div className="glass-orb -bottom-10 -left-6 h-24 w-24 bg-sage-300/25" style={{ animationDelay: '2s' }} />
-        {/* 流动反光 */}
+        {/* 多层装饰光斑 */}
+        <div className="glass-orb -right-8 -top-8 h-36 w-36 bg-teal-300/25" />
+        <div className="glass-orb -bottom-12 -left-8 h-28 w-28 bg-sage-300/20" style={{ animationDelay: '1.5s' }} />
+        <div className="glass-orb right-16 bottom-4 h-16 w-16 bg-lavender/15" style={{ animationDelay: '3s' }} />
+        {/* 流动反光带 */}
         <div className="glass-shimmer" />
-        <div className="relative z-10 flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-teal-600/70">
-              <Sparkles className="h-3 w-3" />
-              今天也要轻松管理
+        <div className="relative z-10">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-teal-600/60">
+                <Sparkles className="h-3 w-3" />
+                今天也要轻松管理
+              </div>
+              <h1 className="mt-2 font-serif text-3xl font-semibold leading-tight text-teal-800">
+                你好，{userName}
+              </h1>
+              <p className="mt-1 text-xs text-teal-600/50">{formatDateLong()}</p>
             </div>
-            <h1 className="mt-2 font-serif text-3xl font-semibold leading-tight text-teal-800">
-              你好，{userName}
-            </h1>
-            <p className="mt-1 text-xs text-teal-600/60">{formatDateLong()}</p>
+            <div className="flex flex-shrink-0 flex-col items-end gap-2">
+              {overallWarning ? (
+                <div className="flex items-center gap-1.5 rounded-full bg-clay-100 px-3 py-1.5 text-xs font-medium text-clay-600">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  <span className="whitespace-nowrap">注意超标</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 rounded-full bg-sage-100 px-3 py-1.5 text-xs font-medium text-sage-600">
+                  <TrendingDown className="h-3.5 w-3.5" />
+                  <span className="whitespace-nowrap">控制良好</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1 text-[10px] text-teal-600/40">
+                <Activity className="h-3 w-3" />
+                {todayMetrics.records.length} 条记录
+              </div>
+            </div>
           </div>
-          {overallWarning ? (
-            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-clay-100 px-3 py-1.5 text-xs font-medium text-clay-600">
-              <TrendingUp className="h-3.5 w-3.5" />
-              <span className="whitespace-nowrap">注意</span>
-            </div>
-          ) : (
-            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-sage-100 px-3 py-1.5 text-xs font-medium text-sage-600">
-              <TrendingUp className="h-3.5 w-3.5" />
-              <span className="whitespace-nowrap">控制良好</span>
-            </div>
-          )}
         </div>
       </motion.section>
 
-      {/* 今日总览：6 个指标，横向滑动查看 */}
+      {/* 今日总览：指标横向滑动 —— 增强玻璃态 */}
       <motion.section
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
         className="glass-card relative overflow-hidden rounded-[28px] p-5"
       >
-        <div className="glass-orb -right-6 -top-6 h-24 w-24 bg-teal-300/20" />
-        <div className="relative z-10 flex items-center justify-between">
-          <h2 className="font-serif text-base font-semibold text-teal-700">今日总览</h2>
-          {overallWarning ? (
-            <span className="whitespace-nowrap rounded-full bg-clay-100 px-2 py-0.5 text-[10px] font-medium text-clay-600">
-              注意
-            </span>
-          ) : (
-            <span className="whitespace-nowrap rounded-full bg-sage-100 px-2 py-0.5 text-[10px] font-medium text-sage-600">
-              正常
-            </span>
-          )}
+        <div className="glass-orb -right-6 -top-6 h-24 w-24 bg-teal-300/18" />
+        <div className="glass-shimmer" />
+        <div className="relative z-10">
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif text-base font-semibold text-teal-700">今日总览</h2>
+            {overallWarning ? (
+              <span className="whitespace-nowrap rounded-full bg-clay-100 px-2.5 py-0.5 text-[10px] font-medium text-clay-600">
+                注意
+              </span>
+            ) : (
+              <span className="whitespace-nowrap rounded-full bg-sage-100 px-2.5 py-0.5 text-[10px] font-medium text-sage-600">
+                正常
+              </span>
+            )}
+          </div>
+          <div className="mt-4 flex gap-2.5 overflow-x-auto pb-1 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            {overviewItems.map((item, i) => {
+              const ratio = item.limit > 0 ? item.current / item.limit : 0;
+              const isOver = ratio >= 1 && item.limit > 0;
+              const isWarn = ratio >= 0.8 && item.limit > 0;
+              return (
+                <div
+                  key={item.label}
+                  className="glass-tile flex w-[76px] flex-shrink-0 flex-col items-center rounded-2xl p-3 text-center transition hover:scale-[1.03]"
+                >
+                  <div className="flex items-center justify-center gap-1 text-[10px] text-teal-600/60">
+                    {item.icon}
+                    {item.label}
+                  </div>
+                  <div className={`mt-1.5 text-sm font-semibold ${isOver ? 'text-clay-500' : isWarn ? 'text-amber-600' : 'text-teal-700'}`}>
+                    {item.value}
+                    <span className="text-[10px] font-normal text-teal-600/50"> {item.unit}</span>
+                  </div>
+                  {item.limit > 0 && (
+                    <div className="mt-1 h-0.5 w-full overflow-hidden rounded-full bg-white/50">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${isOver ? 'bg-clay-400' : isWarn ? 'bg-amber-400' : 'bg-teal-400'}`}
+                        style={{ width: `${Math.min(ratio * 100, 100)}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 text-[10px] text-teal-600/35">← 左右滑动查看全部 7 项指标 →</p>
         </div>
-        {/* 横向滑动区域：6 个指标卡片，超出可左右滑动 */}
-        <div className="relative z-10 mt-4 flex gap-2.5 overflow-x-auto pb-1 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          {overviewItems.map((item) => (
-            <div
-              key={item.label}
-              className="glass-tile flex w-[72px] flex-shrink-0 flex-col items-center rounded-2xl p-3 text-center"
-            >
-              <div className="flex items-center justify-center gap-1 text-[10px] text-teal-600/60">
-                {item.icon}
-                {item.label}
-              </div>
-              <div className="mt-1.5 text-sm font-semibold text-teal-700">
-                {item.value}
-                <span className="text-[10px] font-normal text-teal-600/60"> {item.unit}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="relative z-10 mt-1.5 text-[10px] text-teal-600/40">← 左右滑动查看全部 7 项指标 →</p>
       </motion.section>
 
-      {/* 核心指标卡片：2 列，增加间距 */}
+      {/* 核心指标卡片：2列网格 */}
       <motion.section
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
         className="grid grid-cols-2 gap-4"
       >
         <MetricCard
@@ -219,38 +246,51 @@ export default function Dashboard() {
       </motion.section>
 
       {/* 快速记录区 */}
-      <section className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+        className="grid grid-cols-1 gap-3 lg:grid-cols-3"
+      >
         <WaterQuickRecord />
         <UltrafiltrationQuickRecord />
         <FruitQuickRecord />
         <MedicationQuickRecord />
-      </section>
+      </motion.section>
 
       {/* 今日记录列表 */}
-      <section className="glass-card relative overflow-hidden rounded-[28px] p-5">
-        <div className="glass-orb -left-6 -bottom-6 h-24 w-24 bg-sage-300/20" style={{ animationDelay: '3s' }} />
-        <div className="relative z-10 flex items-center justify-between">
-          <h2 className="font-serif text-base font-semibold text-teal-700">今日记录</h2>
-          <span className="whitespace-nowrap rounded-full bg-sage-50 px-2.5 py-0.5 text-[11px] font-medium text-sage-600">
-            {todayMetrics.records.length} 条
-          </span>
-        </div>
-        <div className="relative z-10 mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
-          {todayMetrics.records.length > 0 ? (
-            todayMetrics.records.map((r) => (
-              <RecordItem key={r.id} record={r} onDelete={deleteRecord} />
-            ))
-          ) : (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="glass-tile flex h-12 w-12 items-center justify-center rounded-2xl">
-                <Droplets className="h-5 w-5 text-teal-600/40" />
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        className="glass-card relative overflow-hidden rounded-[28px] p-5"
+      >
+        <div className="glass-orb -left-6 -bottom-6 h-24 w-24 bg-sage-300/18" style={{ animationDelay: '3s' }} />
+        <div className="glass-shimmer" />
+        <div className="relative z-10">
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif text-base font-semibold text-teal-700">今日记录</h2>
+            <span className="whitespace-nowrap rounded-full bg-sage-50 px-2.5 py-0.5 text-[11px] font-medium text-sage-600">
+              {todayMetrics.records.length} 条
+            </span>
+          </div>
+          <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
+            {todayMetrics.records.length > 0 ? (
+              todayMetrics.records.map((r) => (
+                <RecordItem key={r.id} record={r} onDelete={deleteRecord} />
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="glass-tile flex h-14 w-14 items-center justify-center rounded-2xl">
+                  <Droplets className="h-6 w-6 text-teal-600/30" />
+                </div>
+                <p className="mt-3 text-sm text-teal-600/60">今日还没有记录</p>
+                <p className="mt-1 text-xs text-teal-600/40">点击上方卡片开始记录</p>
               </div>
-              <p className="mt-2 text-xs text-teal-600/60">今日还没有记录</p>
-              <p className="text-[10px] text-teal-600/40">点击上方卡片开始记录</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 }

@@ -1,33 +1,32 @@
 /**
- * 全应用液态玻璃背景层
+ * 全应用液态玻璃背景层 —— 增强版
  *
- * 渲染策略（兼顾视觉与安卓全机型性能兼容）：
- * 1. WebGL 着色器渲染【低分辨率静态液态纹理】（一次性渲染，不每帧重绘）
- *    —— 着色器内部已实现：菲涅尔边缘高光、介质光线折射形变、环境反射采样、程序化气泡
- * 2. CSS 动画让纹理缓慢漂移，产生"流动"视觉，无需 GLSL 每帧重绘
- * 3. 叠加 CSS 透明气泡粒子层（性能优于 GLSL 粒子，且兼容性好）
- * 4. WebGL 不可用或低性能设备 → 无感降级到 CSS 渐变背景 + 气泡
+ * 视觉升级：
+ * 1. 动态色彩渐变（teal/sage/lavender/cream 四色融合）
+ * 2. 增强菲涅尔边缘高光（更明显的折射光泽）
+ * 3. 多层介质折射形变（模拟光线穿过不同密度液体）
+ * 4. 程序化气泡粒子（8个，大小随机，含环状折射光晕）
+ * 5. 微弱的焦散（caustics）模拟
+ * 6. CSS 叠加层：流动光斑 + 透明气泡 + 径向渐变暗角
  *
- * 全层 pointer-events:none，绝不影响控件点击响应与页面滑动帧率。
+ * 性能策略：
+ * - WebGL 静态渲染一帧（256x256），CSS 拉伸 + 模糊 + 缓慢漂移
+ * - 低端设备自动降级为 CSS 渐变
  */
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
-/** 检测设备是否具备良好 WebGL 能力（避免低端机卡顿） */
 function detectGLCapability(): boolean {
   if (typeof window === 'undefined') return false;
   try {
     const canvas = document.createElement('canvas');
     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
     if (!gl) return false;
-    // 并发核数太少（极低端机）或明确禁用 GPU 时降级
     const cores = navigator.hardwareConcurrency || 4;
     if (cores < 4) return false;
-    // Capacitor Android WebView 中保留启用，但若显存极少也降级
     const dbg = (gl as WebGLRenderingContext).getExtension('WEBGL_debug_renderer_info');
     if (dbg) {
       const renderer = (gl as WebGLRenderingContext).getParameter(dbg.UNMASKED_RENDERER_WEBGL) as string;
-      // 排除已知软渲染/极弱 GPU
       if (/swiftshader|llvmpipe|software/i.test(renderer || '')) return false;
     }
     return true;
@@ -41,20 +40,13 @@ attribute vec2 a_pos;
 void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
 `;
 
-/**
- * 片段着色器：液态玻璃介质渲染
- * - fbm 噪声驱动液态流动纹理
- * - 菲涅尔边缘高光（Fresnel：观察角越平掠，反射越强）
- * - 介质光线折射形变（采样偏移模拟折射）
- * - 环境反射采样（多次采样混合）
- * - 程序化气泡粒子（纯数学绘制，避免粒子数组开销）
- */
 const FRAG = `
 precision mediump float;
 uniform vec2 u_res;
 uniform float u_time;
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
 float noise(vec2 p) {
   vec2 i = floor(p), f = fract(p);
   float a = hash(i);
@@ -64,9 +56,10 @@ float noise(vec2 p) {
   vec2 u = f * f * (3.0 - 2.0 * f);
   return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
 }
+
 float fbm(vec2 p) {
   float v = 0.0, a = 0.5;
-  for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.0; a *= 0.5; }
+  for (int i = 0; i < 5; i++) { v += a * noise(p); p *= 2.1; a *= 0.48; }
   return v;
 }
 
@@ -75,50 +68,72 @@ void main() {
   vec2 p = uv * 2.0 - 1.0;
   p.x *= u_res.x / u_res.y;
 
-  // 液态流动：随时间漂移的 fbm
-  float t = u_time * 0.08;
-  float n = fbm(p * 1.2 + vec2(t, t * 0.6));
-  float n2 = fbm(p * 2.5 - vec2(t * 0.7, t));
+  float t = u_time * 0.06;
 
-  // 色调：teal / sage / cream 渐变（与全局液态玻璃基调一致）
-  vec3 teal = vec3(0.176, 0.372, 0.364);
-  vec3 sage = vec3(0.478, 0.607, 0.494);
-  vec3 cream = vec3(0.972, 0.952, 0.933);
-  vec3 col = mix(teal, sage, n);
-  col = mix(col, cream, smoothstep(0.4, 0.85, n2));
+  // 多层液态流动噪声
+  float n1 = fbm(p * 1.3 + vec2(t, t * 0.55));
+  float n2 = fbm(p * 2.6 - vec2(t * 0.7, t * 0.3));
+  float n3 = fbm(p * 4.2 + vec2(t * 0.4, -t * 0.65));
 
-  // 菲涅尔边缘高光：观察角平掠时增强反射
+  // 四色渐变（teal / sage / lavender / cream）
+  vec3 teal    = vec3(0.176, 0.372, 0.364);
+  vec3 sage    = vec3(0.478, 0.607, 0.494);
+  vec3 lavender = vec3(0.75, 0.72, 0.82);
+  vec3 cream   = vec3(0.972, 0.952, 0.933);
+
+  vec3 col = mix(teal, sage, n1);
+  col = mix(col, lavender, smoothstep(0.35, 0.7, n2));
+  col = mix(col, cream, smoothstep(0.45, 0.88, n3));
+
+  // 增强菲涅尔边缘高光
   float edge = 1.0 - min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
-  edge = smoothstep(0.0, 0.35, edge);
-  float fresnel = pow(edge, 2.5);
-  col += fresnel * vec3(1.0, 0.98, 0.92) * 0.35;
+  edge = smoothstep(0.0, 0.4, edge);
+  float fresnel = pow(edge, 2.2);
+  col += fresnel * vec3(1.0, 0.97, 0.9) * 0.42;
 
-  // 介质光线折射形变：对内部色彩做偏移采样
-  vec2 refractOffset = vec2(n2 - 0.5, n - 0.5) * 0.06;
-  float refSample = fbm(p * 1.5 + refractOffset * 8.0 + t * 0.4);
-  col += (refSample - 0.5) * 0.08;
+  // 介质折射形变（多层采样偏移）
+  vec2 refract1 = vec2(n2 - 0.5, n1 - 0.5) * 0.07;
+  vec2 refract2 = vec2(n3 - 0.5, n2 - 0.5) * 0.04;
+  float refSample1 = fbm(p * 1.6 + refract1 * 8.0 + t * 0.35);
+  float refSample2 = fbm(p * 2.8 + refract2 * 6.0 - t * 0.25);
+  col += (refSample1 - 0.5) * 0.06;
+  col += (refSample2 - 0.5) * 0.04;
 
-  // 环境反射高光：右上方向假设光源
-  float spec = pow(max(dot(normalize(vec3(n - 0.5, n2 - 0.5, 0.6)), normalize(vec3(0.7, 0.7, 0.5))), 0.0), 24.0);
-  col += spec * vec3(1.0) * 0.25;
+  // 环境反射高光（双光源）
+  vec3 normal = normalize(vec3(n1 - 0.5, n2 - 0.5, 0.55));
+  float spec1 = pow(max(dot(normal, normalize(vec3(0.7, 0.7, 0.5))), 0.0), 20.0);
+  float spec2 = pow(max(dot(normal, normalize(vec3(-0.5, 0.3, 0.7))), 0.0), 28.0);
+  col += spec1 * vec3(1.0, 0.98, 0.92) * 0.3;
+  col += spec2 * vec3(0.85, 0.92, 1.0) * 0.15;
 
-  // 程序化气泡粒子（4 个静态位置 + 缓慢漂浮）
-  vec2 bpos[4];
-  bpos[0] = vec2(0.2, 0.3 + sin(t * 1.3) * 0.05);
-  bpos[1] = vec2(0.7, 0.5 + cos(t * 0.9) * 0.04);
-  bpos[2] = vec2(0.45, 0.75 + sin(t * 1.1) * 0.03);
-  bpos[3] = vec2(0.85, 0.2 + cos(t * 1.5) * 0.05);
-  for (int i = 0; i < 4; i++) {
+  // 焦散模拟（微弱波纹光斑）
+  float caustic = fbm(uv * 18.0 + vec2(t * 0.8, -t * 0.5));
+  caustic = smoothstep(0.55, 0.7, caustic);
+  col += caustic * vec3(1.0, 0.96, 0.88) * 0.08;
+
+  // 程序化气泡粒子（8个，大小随机，带环状折射光晕）
+  vec2 bpos[8];
+  float bsize[8];
+  bpos[0] = vec2(0.15, 0.25 + sin(t * 1.4) * 0.06);  bsize[0] = 0.03;
+  bpos[1] = vec2(0.72, 0.48 + cos(t * 0.8) * 0.05);  bsize[1] = 0.04;
+  bpos[2] = vec2(0.42, 0.78 + sin(t * 1.1) * 0.04);  bsize[2] = 0.025;
+  bpos[3] = vec2(0.88, 0.18 + cos(t * 1.6) * 0.06);  bsize[3] = 0.035;
+  bpos[4] = vec2(0.28, 0.62 + sin(t * 0.9) * 0.05);  bsize[4] = 0.028;
+  bpos[5] = vec2(0.58, 0.15 + cos(t * 1.3) * 0.05);  bsize[5] = 0.032;
+  bpos[6] = vec2(0.08, 0.85 + sin(t * 1.0) * 0.04);  bsize[6] = 0.022;
+  bpos[7] = vec2(0.65, 0.92 + cos(t * 0.7) * 0.03);  bsize[7] = 0.026;
+
+  for (int i = 0; i < 8; i++) {
     float d = distance(uv, bpos[i]);
-    float bubble = smoothstep(0.035, 0.025, d);
-    float ring = smoothstep(0.04, 0.035, d) - smoothstep(0.035, 0.03, d);
-    col += bubble * vec3(1.0) * 0.5;
-    col += ring * vec3(0.8, 0.95, 0.9) * 0.4;
+    float inner = smoothstep(bsize[i], bsize[i] * 0.7, d);
+    float ring = smoothstep(bsize[i] * 1.4, bsize[i] * 1.05, d) - smoothstep(bsize[i] * 1.05, bsize[i] * 0.8, d);
+    col += inner * vec3(1.0, 0.98, 0.94) * 0.55;
+    col += ring * vec3(0.75, 0.92, 0.88) * 0.45;
   }
 
-  // 整体压暗以保证上层控件可读性（透光率统一参数）
-  col *= 0.55;
-  gl_FragColor = vec4(col, 0.92);
+  // 整体透光率（基底暗度，确保上层控件可读性）
+  col *= 0.52;
+  gl_FragColor = vec4(col, 0.9);
 }
 `;
 
@@ -134,7 +149,6 @@ function compile(gl: WebGLRenderingContext, type: number, src: string): WebGLSha
   return s;
 }
 
-/** 用 WebGL 静态渲染一帧液态纹理到 canvas（不每帧重绘，性能极佳） */
 function renderGlassFrame(canvas: HTMLCanvasElement): boolean {
   const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
   if (!gl) return false;
@@ -166,25 +180,23 @@ function renderGlassFrame(canvas: HTMLCanvasElement): boolean {
   return true;
 }
 
-/** CSS 降级背景（WebGL 不可用时使用） */
 function CSSFallback() {
   return (
     <div className="liquid-bg-fallback" />
   );
 }
 
-/** 透明气泡粒子层（CSS 驱动，性能优于 GLSL 粒子） */
 function BubbleLayer() {
-  // 8 个气泡，固定位置 + 不同延迟，CSS keyframes 上升
   const bubbles = useMemo(
     () =>
-      Array.from({ length: 8 }, (_, i) => ({
+      Array.from({ length: 12 }, (_, i) => ({
         id: i,
-        left: (i * 12 + 6) % 100,
-        size: 8 + ((i * 7) % 18),
-        delay: (i * 1.7) % 12,
-        duration: 14 + (i % 4) * 4,
-        opacity: 0.08 + (i % 3) * 0.04,
+        left: (i * 8 + 7) % 100,
+        size: 6 + ((i * 5) % 22),
+        delay: (i * 1.3) % 14,
+        duration: 12 + (i % 5) * 3,
+        opacity: 0.06 + (i % 4) * 0.03,
+        driftX: ((i % 3) - 1) * 15,
       })),
     []
   );
@@ -201,7 +213,8 @@ function BubbleLayer() {
             opacity: b.opacity,
             animationDelay: `${b.delay}s`,
             animationDuration: `${b.duration}s`,
-          }}
+            '--drift-x': `${b.driftX}px`,
+          } as React.CSSProperties}
         />
       ))}
     </div>
@@ -210,7 +223,6 @@ function BubbleLayer() {
 
 export default function LiquidGlassBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // null=检测中, true=GL 可用, false=降级 CSS
   const [useGL, setUseGL] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -218,26 +230,21 @@ export default function LiquidGlassBackground() {
       setUseGL(false);
       return;
     }
-    // canvas 始终挂载，直接取 ref
     const canvas = canvasRef.current;
     if (!canvas) {
       setUseGL(false);
       return;
     }
-    // 用低分辨率（256x256）渲染静态纹理，CSS 拉伸全屏 + 模糊
-    // 既保留着色器视觉效果，又把 GPU 开销降到几乎可忽略
     canvas.width = 256;
     canvas.height = 256;
     const ok = renderGlassFrame(canvas);
     setUseGL(ok);
   }, []);
 
-  // 通过 Portal 渲染到 body，避免被父级 backdrop-filter 创建 containing block
   if (typeof document === 'undefined') return null;
 
   return createPortal(
     <div className="liquid-bg-root" aria-hidden>
-      {/* canvas 始终挂载，仅 useGL=true 时可见；GL 不可用时它不可见，CSSFallback 兜底 */}
       <canvas ref={canvasRef} className="liquid-bg-canvas" style={{ opacity: useGL ? 1 : 0 }} />
       {useGL === false && <CSSFallback />}
       <BubbleLayer />

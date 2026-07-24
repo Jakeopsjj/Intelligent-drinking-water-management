@@ -1,5 +1,5 @@
 /**
- * 水果板块（重构版）
+ * 水果板块（增强版）
  *
  * 流程：
  * 1. 顶部搜索框，输入关键词点搜索
@@ -8,9 +8,14 @@
  * 4. 本地没有 → 调 searchWikiFruits 拿维基候选 → 弹出底部抽屉选择
  * 5. 选中 → 调 apihz.cn 营养API + fetchEntityInfo 维基图文 → 添加 → 打开详情
  * 6. 详情页：维基配图 + 介绍（联网）+ 每100g元素含量（钾磷钠水）+ 食用建议 + 记录摄入
+ *
+ * 视觉升级：
+ * - 统一液态玻璃卡片效果
+ * - 增强详情抽屉视觉层次
+ * - 更流畅的过渡动画
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Loader2, Droplet, FlaskConical, Beaker, Atom, ChevronRight, Info, WifiOff } from 'lucide-react';
 import { useFruitsStore } from '@/store/useFruitsStore';
@@ -27,11 +32,9 @@ import SmartImage from '@/components/SmartImage';
 import type { Fruit } from '@/types';
 
 export default function Fruits() {
-  // 注意：不能用 useFruitsStore((s) => s.allFruits())
-  // 因为 allFruits() 每次返回新数组引用，会触发 Zustand 无限重渲染 → 白屏
   const customFruits = useFruitsStore((s) => s.customFruits);
   const builtinFruits = useFruitsStore((s) => s.fruits);
-  const allFruits = [...customFruits, ...builtinFruits];
+  const allFruits = useMemo(() => [...customFruits, ...builtinFruits], [customFruits, builtinFruits]);
   const addFruit = useFruitsStore((s) => s.addFruit);
   const deleteFruit = useFruitsStore((s) => s.deleteFruit);
   const addFruitRecord = useRecordsStore((s) => s.addFruitRecord);
@@ -41,10 +44,8 @@ export default function Fruits() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Fruit | null>(null);
   const [weight, setWeight] = useState('100');
-  // 维基候选选择浮层（本地未命中时弹出）
   const [candidates, setCandidates] = useState<WikiSearchItem[]>([]);
 
-  // 候选浮层与详情浮层互斥，分别注册返回处理；useLockBodyScroll 用引用计数兼容叠加
   useOverlayBackHandler(!!selected, () => setSelected(null));
   useOverlayBackHandler(candidates.length > 0, () => setCandidates([]));
   useLockBodyScroll(!!selected || candidates.length > 0);
@@ -57,20 +58,17 @@ export default function Fruits() {
     setSearching(true);
     setError(null);
 
-    // 1. 先查本地库（customFruits + fruits），按 name 精确匹配
     const state = useFruitsStore.getState();
     const local = [...state.customFruits, ...state.fruits].find(
       (f) => f.name === keyword
     );
     if (local) {
-      // 本地有 → 直接打开详情，不再调 apihz 重复添加
       setSelected(local);
       setQuery('');
       setSearching(false);
       return;
     }
 
-    // 2. 本地没有 → 联网搜索维基候选
     try {
       const results = await searchWikiFruits(keyword);
       if (results.length === 0) {
@@ -89,12 +87,10 @@ export default function Fruits() {
     async (item: WikiSearchItem) => {
       if (searching) return;
       const title = item.title;
-      // 关闭候选浮层，进入「添加中」状态（搜索按钮显示 Loader2）
       setCandidates([]);
       setSearching(true);
       setError(null);
       try {
-        // 并发拿营养数据 + 维基图文
         const [nutrition, entity] = await Promise.all([
           fetchFoodNutrition(title),
           fetchEntityInfo(title, 'fruit'),
@@ -111,11 +107,9 @@ export default function Fruits() {
           sodiumPer100g: nutrition.sodium,
           waterPer100g: nutrition.water,
           suggestion: '请根据医嘱适量食用',
-          // 维基介绍作为 fruit.description（详情页由「维基介绍」块展示）
           description: entity.description,
         });
 
-        // 找到刚添加的水果并打开详情
         const latest = useFruitsStore.getState().customFruits;
         const newFruit = [...latest].reverse().find((f) => f.name === title);
         if (newFruit) {
@@ -131,7 +125,6 @@ export default function Fruits() {
     [searching, addFruit]
   );
 
-  // 按等级分组
   const grouped = {
     low: allFruits.filter((f) => f.level === 'low'),
     medium: allFruits.filter((f) => f.level === 'medium'),
@@ -149,7 +142,11 @@ export default function Fruits() {
   return (
     <div className="space-y-4">
       {/* 搜索栏 */}
-      <div className="flex gap-2">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex gap-2"
+      >
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-teal-600/40" />
           <input
@@ -157,28 +154,39 @@ export default function Fruits() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             placeholder="搜索水果名称（如：苹果、香蕉）"
-            className="w-full rounded-xl border border-cream-300 bg-white py-2.5 pl-10 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+            className="glass-tile w-full rounded-xl py-2.5 pl-10 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:outline-none focus:ring-2 focus:ring-teal-400/30"
           />
         </div>
         <button
           onClick={handleSearch}
           disabled={searching || !query.trim()}
-          className="flex-shrink-0 rounded-xl bg-teal-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-600 disabled:opacity-40"
+          className="flex-shrink-0 rounded-xl bg-teal-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-600 active:scale-95 disabled:opacity-40"
         >
           {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : '搜索'}
         </button>
-      </div>
+      </motion.div>
 
       {error && (
-        <div className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</div>
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-tile rounded-xl px-4 py-2.5 text-sm text-red-600"
+        >
+          {error}
+        </motion.div>
       )}
 
       {/* 水果列表 */}
-      {(['low', 'medium', 'high'] as const).map((level) => {
+      {(['low', 'medium', 'high'] as const).map((level, gi) => {
         const fruits = grouped[level];
         if (fruits.length === 0) return null;
         return (
-          <div key={level}>
+          <motion.div
+            key={level}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 + gi * 0.05 }}
+          >
             <div className="mb-2 flex items-center gap-2">
               <span
                 className={cn(
@@ -192,16 +200,22 @@ export default function Fruits() {
               <span className="text-xs text-teal-600/50">{fruits.length} 种</span>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {fruits.map((fruit) => (
-                <FruitCard
+              {fruits.map((fruit, fi) => (
+                <motion.div
                   key={fruit.id}
-                  fruit={fruit}
-                  onClick={() => setSelected(fruit)}
-                  onDelete={fruit.isCustom ? () => deleteFruit(fruit.id) : undefined}
-                />
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.08 + gi * 0.04 + fi * 0.02 }}
+                >
+                  <FruitCard
+                    fruit={fruit}
+                    onClick={() => setSelected(fruit)}
+                    onDelete={fruit.isCustom ? () => deleteFruit(fruit.id) : undefined}
+                  />
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         );
       })}
 
@@ -218,21 +232,19 @@ export default function Fruits() {
         )}
       </AnimatePresence>
 
-      {/* 维基候选选择浮层（本地未命中时弹出） */}
+      {/* 维基候选选择浮层 */}
       <AnimatePresence>
         {candidates.length > 0 && (
           <>
-            {/* 遮罩 */}
             <motion.div
-              className="fixed inset-0 z-[100] bg-black/40"
+              className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeCandidateDrawer}
             />
-            {/* 底部抽屉 */}
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-[101] max-h-[70vh] overflow-y-auto rounded-t-3xl bg-white/80 backdrop-blur-xl"
+              className="fixed bottom-0 left-0 right-0 z-[101] max-h-[70vh] overflow-y-auto rounded-t-3xl bg-white/90 backdrop-blur-xl"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -244,7 +256,7 @@ export default function Fruits() {
                 <h3 className="text-base font-semibold text-teal-700">选择水果</h3>
                 <button
                   onClick={closeCandidateDrawer}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-cream-100 text-teal-600"
+                  className="glass-tile flex h-8 w-8 items-center justify-center rounded-full text-teal-600"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -279,7 +291,7 @@ export default function Fruits() {
 /** 营养标签 */
 function NutrientTag({ label, value, unit, icon }: { label: string; value: number; unit: string; icon?: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-lg bg-cream-100 px-2 py-1 text-xs">
+    <span className="inline-flex items-center gap-1 rounded-lg bg-cream-100/80 px-2 py-1 text-xs">
       {icon}
       <span className="text-teal-600/60">{label}</span>
       <span className="font-semibold text-teal-700">{value}</span>
@@ -288,7 +300,7 @@ function NutrientTag({ label, value, unit, icon }: { label: string; value: numbe
   );
 }
 
-/** 水果卡片 */
+/** 水果卡片 —— 增强玻璃态 */
 function FruitCard({
   fruit,
   onClick,
@@ -299,9 +311,9 @@ function FruitCard({
   onDelete?: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-cream-200 bg-white p-4 transition hover:border-teal-300 hover:shadow-sm">
+    <div className="glass-tile group flex items-center justify-between rounded-2xl p-4 transition hover:scale-[1.01]">
       <button onClick={onClick} className="flex flex-1 items-center gap-3 text-left">
-        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-cream-50 text-2xl">
+        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl text-2xl">
           {fruit.emoji}
         </div>
         <div className="min-w-0 flex-1">
@@ -332,7 +344,7 @@ function FruitCard({
           {LEVEL_TEXT[fruit.level]}
         </span>
         {onDelete && (
-          <button onClick={onDelete} className="text-[10px] text-red-400 hover:text-red-600">
+          <button onClick={onDelete} className="text-[10px] text-red-400 opacity-0 transition hover:text-red-600 group-hover:opacity-100">
             删除
           </button>
         )}
@@ -341,7 +353,7 @@ function FruitCard({
   );
 }
 
-/** 水果详情弹层 */
+/** 水果详情弹层 —— 增强玻璃态 */
 function FruitDetail({
   fruit,
   weight,
@@ -372,12 +384,10 @@ function FruitDetail({
   );
   const isOnline = useOnlineStatus();
 
-  // 信息框键值对（过滤过短/无效项）
   const infoboxEntries = infobox
     ? Object.entries(infobox).filter(([, v]) => v && v.length > 1).slice(0, 10)
     : [];
 
-  // 图集（主图 + 多图，去重）
   const allImages = (() => {
     const all = [
       ...(image ? [image] : []),
@@ -388,17 +398,15 @@ function FruitDetail({
 
   return (
     <>
-      {/* 遮罩 */}
       <motion.div
-        className="fixed inset-0 z-[100] bg-black/40"
+        className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
       />
-      {/* 底部抽屉 */}
       <motion.div
-        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white/80 backdrop-blur-xl"
+        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white/90 backdrop-blur-xl"
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
@@ -425,14 +433,14 @@ function FruitDetail({
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-cream-100 text-teal-600"
+            className="glass-tile flex h-8 w-8 items-center justify-center rounded-full text-teal-600"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <div className="space-y-4 px-6 pb-6 pt-4">
-          {/* 图集（主图 + 多图，横向滚动） */}
+          {/* 图集 */}
           {allImages.length > 0 ? (
             <div className="flex gap-2 overflow-x-auto pb-1">
               {allImages.map((img, i) => (
@@ -446,20 +454,20 @@ function FruitDetail({
             </div>
           ) : loading ? (
             isOnline ? (
-              <div className="flex h-40 w-full items-center justify-center rounded-2xl bg-cream-100">
+              <div className="glass-tile flex h-40 w-full items-center justify-center rounded-2xl">
                 <Loader2 className="h-6 w-6 animate-spin text-teal-600/40" />
               </div>
             ) : (
-              <div className="flex h-40 w-full flex-col items-center justify-center gap-2 rounded-2xl bg-amber-50 text-amber-600">
+              <div className="glass-tile flex h-40 w-full flex-col items-center justify-center gap-2 rounded-2xl text-amber-600">
                 <WifiOff className="h-5 w-5" />
                 <span className="text-xs">无网络，无法获取图片</span>
               </div>
             )
           ) : null}
 
-          {/* 维基百科引言（lead，完整首段） */}
+          {/* 维基百科引言 */}
           {lead && (
-            <div className="rounded-2xl border border-cream-200 bg-cream-50 p-4">
+            <div className="glass-tile rounded-2xl p-4">
               <h4 className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-teal-700">
                 <Info className="h-4 w-4" /> 词条简介
               </h4>
@@ -467,9 +475,9 @@ function FruitDetail({
             </div>
           )}
 
-          {/* 信息框（界/门/目/科/属/种等分类学条目） */}
+          {/* 信息框 */}
           {infoboxEntries.length > 0 && (
-            <div className="rounded-2xl border border-cream-200 p-4">
+            <div className="glass-tile rounded-2xl p-4">
               <h4 className="mb-2 text-sm font-medium text-teal-700">基本信息</h4>
               <dl className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 {infoboxEntries.map(([k, v]) => (
@@ -482,9 +490,9 @@ function FruitDetail({
             </div>
           )}
 
-          {/* 维基百科完整章节段落（形态特性/分布范围/主要价值等） */}
+          {/* 维基百科完整章节 */}
           {sections && sections.length > 0 && (
-            <div className="rounded-2xl border border-cream-200 p-4">
+            <div className="glass-tile rounded-2xl p-4">
               <h4 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-teal-700">
                 <ChevronRight className="h-4 w-4" /> 详细内容
               </h4>
@@ -503,9 +511,9 @@ function FruitDetail({
             </div>
           )}
 
-          {/* 兼容兜底：无 sections 时使用 description（维基摘要） */}
+          {/* 兼容兜底 */}
           {!lead && !sections?.length && description && (
-            <div className="rounded-2xl border border-cream-200 p-4">
+            <div className="glass-tile rounded-2xl p-4">
               <h4 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-teal-700">
                 <Info className="h-4 w-4" /> 维基介绍
               </h4>
@@ -513,32 +521,32 @@ function FruitDetail({
             </div>
           )}
 
-          {/* 核心：每100g元素含量（保留模块） */}
-          <div className="rounded-2xl bg-cream-50 p-4">
+          {/* 每100g元素含量 */}
+          <div className="glass-tile rounded-2xl p-4">
             <h4 className="mb-3 text-sm font-medium text-teal-700">每 100g 元素含量</h4>
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+              <div className="flex items-center gap-2 rounded-xl bg-white/70 p-3">
                 <Atom className="h-5 w-5 text-orange-500" />
                 <div>
                   <div className="text-xs text-teal-600/60">钾</div>
                   <div className="text-lg font-bold text-teal-700">{fruit.potassiumPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+              <div className="flex items-center gap-2 rounded-xl bg-white/70 p-3">
                 <FlaskConical className="h-5 w-5 text-blue-500" />
                 <div>
                   <div className="text-xs text-teal-600/60">磷</div>
                   <div className="text-lg font-bold text-teal-700">{fruit.phosphorusPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+              <div className="flex items-center gap-2 rounded-xl bg-white/70 p-3">
                 <Beaker className="h-5 w-5 text-purple-500" />
                 <div>
                   <div className="text-xs text-teal-600/60">钠</div>
                   <div className="text-lg font-bold text-teal-700">{fruit.sodiumPer100g}<span className="ml-0.5 text-xs font-normal text-teal-600/40">mg</span></div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white p-3">
+              <div className="flex items-center gap-2 rounded-xl bg-white/70 p-3">
                 <Droplet className="h-5 w-5 text-cyan-500" />
                 <div>
                   <div className="text-xs text-teal-600/60">水分</div>
@@ -555,7 +563,7 @@ function FruitDetail({
           )}
 
           {/* 食用建议 */}
-          <div className="rounded-2xl bg-sage-50 p-4">
+          <div className="glass-tile rounded-2xl p-4">
             <h4 className="mb-1 text-sm font-medium text-sage-700">食用建议</h4>
             <p className="text-sm text-sage-600">{fruit.suggestion}</p>
           </div>
@@ -571,8 +579,8 @@ function FruitDetail({
                   className={cn(
                     'rounded-lg border px-3 py-1.5 text-xs font-medium transition',
                     weight === String(preset)
-                      ? 'border-teal-400 bg-teal-50 text-teal-700'
-                      : 'border-cream-300 bg-white text-teal-600 hover:bg-cream-50'
+                      ? 'border-teal-400 bg-teal-100 text-teal-700 shadow-sm'
+                      : 'glass-tile text-teal-600 hover:scale-[1.02]'
                   )}
                 >
                   {formatWeightKg(preset)}
@@ -585,19 +593,19 @@ function FruitDetail({
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 placeholder="输入克数 (g)"
-                className="min-w-0 flex-1 rounded-xl border border-cream-300 bg-white px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+                className="glass-tile min-w-0 flex-1 rounded-xl px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:outline-none focus:ring-2 focus:ring-teal-400/30"
                 onKeyDown={(e) => e.key === 'Enter' && onRecord()}
               />
               <button
                 onClick={onRecord}
                 disabled={w <= 0}
-                className="flex-shrink-0 rounded-xl bg-sage-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-sage-600 disabled:opacity-40"
+                className="flex-shrink-0 rounded-xl bg-sage-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-sage-600 active:scale-95 disabled:opacity-40"
               >
                 记录
               </button>
             </div>
             {w > 0 && (
-              <div className="rounded-xl bg-cream-50 px-4 py-2.5 text-xs text-teal-600">
+              <div className="glass-tile rounded-xl px-4 py-2.5 text-xs text-teal-600">
                 本次 {formatWeightKg(w)}：钾 <span className="font-semibold text-teal-700">{Math.round((fruit.potassiumPer100g * w) / 100)}</span> mg / 磷 <span className="font-semibold text-teal-700">{Math.round((fruit.phosphorusPer100g * w) / 100)}</span> mg / 钠 <span className="font-semibold text-teal-700">{Math.round((fruit.sodiumPer100g * w) / 100)}</span> mg / 水 <span className="font-semibold text-teal-700">{Math.round((fruit.waterPer100g * w) / 100)}</span> ml
               </div>
             )}
