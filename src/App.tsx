@@ -8,6 +8,7 @@ import Records from '@/pages/Records';
 import Diet from '@/pages/Diet';
 import Medications from '@/pages/Medications';
 import MedicationPlan from '@/pages/MedicationPlan';
+import DialysisLog from '@/pages/DialysisLog';
 import Settings from '@/pages/Settings';
 import Onboarding from '@/pages/Onboarding';
 import PermissionsGate, { hasAcceptedPermissions } from '@/components/PermissionsGate';
@@ -20,6 +21,9 @@ import { registerModuleEffects, printDependencyGraph } from '@/modules';
 import { shouldShowChangelog } from '@/lib/updateChecker';
 import { initNotificationService, rescheduleAllReminders } from '@/lib/notificationService';
 import { useMedicationPlanStore } from '@/store/useMedicationPlanStore';
+import { startAutoBackupTimer, stopAutoBackupTimer, shouldAutoBackup, performAutoBackup, isAutoBackupEnabled } from '@/lib/autoBackupService';
+import { useRecordsStore } from '@/store/useRecordsStore';
+import { useFruitsStore } from '@/store/useFruitsStore';
 
 type AppPhase = 'loading' | 'permissions' | 'ready';
 
@@ -74,6 +78,7 @@ function AppRoutes() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/records" element={<Records />} />
           <Route path="/diet" element={<Diet />} />
+          <Route path="/dialysis-log" element={<DialysisLog />} />
           <Route path="/medications" element={<Medications />} />
           <Route path="/medication-plan" element={<MedicationPlan />} />
           <Route path="/settings" element={<Settings />} />
@@ -130,7 +135,29 @@ export default function App() {
       } catch (e) {
         // 通知初始化失败不阻塞 App
       }
+
+      // 启动自动备份定时器
+      try {
+        const enabled = await isAutoBackupEnabled();
+        if (enabled) {
+          startAutoBackupTimer(async () => {
+            const records = useRecordsStore.getState().records;
+            const settings = useSettingsStore.getState().settings;
+            const fruits = [
+              ...useFruitsStore.getState().customFruits,
+              ...useFruitsStore.getState().fruits,
+            ];
+            await performAutoBackup(records, settings, fruits);
+          });
+        }
+      } catch (e) {
+        // 自动备份初始化失败不阻塞 App
+      }
     })();
+
+    return () => {
+      stopAutoBackupTimer();
+    };
   }, []);
 
   if (phase === 'loading') {

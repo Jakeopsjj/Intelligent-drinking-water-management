@@ -22,6 +22,7 @@ export const EVENT_NAMES = {
   RECORDS_MEDICATION_ADDED: 'records:medication-added',
   RECORDS_WEIGHT_ADDED: 'records:weight-added',
   RECORDS_BP_ADDED: 'records:bp-added',
+  RECORDS_DIALYSIS_LOG_ADDED: 'records:dialysis-log-added',
   RECORDS_DELETED: 'records:deleted',
   RECORDS_CLEARED: 'records:cleared',
   RECORDS_REPLACED: 'records:replaced',
@@ -79,6 +80,10 @@ export interface EventPayloadMap {
     total: number;
   };
   [EVENT_NAMES.RECORDS_BP_ADDED]: {
+    record: AnyRecord;
+    total: number;
+  };
+  [EVENT_NAMES.RECORDS_DIALYSIS_LOG_ADDED]: {
     record: AnyRecord;
     total: number;
   };

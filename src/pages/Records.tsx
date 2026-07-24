@@ -187,6 +187,9 @@ export default function Records() {
       {/* 血压趋势图 */}
       <BloodPressureTrendSection trendData={trendData} />
 
+      {/* 心率趋势图 */}
+      <HeartRateTrendSection trendData={trendData} />
+
       {/* 历史记录列表 */}
       <motion.section
         initial={{ opacity: 0 }}
@@ -640,6 +643,56 @@ function BloodPressureTrendSection({
               strokeWidth={2.5}
               dot={{ fill: '#3B82F6', r: 3 }}
               activeDot={{ r: 5, fill: '#3B82F6' }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </motion.section>
+  );
+}
+
+// 心率趋势图
+function HeartRateTrendSection({
+  trendData,
+}: {
+  trendData: Array<{ shortDate: string; heartRate?: number }>;
+}) {
+  const hasData = trendData.some((d) => d.heartRate && d.heartRate > 0);
+  if (!hasData) return null;
+
+  return (
+    <motion.section
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="glass-card relative overflow-hidden rounded-3xl p-6"
+    >
+      <div className="glass-orb -right-6 -top-6 h-24 w-24 bg-pink-300/20" style={{ animationDelay: '3s' }} />
+      <div className="glass-shimmer" />
+      <div className="relative z-10">
+        <h2 className="font-serif text-lg font-semibold text-teal-700">心率趋势</h2>
+        <p className="mt-1 text-xs text-teal-600/60">每日心率变化 (bpm)</p>
+      </div>
+      <div className="relative z-10 mt-6 h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={trendData} margin={{ top: 4, right: 4, bottom: 4, left: -20 }}>
+            <CartesianGrid stroke="#E8E0D5" strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="shortDate" stroke="#9DB9A2" fontSize={10} tickLine={false} axisLine={false} />
+            <YAxis stroke="#9DB9A2" fontSize={10} tickLine={false} axisLine={false} domain={[40, 'auto']} />
+            <Tooltip
+              contentStyle={{ background: '#FDFBF7', border: '1px solid #E8E0D5', borderRadius: 12, fontSize: 12, color: '#234A48' }}
+              formatter={(value: number) => [`${value} bpm`, '心率']}
+            />
+            <ReferenceLine y={100} stroke="#F59E0B" strokeDasharray="4 4" label={{ value: '上限', position: 'right', fill: '#F59E0B', fontSize: 10 }} />
+            <ReferenceLine y={60} stroke="#3B82F6" strokeDasharray="4 4" label={{ value: '下限', position: 'right', fill: '#3B82F6', fontSize: 10 }} />
+            <Line
+              type="monotone"
+              dataKey="heartRate"
+              name="心率"
+              connectNulls
+              stroke="#EC4899"
+              strokeWidth={2.5}
+              dot={{ fill: '#EC4899', r: 3 }}
+              activeDot={{ r: 5, fill: '#EC4899' }}
             />
           </LineChart>
         </ResponsiveContainer>

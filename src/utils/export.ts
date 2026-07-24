@@ -1,4 +1,4 @@
-import type { AnyRecord, UserSettings, Fruit } from '@/types';
+import type { AnyRecord, UserSettings, Fruit, DialysisLogRecord } from '@/types';
 import { toDateKey } from './date';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
@@ -159,6 +159,20 @@ export async function exportAsCSV(records: AnyRecord[]): Promise<void> {
         r.phosphorus,
         r.sodium,
         r.water,
+      ]);
+    } else if (r.type === 'dialysisLog') {
+      const dl = r as DialysisLogRecord;
+      rows.push([
+        dateStr,
+        timeStr,
+        '透析',
+        `透析日志 ${dl.duration}分钟`,
+        dl.ultrafiltrationVolume,
+        'ml',
+        '',
+        '',
+        '',
+        '',
       ]);
     }
   }

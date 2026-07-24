@@ -1,5 +1,6 @@
-import { Trash2, Droplets, Activity, Citrus, Pill, Scale, Heart } from 'lucide-react';
-import type { AnyRecord } from '@/types';
+import { Trash2, Droplets, Activity, Citrus, Pill, Scale, Heart, Stethoscope } from 'lucide-react';
+import type { AnyRecord, DialysisLogRecord } from '@/types';
+import { SYMPTOM_LABELS, SYMPTOM_EMOJIS } from '@/types';
 import { formatDateTime } from '@/utils/date';
 import { formatWeightKg } from '@/utils/calc';
 import { cn } from '@/lib/utils';
@@ -37,6 +38,11 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
       bg: 'bg-red-100',
       text: 'text-red-600',
     },
+    dialysisLog: {
+      icon: <Stethoscope className="h-4 w-4" />,
+      bg: 'bg-purple-100',
+      text: 'text-purple-600',
+    },
   }[record.type];
 
   return (
@@ -65,6 +71,8 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
               ? '体重'
               : record.type === 'bloodPressure'
               ? '血压'
+              : record.type === 'dialysisLog'
+              ? '透析日志'
               : (record as any).fruitName}
           </span>
           <span className="text-xs text-teal-600/60">{formatDateTime(record.timestamp)}</span>
@@ -81,12 +89,34 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
               ? `${record.value} kg`
               : record.type === 'bloodPressure'
               ? `${record.systolic}/${record.diastolic} mmHg`
+              : record.type === 'dialysisLog'
+              ? `超滤 ${(record as DialysisLogRecord).ultrafiltrationVolume} ml`
               : `${formatWeightKg((record as any).weight)}`}
           </span>
           {record.type === 'bloodPressure' && record.heartRate && (
             <>
               <span className="text-cream-400">·</span>
               <span className="whitespace-nowrap">心率 {record.heartRate} bpm</span>
+            </>
+          )}
+          {record.type === 'dialysisLog' && (
+            <>
+              <span className="text-cream-400">·</span>
+              <span className="whitespace-nowrap">
+                体重 {(record as DialysisLogRecord).preWeight}→{(record as DialysisLogRecord).postWeight} kg
+              </span>
+              <span className="text-cream-400">·</span>
+              <span className="whitespace-nowrap">
+                BP {(record as DialysisLogRecord).systolic}/{(record as DialysisLogRecord).diastolic}
+              </span>
+              {(record as DialysisLogRecord).symptoms.length > 0 && (
+                <>
+                  <span className="text-cream-400">·</span>
+                  <span className="whitespace-nowrap">
+                    {(record as DialysisLogRecord).symptoms.map((s) => SYMPTOM_LABELS[s]).join('、')}
+                  </span>
+                </>
+              )}
             </>
           )}
           {record.type === 'fruit' && (

@@ -20,6 +20,7 @@ import {
   Trash2, Clock, AlertTriangle, CheckCircle2,
   Lightbulb, ChevronRight, Sparkles,
   Loader2, Info, WifiOff, Apple,
+  ShieldAlert, ThumbsUp, ThumbsDown,
 } from 'lucide-react';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
@@ -1316,6 +1317,9 @@ function FruitDetail({
             <p className="mt-2 text-[10px] text-teal-600/30">数据来源：apihz.cn 食物营养API</p>
           </div>
 
+          {/* 透析人群专属饮食评估 */}
+          <DialysisDietAssessment fruit={fruit} />
+
           {/* 数据源标注 */}
           {(lead || sections?.length) && (
             <p className="px-1 text-[10px] text-teal-600/30">图文来源：维基百科</p>
@@ -1372,5 +1376,182 @@ function FruitDetail({
         </div>
       </motion.div>
     </>
+  );
+}
+
+/** 透析人群专属饮食评估 */
+function DialysisDietAssessment({ fruit }: { fruit: Fruit }) {
+  // 钾评估
+  const potassiumHigh = fruit.potassiumPer100g >= 250;
+  const potassiumMedium = fruit.potassiumPer100g >= 150 && fruit.potassiumPer100g < 250;
+  const potassiumLow = fruit.potassiumPer100g < 150;
+
+  // 磷评估
+  const phosphorusHigh = fruit.phosphorusPer100g >= 100;
+  const phosphorusMedium = fruit.phosphorusPer100g >= 50 && fruit.phosphorusPer100g < 100;
+
+  // 综合风险等级
+  const riskLevel = potassiumHigh || phosphorusHigh ? 'high' : potassiumMedium || phosphorusMedium ? 'medium' : 'low';
+
+  return (
+    <div className="space-y-3">
+      {/* 钾含量评估 */}
+      <div className={cn(
+        'glass-tile rounded-2xl p-4',
+        potassiumHigh ? 'bg-gradient-to-br from-red-50 to-orange-50' :
+        potassiumMedium ? 'bg-gradient-to-br from-amber-50 to-yellow-50' :
+        'bg-gradient-to-br from-green-50 to-emerald-50'
+      )}>
+        <div className="flex items-center gap-2 mb-2">
+          <Atom className={cn(
+            'h-4 w-4',
+            potassiumHigh ? 'text-red-500' : potassiumMedium ? 'text-amber-500' : 'text-green-500'
+          )} />
+          <h4 className="text-sm font-medium text-teal-700">钾含量评估</h4>
+          <span className={cn(
+            'rounded-full px-2 py-0.5 text-[10px] font-medium',
+            potassiumHigh ? 'bg-red-100 text-red-600' :
+            potassiumMedium ? 'bg-amber-100 text-amber-600' :
+            'bg-green-100 text-green-600'
+          )}>
+            {fruit.potassiumPer100g}mg/100g
+          </span>
+        </div>
+        {potassiumHigh && (
+          <div className="flex items-start gap-2 rounded-xl bg-red-100/50 p-3">
+            <ShieldAlert className="h-4 w-4 flex-shrink-0 text-red-500 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-700">高钾食物</p>
+              <p className="mt-0.5 text-xs text-red-600/80">
+                每100g含钾 {fruit.potassiumPer100g}mg，已超过透析患者安全阈值（250mg/100g）。建议严格控制摄入量，每次不超过50g，食用前充分浸泡或焯水可降低钾含量。
+              </p>
+            </div>
+          </div>
+        )}
+        {potassiumMedium && (
+          <div className="flex items-start gap-2 rounded-xl bg-amber-100/50 p-3">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-500 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-700">中钾食物</p>
+              <p className="mt-0.5 text-xs text-amber-600/80">
+                每100g含钾 {fruit.potassiumPer100g}mg，处于中等水平。建议适量食用，每次不超过100g，避免在血钾偏高时食用。
+              </p>
+            </div>
+          </div>
+        )}
+        {potassiumLow && (
+          <div className="flex items-start gap-2 rounded-xl bg-green-100/50 p-3">
+            <ThumbsUp className="h-4 w-4 flex-shrink-0 text-green-500 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-green-700">低钾食物</p>
+              <p className="mt-0.5 text-xs text-green-600/80">
+                每100g仅含钾 {fruit.potassiumPer100g}mg，适合透析患者食用。可作为日常水果首选，但仍需注意总摄入量。
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 磷含量评估 */}
+      <div className={cn(
+        'glass-tile rounded-2xl p-4',
+        phosphorusHigh ? 'bg-gradient-to-br from-red-50 to-orange-50' :
+        phosphorusMedium ? 'bg-gradient-to-br from-amber-50 to-yellow-50' :
+        'bg-gradient-to-br from-blue-50 to-sky-50'
+      )}>
+        <div className="flex items-center gap-2 mb-2">
+          <FlaskConical className={cn(
+            'h-4 w-4',
+            phosphorusHigh ? 'text-red-500' : phosphorusMedium ? 'text-amber-500' : 'text-blue-500'
+          )} />
+          <h4 className="text-sm font-medium text-teal-700">磷含量评估</h4>
+          <span className={cn(
+            'rounded-full px-2 py-0.5 text-[10px] font-medium',
+            phosphorusHigh ? 'bg-red-100 text-red-600' :
+            phosphorusMedium ? 'bg-amber-100 text-amber-600' :
+            'bg-blue-100 text-blue-600'
+          )}>
+            {fruit.phosphorusPer100g}mg/100g
+          </span>
+        </div>
+        {phosphorusHigh && (
+          <div className="flex items-start gap-2 rounded-xl bg-red-100/50 p-3">
+            <ShieldAlert className="h-4 w-4 flex-shrink-0 text-red-500 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-700">高磷食物</p>
+              <p className="mt-0.5 text-xs text-red-600/80">
+                每100g含磷 {fruit.phosphorusPer100g}mg，磷含量偏高。高磷可导致皮肤瘙痒、骨骼病变，建议严格限制摄入，必要时配合磷结合剂服用。
+              </p>
+            </div>
+          </div>
+        )}
+        {phosphorusMedium && (
+          <div className="flex items-start gap-2 rounded-xl bg-amber-100/50 p-3">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-500 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-700">中磷食物</p>
+              <p className="mt-0.5 text-xs text-amber-600/80">
+                每100g含磷 {fruit.phosphorusPer100g}mg，处于中等水平。建议适量食用，注意与其他高磷食物搭配时的总摄入量。
+              </p>
+            </div>
+          </div>
+        )}
+        {!phosphorusHigh && !phosphorusMedium && (
+          <div className="flex items-start gap-2 rounded-xl bg-blue-100/50 p-3">
+            <ThumbsUp className="h-4 w-4 flex-shrink-0 text-blue-500 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-blue-700">低磷食物</p>
+              <p className="mt-0.5 text-xs text-blue-600/80">
+                每100g仅含磷 {fruit.phosphorusPer100g}mg，对磷摄入影响较小，适合透析患者食用。
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 综合建议 */}
+      <div className="glass-tile rounded-2xl bg-gradient-to-br from-sage-50 to-teal-50 p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Lightbulb className="h-4 w-4 text-sage-600" />
+          <h4 className="text-sm font-medium text-sage-700">透析人群食用建议</h4>
+        </div>
+        <div className="space-y-1.5">
+          {riskLevel === 'high' && (
+            <>
+              <p className="flex items-start gap-1.5 text-xs text-sage-700">
+                <ThumbsDown className="h-3 w-3 flex-shrink-0 text-red-500 mt-0.5" />
+                该食物钾/磷含量较高，建议避免或严格限制食用
+              </p>
+              <p className="flex items-start gap-1.5 text-xs text-sage-700">
+                <Info className="h-3 w-3 flex-shrink-0 text-amber-500 mt-0.5" />
+                如需食用，建议：用大量水浸泡或焯水后再食用，可降低钾含量；随餐服用磷结合剂
+              </p>
+            </>
+          )}
+          {riskLevel === 'medium' && (
+            <p className="flex items-start gap-1.5 text-xs text-sage-700">
+              <Info className="h-3 w-3 flex-shrink-0 text-amber-500 mt-0.5" />
+              适量食用，建议每次不超过100g，注意当日总摄入量
+            </p>
+          )}
+          {riskLevel === 'low' && (
+            <p className="flex items-start gap-1.5 text-xs text-sage-700">
+              <ThumbsUp className="h-3 w-3 flex-shrink-0 text-green-500 mt-0.5" />
+              该食物钾磷含量较低，适合透析患者作为日常水果选择
+            </p>
+          )}
+          <p className="flex items-start gap-1.5 text-xs text-sage-700">
+            <Droplet className="h-3 w-3 flex-shrink-0 text-cyan-500 mt-0.5" />
+            含水量 {fruit.waterPer100g}ml/100g，{fruit.waterPer100g > 80 ? '含水量较高，注意计入每日摄水量限额' : '含水量适中'}
+          </p>
+          {fruit.sodiumPer100g > 50 && (
+            <p className="flex items-start gap-1.5 text-xs text-sage-700">
+              <AlertTriangle className="h-3 w-3 flex-shrink-0 text-purple-500 mt-0.5" />
+              钠含量 {fruit.sodiumPer100g}mg/100g，钠摄入偏高，高血压患者需注意
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

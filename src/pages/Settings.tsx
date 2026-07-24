@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet, Image as ImageIcon, Upload, Camera, Github, RefreshCw, Loader2, Info, MessageSquare } from 'lucide-react';
+import { User, Droplets, Citrus, HeartPulse, Activity, CalendarClock, Check, Trash2, Atom, Waves, Download, FileJson, FileSpreadsheet, Image as ImageIcon, Upload, Camera, Github, RefreshCw, Loader2, Info, MessageSquare, Database, HardDrive, History, Shield } from 'lucide-react';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useFruitsStore } from '@/store/useFruitsStore';
@@ -15,6 +15,19 @@ import {
   GITHUB_REPO_URL,
   type ReleaseInfo,
 } from '@/lib/updateChecker';
+import {
+  performAutoBackup,
+  listAutoBackups,
+  restoreFromAutoBackup,
+  deleteAutoBackup,
+  isAutoBackupEnabled,
+  setAutoBackupEnabled,
+  getLastBackupTimestamp,
+  formatBackupSize,
+  formatBackupTime,
+  type BackupEntry,
+  type BackupData,
+} from '@/lib/autoBackupService';
 
 type ExportKind = 'json' | 'csv' | 'image';
 
@@ -42,6 +55,117 @@ export default function Settings() {
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 自动备份管理
+  const [autoBackupEnabled, setAutoBackupEnabledState] = useState(false);
+  const [autoBackups, setAutoBackups] = useState<BackupEntry[]>([]);
+  const [lastBackupTime, setLastBackupTime] = useState<number | null>(null);
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backupRestoring, setBackupRestoring] = useState<string | null>(null);
+  const [backupDeleting, setBackupDeleting] = useState<string | null>(null);
+  const [backupInfo, setBackupInfo] = useState<string | null>(null);
+
+  // 加载自动备份状态
+  useEffect(() => {
+    (async () => {
+      const enabled = await isAutoBackupEnabled();
+      setAutoBackupEnabledState(enabled);
+      const lastTs = await getLastBackupTimestamp();
+      setLastBackupTime(lastTs);
+      if (enabled) {
+        const list = await listAutoBackups();
+        setAutoBackups(list);
+      }
+    })();
+  }, []);
+
+  const handleToggleAutoBackup = async () => {
+    const newState = !autoBackupEnabled;
+    await setAutoBackupEnabled(newState);
+    setAutoBackupEnabledState(newState);
+    if (newState) {
+      setBackupInfo('自动备份已启用，每6小时自动备份一次');
+      setTimeout(() => setBackupInfo(null), 3000);
+      const list = await listAutoBackups();
+      setAutoBackups(list);
+    } else {
+      setBackupInfo('自动备份已关闭');
+      setTimeout(() => setBackupInfo(null), 3000);
+    }
+  };
+
+  const handleManualBackup = async () => {
+    if (backupLoading) return;
+    setBackupLoading(true);
+    setBackupInfo(null);
+    try {
+      const allFruits = [...customFruits, ...builtinFruits];
+      const result = await performAutoBackup(records, settings, allFruits);
+      if (result) {
+        setBackupInfo(`备份成功：${formatBackupTime(result.timestamp)} · ${result.recordCount} 条记录`);
+        setLastBackupTime(result.timestamp);
+        const list = await listAutoBackups();
+        setAutoBackups(list);
+      } else {
+        setBackupInfo('备份失败，请重试');
+      }
+    } catch {
+      setBackupInfo('备份失败，请重试');
+    } finally {
+      setBackupLoading(false);
+      setTimeout(() => setBackupInfo(null), 4000);
+    }
+  };
+
+  const handleRestoreBackup = async (entry: BackupEntry) => {
+    if (backupRestoring) return;
+    const confirmed = confirm(
+      `确认从 ${formatBackupTime(entry.timestamp)} 的备份恢复？\n\n将覆盖当前所有数据（${entry.recordCount} 条记录）。此操作不可撤销。`
+    );
+    if (!confirmed) return;
+    setBackupRestoring(entry.filename);
+    setBackupInfo(null);
+    try {
+      const data = await restoreFromAutoBackup(entry.filename);
+      if (data) {
+        replaceAllRecords(data.records);
+        if (data.settings) setSettings(data.settings);
+        if (data.fruits?.length) {
+          const customOnly = data.fruits.filter((f) => f.isCustom);
+          replaceCustomFruits(customOnly);
+        }
+        setBackupInfo(`已恢复 ${data.records.length} 条记录`);
+      } else {
+        setBackupInfo('恢复失败，备份文件可能已损坏');
+      }
+    } catch {
+      setBackupInfo('恢复失败，请重试');
+    } finally {
+      setBackupRestoring(null);
+      setTimeout(() => setBackupInfo(null), 4000);
+    }
+  };
+
+  const handleDeleteBackup = async (entry: BackupEntry) => {
+    if (backupDeleting) return;
+    const confirmed = confirm(`确认删除 ${formatBackupTime(entry.timestamp)} 的备份？`);
+    if (!confirmed) return;
+    setBackupDeleting(entry.filename);
+    try {
+      const ok = await deleteAutoBackup(entry.filename);
+      if (ok) {
+        setAutoBackups((prev) => prev.filter((b) => b.filename !== entry.filename));
+        setBackupInfo('备份已删除');
+      } else {
+        setBackupInfo('删除失败，请重试');
+      }
+    } catch {
+      setBackupInfo('删除失败，请重试');
+    } finally {
+      setBackupDeleting(null);
+      setTimeout(() => setBackupInfo(null), 3000);
+    }
+  };
 
   // 更新检查
   const [appVersion, setAppVersion] = useState('');
@@ -512,6 +636,138 @@ export default function Settings() {
             </div>
           )}
         </div>
+        </div>
+      </motion.section>
+
+      {/* 自动备份管理 */}
+      <motion.section
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.18 }}
+        className="glass-card relative overflow-hidden rounded-3xl p-4"
+      >
+        <div className="glass-orb -left-10 -bottom-10 h-32 w-32 bg-amber-300/20" style={{ animationDelay: '2s' }} />
+        <div className="glass-shimmer" />
+        <div className="relative z-10">
+          <div className="mb-3 flex items-center gap-2">
+            <HardDrive className="h-4 w-4 text-teal-500" />
+            <h2 className="font-serif text-base font-semibold text-teal-700">自动备份</h2>
+          </div>
+
+          <div className="glass-tile flex items-center justify-between rounded-2xl px-4 py-2.5">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-teal-700">定期自动备份</span>
+                <span className={cn(
+                  'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                  autoBackupEnabled ? 'bg-sage-100 text-sage-600' : 'bg-cream-100 text-teal-600/50'
+                )}>
+                  {autoBackupEnabled ? '已启用' : '已关闭'}
+                </span>
+              </div>
+              <div className="text-xs text-teal-600/60">
+                {autoBackupEnabled
+                  ? '每6小时自动备份本地数据，保留最近3个备份'
+                  : '开启后自动保护数据，防止意外丢失'}
+              </div>
+              {lastBackupTime && autoBackupEnabled && (
+                <div className="mt-1 flex items-center gap-1 text-[10px] text-teal-600/40">
+                  <History className="h-3 w-3" />
+                  上次备份：{formatBackupTime(lastBackupTime)}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleToggleAutoBackup}
+              role="switch"
+              aria-checked={autoBackupEnabled}
+              className={cn(
+                'relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition',
+                autoBackupEnabled
+                  ? 'bg-gradient-to-br from-teal-500 to-sage-500'
+                  : 'bg-cream-300'
+              )}
+            >
+              <span
+                className={cn(
+                  'inline-block h-4 w-4 transform rounded-full bg-white shadow transition',
+                  autoBackupEnabled ? 'translate-x-6' : 'translate-x-1'
+                )}
+              />
+            </button>
+          </div>
+
+          {/* 手动备份 */}
+          <div className="mt-2 rounded-2xl bg-teal-50 px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <Database className="h-4 w-4 text-teal-500" />
+              <div className="text-sm font-medium text-teal-700">立即备份</div>
+            </div>
+            <div className="mt-0.5 text-xs text-teal-600/70">
+              手动创建当前数据的完整备份
+            </div>
+            <button
+              onClick={handleManualBackup}
+              disabled={backupLoading || recordCount === 0}
+              className={cn(
+                'mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition',
+                backupLoading
+                  ? 'border border-teal-300 bg-teal-100 text-teal-600'
+                  : 'bg-teal-500 text-white hover:bg-teal-600 active:scale-[0.98] disabled:from-gray-300 disabled:to-gray-400 disabled:shadow-none'
+              )}
+            >
+              {backupLoading ? (
+                <><span className="h-3 w-3 animate-spin rounded-full border-2 border-teal-400 border-t-transparent" /> 备份中...</>
+              ) : (
+                <><Shield className="h-3.5 w-3.5" /> 立即备份 ({recordCount} 条记录)</>
+              )}
+            </button>
+          </div>
+
+          {/* 备份列表 */}
+          {autoBackups.length > 0 && (
+            <div className="mt-2 rounded-2xl bg-cream-50 px-4 py-2.5">
+              <div className="flex items-center gap-2 mb-2">
+                <History className="h-4 w-4 text-teal-500" />
+                <div className="text-sm font-medium text-teal-700">历史备份</div>
+                <span className="text-xs text-teal-600/50">({autoBackups.length} 个)</span>
+              </div>
+              <div className="space-y-2">
+                {autoBackups.map((backup) => (
+                  <div key={backup.filename} className="glass-tile flex items-center justify-between rounded-xl px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-medium text-teal-700">
+                        {formatBackupTime(backup.timestamp)}
+                      </div>
+                      <div className="text-[10px] text-teal-600/50">
+                        {backup.recordCount} 条记录 · {formatBackupSize(backup.size)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleRestoreBackup(backup)}
+                        disabled={backupRestoring !== null}
+                        className="rounded-lg bg-sky-50 px-2 py-1 text-[10px] font-medium text-sky-600 transition hover:bg-sky-100 disabled:opacity-40"
+                      >
+                        {backupRestoring === backup.filename ? '恢复中' : '恢复'}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBackup(backup)}
+                        disabled={backupDeleting !== null}
+                        className="rounded-lg bg-clay-50 px-2 py-1 text-[10px] font-medium text-clay-600 transition hover:bg-clay-100 disabled:opacity-40"
+                      >
+                        {backupDeleting === backup.filename ? '删除中' : '删除'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {backupInfo && (
+            <p className="mt-2 text-center text-[10px] text-sage-600">{backupInfo}</p>
+          )}
         </div>
       </motion.section>
 

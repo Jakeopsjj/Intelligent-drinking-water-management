@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Pill, Settings as SettingsIcon, Droplets, Search, UtensilsCrossed } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Pill, Settings as SettingsIcon, Droplets, Search, UtensilsCrossed, Stethoscope } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FC, ReactNode } from 'react';
 
@@ -13,6 +13,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/', label: '今日', icon: <LayoutDashboard className="h-5 w-5" /> },
   { to: '/records', label: '记录', icon: <BookOpen className="h-5 w-5" /> },
   { to: '/diet', label: '饮食', icon: <UtensilsCrossed className="h-5 w-5" /> },
+  { to: '/dialysis-log', label: '透析', icon: <Stethoscope className="h-5 w-5" /> },
   { to: '/medications', label: '药物', icon: <Pill className="h-5 w-5" /> },
   { to: '/settings', label: '设置', icon: <SettingsIcon className="h-5 w-5" /> },
 ];

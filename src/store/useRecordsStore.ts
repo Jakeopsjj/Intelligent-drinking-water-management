@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AnyRecord, WaterRecord, UltrafiltrationRecord, FruitRecord, MedicationRecord, WeightRecord, BloodPressureRecord, Fruit, Medication, DailyMetrics, HourlyDistribution } from '@/types';
+import type { AnyRecord, WaterRecord, UltrafiltrationRecord, FruitRecord, MedicationRecord, WeightRecord, BloodPressureRecord, DialysisLogRecord, Fruit, Medication, DailyMetrics, HourlyDistribution } from '@/types';
 import { generateId, calculatePotassium, calculatePhosphorus, calculateSodium, calculateWater } from '@/utils/calc';
 import { getTodayKey, getDayRange } from '@/utils/date';
 import { nativeJSONStorage } from '@/lib/nativeStorage';
@@ -43,6 +43,23 @@ interface AddBloodPressureInput {
   timestamp?: number;
 }
 
+interface AddDialysisLogInput {
+  dialysisDate: number;
+  duration: number;
+  preWeight: number;
+  postWeight: number;
+  ultrafiltrationVolume: number;
+  systolic: number;
+  diastolic: number;
+  heartRate: number;
+  symptoms: import('@/types').DialysisSymptom[];
+  symptomNote?: string;
+  overallNote?: string;
+  accessType?: string;
+  dialyzerModel?: string;
+  timestamp?: number;
+}
+
 interface RecordsState {
   records: AnyRecord[];
   addWaterRecord: (input: AddWaterInput) => void;
@@ -51,6 +68,7 @@ interface RecordsState {
   addMedicationRecord: (input: AddMedicationInput) => void;
   addWeightRecord: (input: AddWeightInput) => void;
   addBloodPressureRecord: (input: AddBloodPressureInput) => void;
+  addDialysisLogRecord: (input: AddDialysisLogInput) => void;
   deleteRecord: (id: string) => void;
   replaceAll: (records: AnyRecord[]) => void;
   mergeRecords: (records: AnyRecord[]) => number;
@@ -199,6 +217,36 @@ export const useRecordsStore = create<RecordsState>()(
         });
       },
 
+      addDialysisLogRecord: (input) => {
+        const record: DialysisLogRecord = {
+          id: generateId(),
+          timestamp: input.timestamp ?? Date.now(),
+          type: 'dialysisLog',
+          dialysisDate: input.dialysisDate,
+          duration: input.duration,
+          preWeight: Math.round(input.preWeight * 10) / 10,
+          postWeight: Math.round(input.postWeight * 10) / 10,
+          ultrafiltrationVolume: Math.round(input.ultrafiltrationVolume),
+          systolic: Math.round(input.systolic),
+          diastolic: Math.round(input.diastolic),
+          heartRate: Math.round(input.heartRate),
+          symptoms: input.symptoms,
+          symptomNote: input.symptomNote,
+          overallNote: input.overallNote,
+          accessType: input.accessType,
+          dialyzerModel: input.dialyzerModel,
+        };
+        set((state) => {
+          const records = [...state.records, record];
+          eventBus.emit(
+            EVENT_NAMES.RECORDS_DIALYSIS_LOG_ADDED,
+            { record, total: records.length },
+            'useRecordsStore.addDialysisLogRecord'
+          );
+          return { records };
+        });
+      },
+
       deleteRecord: (id) => {
         set((state) => {
           const records = state.records.filter((r) => r.id !== id);
@@ -285,6 +333,14 @@ export const useRecordsStore = create<RecordsState>()(
             metrics.latestSystolic = r.systolic;
             metrics.latestDiastolic = r.diastolic;
             metrics.latestHeartRate = r.heartRate ?? 0;
+          } else if (r.type === 'dialysisLog') {
+            // 透析日志记录：用透析后体重作为最新体重参考
+            if (r.postWeight > 0) metrics.latestWeight = r.postWeight;
+            if (r.systolic > 0) {
+              metrics.latestSystolic = r.systolic;
+              metrics.latestDiastolic = r.diastolic;
+            }
+            if (r.heartRate > 0) metrics.latestHeartRate = r.heartRate;
           }
         }
         return metrics;

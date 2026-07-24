@@ -1,5 +1,5 @@
 // 记录类型
-export type RecordType = 'water' | 'ultrafiltration' | 'fruit' | 'medication' | 'weight' | 'bloodPressure';
+export type RecordType = 'water' | 'ultrafiltration' | 'fruit' | 'medication' | 'weight' | 'bloodPressure' | 'dialysisLog';
 
 // 钾含量等级
 export type PotassiumLevel = 'low' | 'medium' | 'high';
@@ -62,6 +62,83 @@ export interface BloodPressureRecord extends BaseRecord {
   heartRate?: number; // 心率 bpm（可选）
 }
 
+// 透析不适症状
+export type DialysisSymptom =
+  | 'cramps'        // 抽筋
+  | 'hypotension'   // 低血压
+  | 'stomachPain'   // 胃痛
+  | 'fatigue'       // 乏力
+  | 'headache'      // 头痛
+  | 'nausea'        // 恶心
+  | 'chestTightness' // 胸闷
+  | 'dizziness'     // 头晕
+  | 'itching'       // 皮肤瘙痒
+  | 'musclePain'    // 肌肉酸痛
+  | 'insomnia'      // 失眠
+  | 'other';        // 其他
+
+// 症状中文标签
+export const SYMPTOM_LABELS: Record<DialysisSymptom, string> = {
+  cramps: '抽筋',
+  hypotension: '低血压',
+  stomachPain: '胃痛',
+  fatigue: '乏力',
+  headache: '头痛',
+  nausea: '恶心',
+  chestTightness: '胸闷',
+  dizziness: '头晕',
+  itching: '皮肤瘙痒',
+  musclePain: '肌肉酸痛',
+  insomnia: '失眠',
+  other: '其他',
+};
+
+// 症状 emoji
+export const SYMPTOM_EMOJIS: Record<DialysisSymptom, string> = {
+  cramps: '🦵',
+  hypotension: '📉',
+  stomachPain: '🤢',
+  fatigue: '😴',
+  headache: '🤕',
+  nausea: '🤮',
+  chestTightness: '💔',
+  dizziness: '😵',
+  itching: '🖐️',
+  musclePain: '💪',
+  insomnia: '😣',
+  other: '❓',
+};
+
+// 透析日志记录
+export interface DialysisLogRecord extends BaseRecord {
+  type: 'dialysisLog';
+  dialysisDate: number;   // 透析日期时间戳
+  duration: number;        // 透析时长（分钟）
+  preWeight: number;       // 透析前体重 kg
+  postWeight: number;      // 透析后体重 kg
+  ultrafiltrationVolume: number; // 超滤量 ml
+  systolic: number;        // 透析中收缩压 mmHg
+  diastolic: number;       // 透析中舒张压 mmHg
+  heartRate: number;       // 透析中心率 bpm
+  symptoms: DialysisSymptom[]; // 不适症状
+  symptomNote?: string;    // 症状备注
+  overallNote?: string;    // 总体备注
+  accessType?: string;     // 血管通路类型（内瘘/导管等）
+  dialyzerModel?: string;  // 透析器型号
+}
+
+// 预警类型
+export type AlertType = 'waterExceeded' | 'weightGain' | 'weightGainSevere' | 'bpHigh' | 'bpLow' | 'bpCritical';
+
+// 预警信息
+export interface HealthAlert {
+  type: AlertType;
+  title: string;
+  message: string;
+  severity: 'warning' | 'danger';
+  recommendation: string;
+}
+
 // 联合记录类型
 export type AnyRecord =
   | WaterRecord
@@ -69,7 +146,8 @@ export type AnyRecord =
   | FruitRecord
   | MedicationRecord
   | WeightRecord
-  | BloodPressureRecord;
+  | BloodPressureRecord
+  | DialysisLogRecord;
 
 // 水果定义
 export interface Fruit {

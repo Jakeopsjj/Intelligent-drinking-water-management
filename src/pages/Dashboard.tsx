@@ -19,6 +19,9 @@ import {
   ClipboardCheck,
   ArrowUp,
   Minus,
+  Bell,
+  ShieldAlert,
+  Info,
 } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import QuickRecordModal, { type RecordType } from '@/components/QuickRecordModal';
@@ -98,6 +101,93 @@ export default function Dashboard() {
     : null;
   const fluidGainWarning = fluidGain !== null && fluidGain >= 2;
   const fluidGainAlert = fluidGain !== null && fluidGain >= 3;
+
+  // 健康指标智能预警
+  const healthAlerts = useMemo(() => {
+    const alerts: { title: string; message: string; severity: 'warning' | 'danger'; icon: React.ReactNode }[] = [];
+
+    // 摄水量超限
+    if (todayMetrics.water > settings.dailyWaterLimit) {
+      alerts.push({
+        title: '摄水量超标',
+        message: `今日已摄入 ${todayMetrics.water} ml，超过限额 ${settings.dailyWaterLimit} ml`,
+        severity: 'danger',
+        icon: <Droplets className="h-4 w-4" />,
+      });
+    } else if (todayMetrics.water > settings.dailyWaterLimit * 0.85) {
+      alerts.push({
+        title: '摄水量接近限额',
+        message: `已摄入 ${todayMetrics.water} ml，剩余 ${settings.dailyWaterLimit - todayMetrics.water} ml`,
+        severity: 'warning',
+        icon: <Droplets className="h-4 w-4" />,
+      });
+    }
+
+    // 体重涨幅超标
+    if (fluidGainAlert) {
+      alerts.push({
+        title: '体重严重超标',
+        message: `体液增长 ${fluidGain!.toFixed(1)} kg，请立即联系医生`,
+        severity: 'danger',
+        icon: <ShieldAlert className="h-4 w-4" />,
+      });
+    } else if (fluidGainWarning) {
+      alerts.push({
+        title: '体重涨幅超标',
+        message: `体液增长 ${fluidGain!.toFixed(1)} kg，请注意控水`,
+        severity: 'warning',
+        icon: <Scale className="h-4 w-4" />,
+      });
+    }
+
+    // 血压异常
+    if (todayMetrics.latestSystolic > 0 && todayMetrics.latestDiastolic > 0) {
+      if (todayMetrics.latestSystolic >= 160 || todayMetrics.latestDiastolic >= 100) {
+        alerts.push({
+          title: '血压偏高（危险）',
+          message: `血压 ${todayMetrics.latestSystolic}/${todayMetrics.latestDiastolic} mmHg，请及时就医`,
+          severity: 'danger',
+          icon: <Heart className="h-4 w-4" />,
+        });
+      } else if (todayMetrics.latestSystolic >= 140 || todayMetrics.latestDiastolic >= 90) {
+        alerts.push({
+          title: '血压偏高',
+          message: `血压 ${todayMetrics.latestSystolic}/${todayMetrics.latestDiastolic} mmHg，请注意监测`,
+          severity: 'warning',
+          icon: <Heart className="h-4 w-4" />,
+        });
+      } else if (todayMetrics.latestSystolic < 90 || todayMetrics.latestDiastolic < 60) {
+        alerts.push({
+          title: '血压偏低',
+          message: `血压 ${todayMetrics.latestSystolic}/${todayMetrics.latestDiastolic} mmHg，请注意休息`,
+          severity: 'warning',
+          icon: <Heart className="h-4 w-4" />,
+        });
+      }
+    }
+
+    // 钾摄入超标
+    if (todayMetrics.potassium > settings.dailyPotassiumLimit) {
+      alerts.push({
+        title: '钾摄入超标',
+        message: `今日钾摄入 ${todayMetrics.potassium} mg，超过限额 ${settings.dailyPotassiumLimit} mg`,
+        severity: 'danger',
+        icon: <HeartPulse className="h-4 w-4" />,
+      });
+    }
+
+    // 磷摄入超标
+    if (todayMetrics.phosphorus > settings.dailyPhosphorusLimit) {
+      alerts.push({
+        title: '磷摄入超标',
+        message: `今日磷摄入 ${todayMetrics.phosphorus} mg，超过限额 ${settings.dailyPhosphorusLimit} mg`,
+        severity: 'warning',
+        icon: <Bone className="h-4 w-4" />,
+      });
+    }
+
+    return alerts;
+  }, [todayMetrics, settings, fluidGain, fluidGainWarning, fluidGainAlert]);
 
   const overviewItems = [
     { label: '饮水', value: todayMetrics.water, unit: 'ml', icon: <Droplets className="h-3 w-3" />, limit: settings.dailyWaterLimit, current: todayMetrics.water },
@@ -333,6 +423,57 @@ export default function Dashboard() {
               <p className="mt-0.5 text-[11px] text-teal-600/50">
                 干体重 {dryWeight!.toFixed(1)} kg · 当前 {todayMetrics.latestWeight.toFixed(1)} kg
               </p>
+            </div>
+          </div>
+        </motion.section>
+      )}
+
+      {/* 健康指标智能预警 */}
+      {healthAlerts.length > 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
+          className="glass-card relative overflow-hidden rounded-[24px] p-4"
+        >
+          <div className="glass-orb -right-6 -top-6 h-24 w-24 bg-red-300/15" />
+          <div className="glass-shimmer" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <Bell className="h-4 w-4 text-amber-500" />
+              <h2 className="font-serif text-sm font-semibold text-teal-700">健康预警</h2>
+              <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-600">
+                {healthAlerts.length} 项
+              </span>
+            </div>
+            <div className="space-y-2">
+              {healthAlerts.map((alert, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    'flex items-start gap-2.5 rounded-xl p-3',
+                    alert.severity === 'danger'
+                      ? 'bg-red-50 border border-red-200'
+                      : 'bg-amber-50 border border-amber-200'
+                  )}
+                >
+                  <div className={cn(
+                    'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg',
+                    alert.severity === 'danger' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
+                  )}>
+                    {alert.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className={cn(
+                      'text-xs font-medium',
+                      alert.severity === 'danger' ? 'text-red-700' : 'text-amber-700'
+                    )}>
+                      {alert.title}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-teal-600/60">{alert.message}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </motion.section>
