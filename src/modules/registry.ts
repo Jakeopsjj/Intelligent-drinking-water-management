@@ -15,6 +15,7 @@ import { recordsContract } from './records';
 import { fruitsContract } from './fruits';
 import { medicationsContract } from './medications';
 import { dashboardContract } from './dashboard';
+import { dietContract } from './diet';
 import type { ModuleContract } from './types';
 
 /** 已注册的模块契约清单（按 id 索引） */
@@ -24,6 +25,7 @@ const REGISTRY: Record<string, ModuleContract> = {
   [fruitsContract.id]: fruitsContract,
   [medicationsContract.id]: medicationsContract,
   [dashboardContract.id]: dashboardContract,
+  [dietContract.id]: dietContract,
 };
 
 /** 获取模块契约 */

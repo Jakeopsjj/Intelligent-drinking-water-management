@@ -25,6 +25,9 @@ export type { MedicationsContract, MedicationsExports } from './medications';
 export { dashboardContract } from './dashboard';
 export type { DashboardContract } from './dashboard';
 
+export { dietContract } from './diet';
+export type { DietContract, DietExports } from './diet';
+
 export {
   getModule,
   listModules,
