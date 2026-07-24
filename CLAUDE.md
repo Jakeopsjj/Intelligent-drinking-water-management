@@ -85,14 +85,31 @@ gh release create vX.Y.Z \
 
 ## 强制规则 2：版本号同步
 
-**每次发布新版本前，必须同步更新以下两处版本号：**
+**每次发布新版本前，必须同步更新以下三处版本号：**
 
 | 文件 | 字段 | 说明 |
 |------|------|------|
 | `package.json` | `version` | npm 包版本号 |
-| `src/lib/updateChecker.ts` | `APP_VERSION` | 应用内版本检查常量 |
+| `android/app/build.gradle` | `versionName` + `versionCode` | Android 原生版本号（CapacitorApp.getInfo() 读取此值） |
+| `src/lib/updateChecker.ts` | `APP_VERSION` | 应用内版本检查常量（Web 环境回退值） |
 
-两个版本号必须保持一致，否则更新检查功能会失效。
+**重要性**：`getCurrentVersion()` 优先调用 `CapacitorApp.getInfo()`，它返回的是 Android `versionName`。如果只更新 `package.json` 和 `updateChecker.ts` 而遗漏 `build.gradle`，应用内显示版本号将与实际发布版本不一致。
+
+### 版本号校验
+
+每次构建前会**自动执行**版本一致性检查（`prebuild` 脚本）。也可手动运行：
+
+```bash
+# 检查版本号是否一致
+npm run check-version
+
+# 自动将 android + updateChecker 同步到 package.json 的版本
+npm run check-version:fix
+```
+
+校验脚本位置：`scripts/check-version.cjs`
+
+三处版本号必须完全一致，否则构建会失败。
 
 ---
 
@@ -292,6 +309,23 @@ import { getTodayKey } from '@/utils/date';
 
 ---
 
+### 9. Android `versionName` 未同步导致应用内版本号显示错误
+
+**错误现象**：
+- `package.json` 和 `updateChecker.ts` 已更新为 `2.19.0`
+- 但安装应用后，设置页显示版本号仍为 `2.18.5`
+
+**根因**：`getCurrentVersion()` 优先调用 `CapacitorApp.getInfo()`，它返回 Android 原生 `versionName`（`android/app/build.gradle`）。该文件未同步更新，仍为 `versionName "2.18.5"`。
+
+**解决**：
+1. 同步更新 `android/app/build.gradle` 中的 `versionName` 和 `versionCode`
+2. 运行 `npm run check-version` 验证三处版本号一致
+3. 所有版本号变更使用 `npm run check-version:fix` 自动同步
+
+**预防**：构建前 `prebuild` 钩子会自动执行版本校验，不一致时构建失败。
+
+---
+
 ## 版本变更记录
 
 ### v2.19.0 (2026-07-24)
@@ -308,7 +342,9 @@ import { getTodayKey } from '@/utils/date';
 - 体液增长预警：≥2kg 显示注意事项，≥3kg 显示紧急提醒（红色边框+联系医生建议）
 - 透析日当天显示准备清单卡片（测量体重、测量血压、准备透析用品、确认透析时间）
 
-**版本管理：**
-- package.json 版本号同步更新为 2.19.0
-- src/lib/updateChecker.ts APP_VERSION 同步更新为 2.19.0
-- 新增「强制规则 2：版本号同步」规则
+**版本管理修复：**
+- 修复 `android/app/build.gradle` 版本号遗漏（versionName 2.18.5 → 2.19.0）
+- 新增 `scripts/check-version.cjs` 版本号一致性校验脚本
+- 新增 `prebuild` 钩子：构建前自动校验三处版本号一致
+- 新增 `npm run check-version` / `check-version:fix` 命令
+- 更新「强制规则 2」：版本号同步位置从 2 处扩展为 3 处

@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "prebuild": "node scripts/check-version.cjs",
     "lint": "eslint .",
     "preview": "vite preview",
-    "check": "tsc -b --noEmit"
+    "check": "tsc -b --noEmit",
+    "check-version": "node scripts/check-version.cjs",
+    "check-version:fix": "node scripts/check-version.cjs --fix"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
