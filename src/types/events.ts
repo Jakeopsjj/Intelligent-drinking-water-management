@@ -20,6 +20,8 @@ export const EVENT_NAMES = {
   RECORDS_UF_ADDED: 'records:uf-added',
   RECORDS_FRUIT_ADDED: 'records:fruit-added',
   RECORDS_MEDICATION_ADDED: 'records:medication-added',
+  RECORDS_WEIGHT_ADDED: 'records:weight-added',
+  RECORDS_BP_ADDED: 'records:bp-added',
   RECORDS_DELETED: 'records:deleted',
   RECORDS_CLEARED: 'records:cleared',
   RECORDS_REPLACED: 'records:replaced',
@@ -69,6 +71,14 @@ export interface EventPayloadMap {
     total: number;
   };
   [EVENT_NAMES.RECORDS_MEDICATION_ADDED]: {
+    record: AnyRecord;
+    total: number;
+  };
+  [EVENT_NAMES.RECORDS_WEIGHT_ADDED]: {
+    record: AnyRecord;
+    total: number;
+  };
+  [EVENT_NAMES.RECORDS_BP_ADDED]: {
     record: AnyRecord;
     total: number;
   };

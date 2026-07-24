@@ -33,6 +33,16 @@ export interface RecordsExports {
       note?: string;
       timestamp?: number;
     }) => void;
+    addWeightRecord: (input: {
+      value: number;
+      timestamp?: number;
+    }) => void;
+    addBloodPressureRecord: (input: {
+      systolic: number;
+      diastolic: number;
+      heartRate?: number;
+      timestamp?: number;
+    }) => void;
     deleteRecord: (id: string) => void;
     clearAll: () => void;
   };
@@ -59,6 +69,10 @@ export const recordsContract = {
         useRecordsStore.getState().addFruitRecord(input),
       addMedicationRecord: (input) =>
         useRecordsStore.getState().addMedicationRecord(input),
+      addWeightRecord: (input) =>
+        useRecordsStore.getState().addWeightRecord(input),
+      addBloodPressureRecord: (input) =>
+        useRecordsStore.getState().addBloodPressureRecord(input),
       deleteRecord: (id) => useRecordsStore.getState().deleteRecord(id),
       clearAll: () => useRecordsStore.getState().clearAll(),
     },
@@ -78,6 +92,8 @@ export const recordsContract = {
     EVENT_NAMES.RECORDS_UF_ADDED,
     EVENT_NAMES.RECORDS_FRUIT_ADDED,
     EVENT_NAMES.RECORDS_MEDICATION_ADDED,
+    EVENT_NAMES.RECORDS_WEIGHT_ADDED,
+    EVENT_NAMES.RECORDS_BP_ADDED,
     EVENT_NAMES.RECORDS_DELETED,
     EVENT_NAMES.RECORDS_CLEARED,
     EVENT_NAMES.RECORDS_REPLACED,

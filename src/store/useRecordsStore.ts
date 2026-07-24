@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AnyRecord, WaterRecord, UltrafiltrationRecord, FruitRecord, MedicationRecord, Fruit, Medication, DailyMetrics, HourlyDistribution } from '@/types';
+import type { AnyRecord, WaterRecord, UltrafiltrationRecord, FruitRecord, MedicationRecord, WeightRecord, BloodPressureRecord, Fruit, Medication, DailyMetrics, HourlyDistribution } from '@/types';
 import { generateId, calculatePotassium, calculatePhosphorus, calculateSodium, calculateWater } from '@/utils/calc';
 import { getTodayKey, getDayRange } from '@/utils/date';
 import { nativeJSONStorage } from '@/lib/nativeStorage';
@@ -31,12 +31,26 @@ interface AddMedicationInput {
   timestamp?: number;
 }
 
+interface AddWeightInput {
+  value: number;
+  timestamp?: number;
+}
+
+interface AddBloodPressureInput {
+  systolic: number;
+  diastolic: number;
+  heartRate?: number;
+  timestamp?: number;
+}
+
 interface RecordsState {
   records: AnyRecord[];
   addWaterRecord: (input: AddWaterInput) => void;
   addUltrafiltrationRecord: (input: AddUltrafiltrationInput) => void;
   addFruitRecord: (input: AddFruitInput) => void;
   addMedicationRecord: (input: AddMedicationInput) => void;
+  addWeightRecord: (input: AddWeightInput) => void;
+  addBloodPressureRecord: (input: AddBloodPressureInput) => void;
   deleteRecord: (id: string) => void;
   replaceAll: (records: AnyRecord[]) => void;
   mergeRecords: (records: AnyRecord[]) => number;
@@ -147,6 +161,44 @@ export const useRecordsStore = create<RecordsState>()(
         });
       },
 
+      addWeightRecord: ({ value, timestamp = Date.now() }) => {
+        const record: WeightRecord = {
+          id: generateId(),
+          timestamp,
+          type: 'weight',
+          value: Math.round(value * 10) / 10, // 保留1位小数
+        };
+        set((state) => {
+          const records = [...state.records, record];
+          eventBus.emit(
+            EVENT_NAMES.RECORDS_WEIGHT_ADDED,
+            { record, total: records.length },
+            'useRecordsStore.addWeightRecord'
+          );
+          return { records };
+        });
+      },
+
+      addBloodPressureRecord: ({ systolic, diastolic, heartRate, timestamp = Date.now() }) => {
+        const record: BloodPressureRecord = {
+          id: generateId(),
+          timestamp,
+          type: 'bloodPressure',
+          systolic: Math.round(systolic),
+          diastolic: Math.round(diastolic),
+          heartRate: heartRate ? Math.round(heartRate) : undefined,
+        };
+        set((state) => {
+          const records = [...state.records, record];
+          eventBus.emit(
+            EVENT_NAMES.RECORDS_BP_ADDED,
+            { record, total: records.length },
+            'useRecordsStore.addBloodPressureRecord'
+          );
+          return { records };
+        });
+      },
+
       deleteRecord: (id) => {
         set((state) => {
           const records = state.records.filter((r) => r.id !== id);
@@ -209,6 +261,10 @@ export const useRecordsStore = create<RecordsState>()(
           sodium: 0,
           fruitWater: 0,
           medicationCount: 0,
+          latestWeight: 0,
+          latestSystolic: 0,
+          latestDiastolic: 0,
+          latestHeartRate: 0,
           records,
         };
         for (const r of records) {
@@ -223,6 +279,12 @@ export const useRecordsStore = create<RecordsState>()(
             metrics.water += r.water;
           } else if (r.type === 'medication') {
             metrics.medicationCount += 1;
+          } else if (r.type === 'weight') {
+            metrics.latestWeight = r.value;
+          } else if (r.type === 'bloodPressure') {
+            metrics.latestSystolic = r.systolic;
+            metrics.latestDiastolic = r.diastolic;
+            metrics.latestHeartRate = r.heartRate ?? 0;
           }
         }
         return metrics;

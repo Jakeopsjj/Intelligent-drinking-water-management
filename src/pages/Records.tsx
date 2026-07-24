@@ -13,7 +13,7 @@ import {
   CartesianGrid,
   Cell,
 } from 'recharts';
-import { Calendar, TrendingUp, ChevronRight, X, Droplets, Activity, Pill } from 'lucide-react';
+import { Calendar, TrendingUp, ChevronRight, X, Droplets, Activity, Pill, Scale, Heart } from 'lucide-react';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { getRecentDays, formatDateFriendly, formatDateOnly } from '@/utils/date';
@@ -49,6 +49,10 @@ export default function Records() {
     phosphorus: m.phosphorus,
     sodium: m.sodium,
     fruit: m.fruit,
+    weight: m.latestWeight || undefined,
+    systolic: m.latestSystolic || undefined,
+    diastolic: m.latestDiastolic || undefined,
+    heartRate: m.latestHeartRate || undefined,
   }));
 
   // 选中日期
@@ -177,6 +181,12 @@ export default function Records() {
         sodiumLimit={settings.dailySodiumLimit}
       />
 
+      {/* 体重趋势图 */}
+      <WeightTrendSection trendData={trendData} />
+
+      {/* 血压趋势图 */}
+      <BloodPressureTrendSection trendData={trendData} />
+
       {/* 历史记录列表 */}
       <motion.section
         initial={{ opacity: 0 }}
@@ -279,6 +289,18 @@ function DayHistoryCard({
               服药 {metrics.medicationCount} 次
             </span>
           )}
+          {metrics.latestWeight > 0 && (
+            <span className="flex items-center gap-0.5 text-indigo-600/80">
+              <Scale className="h-3 w-3" />
+              {metrics.latestWeight.toFixed(1)} kg
+            </span>
+          )}
+          {metrics.latestSystolic > 0 && (
+            <span className="flex items-center gap-0.5 text-red-600/80">
+              <Heart className="h-3 w-3" />
+              {metrics.latestSystolic}/{metrics.latestDiastolic}
+            </span>
+          )}
         </div>
       </div>
 
@@ -333,6 +355,12 @@ function DayDetailDrawer({
           <SummaryItem label="钾摄入" value={metrics.potassium} unit="mg" />
           <SummaryItem label="磷摄入" value={metrics.phosphorus} unit="mg" />
           <SummaryItem label="钠摄入" value={metrics.sodium} unit="mg" />
+          {metrics.latestWeight > 0 && (
+            <SummaryItem label="体重" value={`${metrics.latestWeight.toFixed(1)} kg`} />
+          )}
+          {metrics.latestSystolic > 0 && (
+            <SummaryItem label="血压" value={`${metrics.latestSystolic}/${metrics.latestDiastolic}`} />
+          )}
         </div>
 
         {/* 详情列表 */}
@@ -472,6 +500,148 @@ function ElementBarSection({
               ))}
             </Bar>
           </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </motion.section>
+  );
+}
+
+// 体重趋势图
+function WeightTrendSection({
+  trendData,
+}: {
+  trendData: Array<{ shortDate: string; weight?: number }>;
+}) {
+  const hasData = trendData.some((d) => d.weight && d.weight > 0);
+  if (!hasData) return null;
+
+  return (
+    <motion.section
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="glass-card relative overflow-hidden rounded-3xl p-6"
+    >
+      <div className="glass-orb -right-6 -top-6 h-24 w-24 bg-indigo-300/20" style={{ animationDelay: '2s' }} />
+      <div className="glass-shimmer" />
+      <div className="relative z-10">
+        <h2 className="font-serif text-lg font-semibold text-teal-700">体重趋势</h2>
+        <p className="mt-1 text-xs text-teal-600/60">每日体重变化 (kg)</p>
+      </div>
+      <div className="relative z-10 mt-6 h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={trendData} margin={{ top: 4, right: 4, bottom: 4, left: -20 }}>
+            <CartesianGrid stroke="#E8E0D5" strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey="shortDate"
+              stroke="#9DB9A2"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis stroke="#9DB9A2" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+            <Tooltip
+              contentStyle={{
+                background: '#FDFBF7',
+                border: '1px solid #E8E0D5',
+                borderRadius: 12,
+                fontSize: 12,
+                color: '#234A48',
+              }}
+              formatter={(value: number) => [`${value.toFixed(1)} kg`, '体重']}
+            />
+            <Line
+              type="monotone"
+              dataKey="weight"
+              name="体重"
+              connectNulls
+              stroke="#6366F1"
+              strokeWidth={2.5}
+              dot={{ fill: '#6366F1', r: 3 }}
+              activeDot={{ r: 5, fill: '#6366F1' }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </motion.section>
+  );
+}
+
+// 血压趋势图
+function BloodPressureTrendSection({
+  trendData,
+}: {
+  trendData: Array<{ shortDate: string; systolic?: number; diastolic?: number }>;
+}) {
+  const hasData = trendData.some((d) => d.systolic && d.systolic > 0);
+  if (!hasData) return null;
+
+  return (
+    <motion.section
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="glass-card relative overflow-hidden rounded-3xl p-6"
+    >
+      <div className="glass-orb -left-6 -bottom-6 h-24 w-24 bg-red-300/20" style={{ animationDelay: '2.5s' }} />
+      <div className="glass-shimmer" />
+      <div className="relative z-10 flex items-center justify-between">
+        <div>
+          <h2 className="font-serif text-lg font-semibold text-teal-700">血压趋势</h2>
+          <p className="mt-1 text-xs text-teal-600/60">收缩压 / 舒张压 (mmHg)</p>
+        </div>
+        <div className="flex items-center gap-4 text-xs">
+          <span className="flex items-center gap-1.5 text-red-600">
+            <span className="h-2 w-2 rounded-full bg-red-500" />收缩压
+          </span>
+          <span className="flex items-center gap-1.5 text-blue-600">
+            <span className="h-2 w-2 rounded-full bg-blue-500" />舒张压
+          </span>
+        </div>
+      </div>
+      <div className="relative z-10 mt-6 h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={trendData} margin={{ top: 4, right: 4, bottom: 4, left: -20 }}>
+            <CartesianGrid stroke="#E8E0D5" strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey="shortDate"
+              stroke="#9DB9A2"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis stroke="#9DB9A2" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+            <Tooltip
+              contentStyle={{
+                background: '#FDFBF7',
+                border: '1px solid #E8E0D5',
+                borderRadius: 12,
+                fontSize: 12,
+                color: '#234A48',
+              }}
+              formatter={(value: number, name: string) => [`${value} mmHg`, name]}
+            />
+            <ReferenceLine y={140} stroke="#EF4444" strokeDasharray="4 4" label={{ value: '收缩压上限', position: 'right', fill: '#EF4444', fontSize: 10 }} />
+            <ReferenceLine y={90} stroke="#F59E0B" strokeDasharray="4 4" label={{ value: '舒张压上限', position: 'right', fill: '#F59E0B', fontSize: 10 }} />
+            <Line
+              type="monotone"
+              dataKey="systolic"
+              name="收缩压"
+              connectNulls
+              stroke="#EF4444"
+              strokeWidth={2.5}
+              dot={{ fill: '#EF4444', r: 3 }}
+              activeDot={{ r: 5, fill: '#EF4444' }}
+            />
+            <Line
+              type="monotone"
+              dataKey="diastolic"
+              name="舒张压"
+              connectNulls
+              stroke="#3B82F6"
+              strokeWidth={2.5}
+              dot={{ fill: '#3B82F6', r: 3 }}
+              activeDot={{ r: 5, fill: '#3B82F6' }}
+            />
+          </LineChart>
         </ResponsiveContainer>
       </div>
     </motion.section>

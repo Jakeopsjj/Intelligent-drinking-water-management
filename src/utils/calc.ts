@@ -115,6 +115,10 @@ export function getDailyMetrics(records: AnyRecord[], dateKey: string): DailyMet
     sodium: 0,
     fruitWater: 0,
     medicationCount: 0,
+    latestWeight: 0,
+    latestSystolic: 0,
+    latestDiastolic: 0,
+    latestHeartRate: 0,
     records: dayRecords,
   };
   for (const r of dayRecords) {
@@ -125,11 +129,16 @@ export function getDailyMetrics(records: AnyRecord[], dateKey: string): DailyMet
       metrics.potassium += r.potassium;
       metrics.phosphorus += r.phosphorus;
       metrics.sodium += r.sodium;
-      // 水果水分计入总摄水量，并单独记录 fruitWater
       metrics.fruitWater += r.water;
       metrics.water += r.water;
     } else if (r.type === 'medication') {
       metrics.medicationCount += 1;
+    } else if (r.type === 'weight') {
+      metrics.latestWeight = r.value; // 取最后一条体重记录
+    } else if (r.type === 'bloodPressure') {
+      metrics.latestSystolic = r.systolic;
+      metrics.latestDiastolic = r.diastolic;
+      metrics.latestHeartRate = r.heartRate ?? 0;
     }
   }
   return metrics;

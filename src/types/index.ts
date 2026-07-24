@@ -1,5 +1,5 @@
 // 记录类型
-export type RecordType = 'water' | 'ultrafiltration' | 'fruit' | 'medication';
+export type RecordType = 'water' | 'ultrafiltration' | 'fruit' | 'medication' | 'weight' | 'bloodPressure';
 
 // 钾含量等级
 export type PotassiumLevel = 'low' | 'medium' | 'high';
@@ -48,12 +48,28 @@ export interface MedicationRecord extends BaseRecord {
   note?: string; // 备注（如饭后/空腹等）
 }
 
+// 体重记录
+export interface WeightRecord extends BaseRecord {
+  type: 'weight';
+  value: number; // 体重 kg
+}
+
+// 血压记录
+export interface BloodPressureRecord extends BaseRecord {
+  type: 'bloodPressure';
+  systolic: number; // 收缩压 mmHg
+  diastolic: number; // 舒张压 mmHg
+  heartRate?: number; // 心率 bpm（可选）
+}
+
 // 联合记录类型
 export type AnyRecord =
   | WaterRecord
   | UltrafiltrationRecord
   | FruitRecord
-  | MedicationRecord;
+  | MedicationRecord
+  | WeightRecord
+  | BloodPressureRecord;
 
 // 水果定义
 export interface Fruit {
@@ -159,6 +175,10 @@ export interface DailyMetrics {
   sodium: number; // 当日钠摄入量 mg
   fruitWater: number; // 当日水果水分摄入量 ml（water 的子集）
   medicationCount: number; // 当日服药次数
+  latestWeight: number; // 最新体重 kg（取当日最后一次记录）
+  latestSystolic: number; // 最新收缩压 mmHg
+  latestDiastolic: number; // 最新舒张压 mmHg
+  latestHeartRate: number; // 最新心率 bpm
   records: AnyRecord[]; // 当日所有记录
 }
 

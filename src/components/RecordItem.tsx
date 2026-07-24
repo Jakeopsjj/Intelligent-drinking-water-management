@@ -1,4 +1,4 @@
-import { Trash2, Droplets, Activity, Citrus, Pill } from 'lucide-react';
+import { Trash2, Droplets, Activity, Citrus, Pill, Scale, Heart } from 'lucide-react';
 import type { AnyRecord } from '@/types';
 import { formatDateTime } from '@/utils/date';
 import { formatWeightKg } from '@/utils/calc';
@@ -27,6 +27,16 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
       bg: 'bg-teal-100',
       text: 'text-teal-600',
     },
+    weight: {
+      icon: <Scale className="h-4 w-4" />,
+      bg: 'bg-indigo-100',
+      text: 'text-indigo-600',
+    },
+    bloodPressure: {
+      icon: <Heart className="h-4 w-4" />,
+      bg: 'bg-red-100',
+      text: 'text-red-600',
+    },
   }[record.type];
 
   return (
@@ -51,6 +61,10 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
               ? '超滤'
               : record.type === 'medication'
               ? (record as any).medicationName
+              : record.type === 'weight'
+              ? '体重'
+              : record.type === 'bloodPressure'
+              ? '血压'
               : (record as any).fruitName}
           </span>
           <span className="text-xs text-teal-600/60">{formatDateTime(record.timestamp)}</span>
@@ -63,8 +77,18 @@ export default function RecordItem({ record, onDelete }: RecordItemProps) {
               ? `${record.amount} ml`
               : record.type === 'medication'
               ? `${(record as any).dose} ${(record as any).unit}`
+              : record.type === 'weight'
+              ? `${record.value} kg`
+              : record.type === 'bloodPressure'
+              ? `${record.systolic}/${record.diastolic} mmHg`
               : `${formatWeightKg((record as any).weight)}`}
           </span>
+          {record.type === 'bloodPressure' && record.heartRate && (
+            <>
+              <span className="text-cream-400">·</span>
+              <span className="whitespace-nowrap">心率 {record.heartRate} bpm</span>
+            </>
+          )}
           {record.type === 'fruit' && (
             <>
               <span className="text-cream-400">·</span>

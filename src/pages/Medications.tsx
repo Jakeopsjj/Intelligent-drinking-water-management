@@ -118,21 +118,27 @@ export default function Medications() {
   return (
     <div className="space-y-4">
       {/* 服药计划入口 */}
-      <button
+      <motion.button
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
         onClick={() => navigate('/medication-plan')}
-        className="flex w-full items-center gap-3 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 p-4 text-left transition hover:shadow-sm"
+        className="glass-card relative overflow-hidden flex w-full items-center gap-3 rounded-[24px] p-4 text-left transition hover:shadow-sm"
       >
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-400 text-white">
-          <BellRing className="h-5 w-5" />
+        <div className="glass-orb -right-4 -top-4 h-20 w-20 bg-amber-300/15" />
+        <div className="glass-shimmer" />
+        <div className="relative z-10 flex w-full items-center gap-3">
+          <div className="glass-tile flex h-11 w-11 items-center justify-center rounded-2xl text-amber-600">
+            <BellRing className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <h2 className="font-medium text-teal-700">服药计划</h2>
+            <p className="text-xs text-teal-600/60">
+              {enabledPlans > 0 ? `${enabledPlans} 个启用中的提醒` : '点击设置服药提醒'}
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-teal-600/40" />
         </div>
-        <div className="flex-1">
-          <h2 className="font-medium text-teal-700">服药计划</h2>
-          <p className="text-xs text-teal-600/60">
-            {enabledPlans > 0 ? `${enabledPlans} 个启用中的提醒` : '点击设置服药提醒'}
-          </p>
-        </div>
-        <ChevronRight className="h-5 w-5 text-teal-600/40" />
-      </button>
+      </motion.button>
 
       {/* 搜索栏 */}
       <div className="flex gap-2">
@@ -143,7 +149,7 @@ export default function Medications() {
             onChange={(e) => { setQuery(e.target.value); setError(null); }}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             placeholder="搜索药物名称（如：硝苯地平缓释片）"
-            className="w-full rounded-xl border border-cream-300 bg-white py-2.5 pl-10 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:outline-none"
+            className="glass-tile w-full rounded-xl py-2.5 pl-10 pr-4 text-sm text-teal-700 placeholder:text-teal-600/40 focus:outline-none focus:ring-2 focus:ring-teal-400/30"
           />
         </div>
         <button
@@ -253,7 +259,7 @@ function MedicationCard({
 }) {
   const cat = MEDICATION_CATEGORIES[med.category];
   return (
-    <div className="rounded-2xl border border-cream-200 bg-white p-4 transition hover:border-teal-300 hover:shadow-sm">
+    <div className="glass-tile group flex items-center justify-between rounded-2xl p-4 transition hover:scale-[1.01]">
       <div className="flex items-start justify-between">
         <button onClick={onClick} className="flex flex-1 items-center gap-3 text-left">
           <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-cream-50 text-2xl">
@@ -337,7 +343,7 @@ function MedicationDetail({
         onClick={onClose}
       />
       <motion.div
-        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white/80 backdrop-blur-xl"
+        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white/90 backdrop-blur-xl"
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}

@@ -12,6 +12,10 @@ import {
   Soup,
   Pill,
   Activity,
+  Scale,
+  Heart,
+  Timer,
+  Calendar,
 } from 'lucide-react';
 import MetricCard from '@/components/MetricCard';
 import {
@@ -19,6 +23,8 @@ import {
   UltrafiltrationQuickRecord,
   FruitQuickRecord,
   MedicationQuickRecord,
+  WeightQuickRecord,
+  BloodPressureQuickRecord,
 } from '@/components/QuickRecordCard';
 import RecordItem from '@/components/RecordItem';
 import { useRecordsStore } from '@/store/useRecordsStore';
@@ -31,14 +37,6 @@ function gToKgNum(g: number): string {
   const kg = g / 1000;
   return kg.toFixed(2).replace(/\.?0+$/, '') || '0';
 }
-
-const stagger = {
-  animate: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: 0.06 * i, duration: 0.4, ease: [0.16, 1, 0.3, 1] },
-  }),
-};
 
 export default function Dashboard() {
   const records = useRecordsStore((s) => s.records);
@@ -66,6 +64,28 @@ export default function Dashboard() {
     sodiumStatus === 'exceeded' ||
     fruitStatus === 'exceeded';
 
+  // 透析日倒计时
+  const dialysisCountdown = useMemo(() => {
+    if (!settings.dialysisSchedule) return null;
+    const schedule = settings.dialysisSchedule.trim();
+    const dayMap: Record<string, number> = { '周一': 1, '周二': 2, '周三': 3, '周四': 4, '周五': 5, '周六': 6, '周日': 0 };
+    const days = schedule.split(/[\/,，、\s]+/).filter(Boolean);
+    const today = new Date();
+    const todayDay = today.getDay(); // 0=周日
+    let minDays = 7;
+    for (const d of days) {
+      const target = dayMap[d];
+      if (target === undefined) continue;
+      let diff = target - todayDay;
+      if (diff < 0) diff += 7;
+      if (diff === 0) diff = 0; // 今天就是透析日
+      minDays = Math.min(minDays, diff);
+    }
+    if (minDays === 0) return { days: 0, label: '今天是透析日' };
+    if (minDays === 1) return { days: 1, label: '明天是透析日' };
+    return { days: minDays, label: `距下次透析 ${minDays} 天` };
+  }, [settings.dialysisSchedule]);
+
   const overviewItems = [
     { label: '饮水', value: todayMetrics.water, unit: 'ml', icon: <Droplets className="h-3 w-3" />, limit: settings.dailyWaterLimit, current: todayMetrics.water },
     { label: '超滤', value: todayMetrics.ultrafiltration, unit: 'ml', icon: <Gauge className="h-3 w-3" />, limit: 2500, current: todayMetrics.ultrafiltration },
@@ -78,18 +98,16 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
-      {/* 顶部问候卡片 —— 增强玻璃态 */}
+      {/* 顶部问候卡片 */}
       <motion.section
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
         className="glass-card-highlight relative overflow-hidden rounded-[28px] p-6"
       >
-        {/* 多层装饰光斑 */}
         <div className="glass-orb -right-8 -top-8 h-36 w-36 bg-teal-300/25" />
         <div className="glass-orb -bottom-12 -left-8 h-28 w-28 bg-sage-300/20" style={{ animationDelay: '1.5s' }} />
         <div className="glass-orb right-16 bottom-4 h-16 w-16 bg-lavender/15" style={{ animationDelay: '3s' }} />
-        {/* 流动反光带 */}
         <div className="glass-shimmer" />
         <div className="relative z-10">
           <div className="flex items-start justify-between gap-3">
@@ -124,7 +142,88 @@ export default function Dashboard() {
         </div>
       </motion.section>
 
-      {/* 今日总览：指标横向滑动 —— 增强玻璃态 */}
+      {/* 核心体征卡片：体重 + 血压 + 透析倒计时 */}
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.03, ease: [0.16, 1, 0.3, 1] }}
+        className="grid grid-cols-3 gap-3"
+      >
+        {/* 体重 */}
+        <div className="glass-card relative overflow-hidden rounded-[24px] p-4">
+          <div className="glass-orb -right-4 -top-4 h-20 w-20 bg-indigo-300/15" />
+          <div className="glass-shimmer" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-1.5 text-[10px] text-indigo-600/60">
+              <Scale className="h-3.5 w-3.5" />
+              体重
+            </div>
+            <div className="mt-1.5">
+              <span className="text-xl font-bold text-indigo-700">
+                {todayMetrics.latestWeight > 0 ? todayMetrics.latestWeight.toFixed(1) : '--'}
+              </span>
+              <span className="ml-0.5 text-xs text-indigo-600/40">kg</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 血压 */}
+        <div className="glass-card relative overflow-hidden rounded-[24px] p-4">
+          <div className="glass-orb -right-4 -top-4 h-20 w-20 bg-red-300/15" />
+          <div className="glass-shimmer" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-1.5 text-[10px] text-red-600/60">
+              <Heart className="h-3.5 w-3.5" />
+              血压
+            </div>
+            <div className="mt-1.5">
+              <span className="text-xl font-bold text-red-700">
+                {todayMetrics.latestSystolic > 0 && todayMetrics.latestDiastolic > 0
+                  ? `${todayMetrics.latestSystolic}/${todayMetrics.latestDiastolic}`
+                  : '--/--'}
+              </span>
+            </div>
+            {todayMetrics.latestHeartRate > 0 && (
+              <div className="mt-0.5 text-[10px] text-red-600/50">
+                心率 {todayMetrics.latestHeartRate} bpm
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 透析倒计时 */}
+        <div className="glass-card relative overflow-hidden rounded-[24px] p-4">
+          <div className="glass-orb -right-4 -top-4 h-20 w-20 bg-teal-300/15" />
+          <div className="glass-shimmer" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-1.5 text-[10px] text-teal-600/60">
+              <Timer className="h-3.5 w-3.5" />
+              透析
+            </div>
+            <div className="mt-1.5">
+              {dialysisCountdown ? (
+                <>
+                  <span className="text-lg font-bold text-teal-700">
+                    {dialysisCountdown.days === 0 ? '今天' : `${dialysisCountdown.days}天`}
+                  </span>
+                  <div className="mt-0.5 text-[10px] text-teal-600/50">
+                    {dialysisCountdown.label}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="text-lg font-bold text-teal-400/60">--</span>
+                  <div className="mt-0.5 text-[10px] text-teal-600/50">
+                    未设置日程
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* 今日总览：指标横向滑动 */}
       <motion.section
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -147,7 +246,7 @@ export default function Dashboard() {
             )}
           </div>
           <div className="mt-4 flex gap-2.5 overflow-x-auto pb-1 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            {overviewItems.map((item, i) => {
+            {overviewItems.map((item) => {
               const ratio = item.limit > 0 ? item.current / item.limit : 0;
               const isOver = ratio >= 1 && item.limit > 0;
               const isWarn = ratio >= 0.8 && item.limit > 0;
@@ -254,6 +353,8 @@ export default function Dashboard() {
       >
         <WaterQuickRecord />
         <UltrafiltrationQuickRecord />
+        <WeightQuickRecord />
+        <BloodPressureQuickRecord />
         <FruitQuickRecord />
         <MedicationQuickRecord />
       </motion.section>

@@ -5,7 +5,6 @@ import { App as CapacitorApp } from '@capacitor/app';
 import AppLayout from '@/components/AppLayout';
 import Dashboard from '@/pages/Dashboard';
 import Records from '@/pages/Records';
-import Fruits from '@/pages/Fruits';
 import Diet from '@/pages/Diet';
 import Medications from '@/pages/Medications';
 import MedicationPlan from '@/pages/MedicationPlan';
@@ -74,7 +73,6 @@ function AppRoutes() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/records" element={<Records />} />
-          <Route path="/fruits" element={<Fruits />} />
           <Route path="/diet" element={<Diet />} />
           <Route path="/medications" element={<Medications />} />
           <Route path="/medication-plan" element={<MedicationPlan />} />

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Plus, Check, Search, X, Pill } from 'lucide-react';
+import { ChevronDown, Plus, Check, Search, X, Pill, Scale, Heart } from 'lucide-react';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useFruitsStore } from '@/store/useFruitsStore';
 import { useMedicationsStore } from '@/store/useMedicationsStore';
@@ -462,6 +462,164 @@ export const FruitQuickRecord: FC = () => {
 
 export default QuickRecordShell;
 
+// 体重快速记录
+export const WeightQuickRecord: FC = () => {
+  const addWeightRecord = useRecordsStore((s) => s.addWeightRecord);
+  const [value, setValue] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  const presets = [45, 50, 55, 60, 65, 70, 75, 80];
+
+  const handleSave = (val?: number) => {
+    const n = val ?? Number(value);
+    if (!n || n <= 0) return;
+    addWeightRecord({ value: n });
+    setValue('');
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1200);
+  };
+
+  return (
+    <QuickRecordShell
+      title="体重记录"
+      subtitle="记录透析前后体重"
+      icon={<Scale className="h-5 w-5" />}
+      theme="teal"
+    >
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {presets.map((p) => (
+            <button
+              key={p}
+              onClick={() => handleSave(p)}
+              className="rounded-xl border border-cream-300 bg-cream-50 px-3 py-1.5 text-sm font-medium text-teal-600 transition hover:border-teal-300 hover:bg-teal-50"
+            >
+              {p} kg
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="输入体重 (kg)"
+            step="0.1"
+            className="flex-1 rounded-xl border border-cream-300 bg-cream-50 px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-teal-400 focus:bg-white"
+            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+          />
+          <button
+            onClick={() => handleSave()}
+            disabled={!value || Number(value) <= 0}
+            className={cn(
+              'flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-medium transition',
+              saved
+                ? 'bg-sage-500 text-white'
+                : 'bg-teal-500 text-white hover:bg-teal-600 disabled:opacity-40'
+            )}
+          >
+            {saved ? (
+              <>
+                <Check className="h-4 w-4" /> 已记录
+              </>
+            ) : (
+              '记录'
+            )}
+          </button>
+        </div>
+      </div>
+    </QuickRecordShell>
+  );
+};
+
+// 血压快速记录
+export const BloodPressureQuickRecord: FC = () => {
+  const addBloodPressureRecord = useRecordsStore((s) => s.addBloodPressureRecord);
+  const [systolic, setSystolic] = useState('');
+  const [diastolic, setDiastolic] = useState('');
+  const [heartRate, setHeartRate] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    const s = Number(systolic);
+    const d = Number(diastolic);
+    const h = heartRate ? Number(heartRate) : undefined;
+    if (!s || !d || s <= 0 || d <= 0) return;
+    addBloodPressureRecord({ systolic: s, diastolic: d, heartRate: h });
+    setSystolic('');
+    setDiastolic('');
+    setHeartRate('');
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1200);
+  };
+
+  return (
+    <QuickRecordShell
+      title="血压记录"
+      subtitle="记录收缩压/舒张压"
+      icon={<Heart className="h-5 w-5" />}
+      theme="clay"
+    >
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <label className="mb-1 block text-[10px] text-teal-600/60">收缩压 (mmHg)</label>
+            <input
+              type="number"
+              value={systolic}
+              onChange={(e) => setSystolic(e.target.value)}
+              placeholder="如 120"
+              className="w-full rounded-xl border border-cream-300 bg-cream-50 px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-clay-400 focus:bg-white"
+              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="mb-1 block text-[10px] text-teal-600/60">舒张压 (mmHg)</label>
+            <input
+              type="number"
+              value={diastolic}
+              onChange={(e) => setDiastolic(e.target.value)}
+              placeholder="如 80"
+              className="w-full rounded-xl border border-cream-300 bg-cream-50 px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-clay-400 focus:bg-white"
+              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            />
+          </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-[10px] text-teal-600/60">心率 (bpm，可选)</label>
+          <input
+            type="number"
+            value={heartRate}
+            onChange={(e) => setHeartRate(e.target.value)}
+            placeholder="如 72"
+            className="w-full rounded-xl border border-cream-300 bg-cream-50 px-4 py-2.5 text-sm text-teal-700 placeholder:text-teal-600/40 focus:border-clay-400 focus:bg-white"
+            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+          />
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={!systolic || !diastolic || Number(systolic) <= 0 || Number(diastolic) <= 0}
+          className={cn(
+            'flex w-full items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-medium transition',
+            saved
+              ? 'bg-sage-500 text-white'
+              : 'bg-clay-400 text-white hover:bg-clay-500 disabled:opacity-40'
+          )}
+        >
+          {saved ? (
+            <>
+              <Check className="h-4 w-4" /> 已记录
+            </>
+          ) : (
+            '记录'
+          )}
+        </button>
+      </div>
+    </QuickRecordShell>
+  );
+};
+
+// 元素含量小标签：清晰展示每个元素的具体数值
 // 药物快速记录
 export const MedicationQuickRecord: FC = () => {
   const addMedicationRecord = useRecordsStore((s) => s.addMedicationRecord);
