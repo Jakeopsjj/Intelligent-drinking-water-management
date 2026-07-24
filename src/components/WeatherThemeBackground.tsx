@@ -22,9 +22,11 @@ import { createPortal } from 'react-dom';
 const PEXELS_API_KEY = import.meta.env.VITE_PEXELS_API_KEY || '';
 
 // 构建 iframe URL，通过 fragment 传递 Key（fragment 不会发送到服务器）
+// 同时开启调试模式，便于排查（发布时可改为 false）
+const DEBUG = true;
 const iframeSrc = PEXELS_API_KEY
-  ? `/weather_theme/index.html#pexels_key=${encodeURIComponent(PEXELS_API_KEY)}`
-  : '/weather_theme/index.html';
+  ? `/weather_theme/index.html#pexels_key=${encodeURIComponent(PEXELS_API_KEY)}&debug=${DEBUG ? 1 : 0}`
+  : `/weather_theme/index.html#debug=${DEBUG ? 1 : 0}`;
 
 export default function WeatherThemeBackground() {
   if (typeof document === 'undefined') return null;
@@ -42,7 +44,7 @@ export default function WeatherThemeBackground() {
         zIndex: -1,
         border: 'none',
         pointerEvents: 'none',
-        opacity: 0.85, // 略微透明，让底层 LiquidGlass 纹理若隐若现
+        opacity: 1, // 完全不透明，独占背景层
       }}
       allow="geolocation"
     />,
