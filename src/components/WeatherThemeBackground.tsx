@@ -4,28 +4,34 @@
  * 实现：通过 iframe 嵌入 /weather_theme/index.html 单文件主题，
  *       作为全局背景层（z-index: -1，pointer-events: none）。
  *
- * 优势：
- *   - 复用 HTML 主题的所有逻辑（Canvas 粒子、Pexels、离线兜底、JSBridge）
- *   - 与原生 WebView Activity 共用同一份 HTML 资源
- *   - 不影响现有 LiquidGlassBackground 视觉
+ * Pexels Key 传递：
+ *   - 从 Vite 环境变量 import.meta.env.VITE_PEXELS_API_KEY 读取
+ *   - 通过 URL fragment (#pexels_key=xxx) 传给 iframe
+ *   - iframe 解析 fragment 并设置 CONFIG.pexelsApiKey
+ *   - 这样打开应用就自动有真实风景图背景，无需手动启动
  *
  * 层级（从底到顶）：
  *   1. LiquidGlassBackground  (z-index: -1, DOM 先渲染)
  *   2. WeatherThemeBackground (z-index: -1, DOM 后渲染，覆盖玻璃纹理)
  *   3. RippleLayer             (z-index: -1)
  *   4. App 内容                (z-index: 0+)
- *
- * 注：iframe 与外层 document 是独立 JS 上下文，互不干扰。
- *     主题 HTML 内部已实现自主定位降级（Geolocation → IP 定位 → 默认）。
  */
 import { createPortal } from 'react-dom';
+
+// 从 Vite 环境变量读取 Pexels API Key（构建时注入，不入 git）
+const PEXELS_API_KEY = import.meta.env.VITE_PEXELS_API_KEY || '';
+
+// 构建 iframe URL，通过 fragment 传递 Key（fragment 不会发送到服务器）
+const iframeSrc = PEXELS_API_KEY
+  ? `/weather_theme/index.html#pexels_key=${encodeURIComponent(PEXELS_API_KEY)}`
+  : '/weather_theme/index.html';
 
 export default function WeatherThemeBackground() {
   if (typeof document === 'undefined') return null;
 
   return createPortal(
     <iframe
-      src="/weather_theme/index.html"
+      src={iframeSrc}
       title="weather-theme-background"
       aria-hidden
       style={{

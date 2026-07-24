@@ -832,6 +832,21 @@
   function init() {
     detectPerformance();
     resizeCanvas();
+
+    // 从 URL fragment 读取 Pexels Key（由外层 iframe 父页面传入）
+    // 格式：#pexels_key=xxx
+    try {
+      const hash = window.location.hash.slice(1);
+      const params = new URLSearchParams(hash);
+      const key = params.get('pexels_key');
+      if (key) {
+        CONFIG.pexelsApiKey = key;
+        debug('Pexels Key 从 URL fragment 注入');
+      }
+    } catch (e) {
+      debug('解析 Pexels Key 失败: ' + e.message);
+    }
+
     window.addEventListener('resize', () => {
       resizeCanvas();
       Particles.init(State.weather?.type || 'clear');
