@@ -16,7 +16,7 @@ const GITHUB_OWNER = 'Jakeopsjj';
 const GITHUB_REPO = 'Intelligent-drinking-water-management';
 
 /** 当前版本号（从 package.json 编译时注入，这里硬编码同步） */
-export const APP_VERSION = '2.21.0';
+export const APP_VERSION = '2.22.0';
 
 /** 存储键：上次查看更新内容的版本号 */
 const LAST_VIEWED_VERSION_KEY = 'last_viewed_version';
@@ -27,6 +27,20 @@ const LAST_VIEWED_VERSION_KEY = 'last_viewed_version';
  * 格式：按版本号索引，值为 Markdown 格式的更新内容
  */
 const LOCAL_CHANGELOG: Record<string, string> = {
+  '2.22.0': `### 交互优化
+
+- **iOS 27 Liquid Glass 液态玻璃设计规范**：全局重构液态玻璃视觉系统
+- 反光带严格限定在卡片顶部8%高度范围，禁止向下延伸至文字区域
+- 采用低强度漫反射光泽替代锐利高亮条纹，消除眩光干扰
+- 新增文字底层缓冲蒙版（半透蒙版），提升指标文字对比度与可读性
+- 保留陀螺仪联动反光（姿态动态反光），仅限制范围与强度
+- 深色模式自动下调反光亮度（0.18→0.10），浅色模式适度提亮
+- 全局指标卡片、功能面板、按钮、导航栏统一液态玻璃视觉样式
+
+### 缺陷修复
+
+- 修复反光覆盖文字区域导致内容可读性下降的问题
+- 修复深色模式下反光亮度过高导致视觉不适的问题`,
   '2.21.0': `### 新增功能
 
 - **化验报告管理**：新增透析患者血液化验报告录入与追踪功能，覆盖12项核心指标（血红蛋白、血肌酐、尿素氮、血钾、血磷、血钙、甲状旁腺激素、白蛋白、转铁蛋白饱和度、铁蛋白、C反应蛋白、尿酸）

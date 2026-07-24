@@ -25,6 +25,7 @@ import { useMedicationPlanStore } from '@/store/useMedicationPlanStore';
 import { startAutoBackupTimer, stopAutoBackupTimer, shouldAutoBackup, performAutoBackup, isAutoBackupEnabled } from '@/lib/autoBackupService';
 import { useRecordsStore } from '@/store/useRecordsStore';
 import { useFruitsStore } from '@/store/useFruitsStore';
+import { useGlassTilt } from '@/hooks/useGlassTilt';
 
 type AppPhase = 'loading' | 'permissions' | 'ready';
 
@@ -33,6 +34,8 @@ function AppRoutes() {
   const navigate = useNavigate();
   // 启用事件驱动数据同步：跨模块实时联动 + 配置热更新
   useDataSync();
+  // 启用陀螺仪联动反光（iOS 27 Liquid Glass 规范）
+  useGlassTilt();
 
   // 模块化解耦架构：注册跨模块副作用编排 + 打印依赖图（开发态）
   useEffect(() => {

@@ -104,215 +104,369 @@ input[type="number"] {
   50%, 100% { animation-name: wave-move-right; }
 }
 
-/* ===== 液态玻璃 / 边缘折射 / 水滴 / 反光 动效系统（增强版）===== */
+/* ===== iOS 27 Liquid Glass 液态玻璃设计系统 ===== */
+/* 设计原则：
+   1. 反光限定顶部8%高度，不覆盖文字区
+   2. 低强度漫反射光泽，禁用锐利高亮条纹
+   3. 玻璃底衬半透蒙版作为文字底层缓冲
+   4. 保留陀螺仪联动反光（通过CSS变量 --glass-tilt-x/y）
+   5. 深浅色模式自适应
+*/
 
-/* 液态玻璃卡片基底：半透明 + 模糊 + 折射感 */
+/* --- 玻璃材质参数（浅色模式默认值）--- */
+:root {
+  --glass-transmittance: 0.55;
+  --glass-roughness: 20px;
+  --glass-roughness-tile: 10px;
+  --glass-roughness-bar: 24px;
+  --glass-ior: 1.33;
+  --glass-fresnel: 0.22;
+  --glass-saturation: 165%;
+
+  /* 反光参数 */
+  --glass-highlight-height: 8%;           /* 反光带高度：卡片顶部8% */
+  --glass-highlight-opacity: 0.18;        /* 漫反射反光强度（低强度） */
+  --glass-highlight-blur: 6px;            /* 反光带模糊（漫反射） */
+  --glass-base-tint: rgba(255, 255, 255, 0.12); /* 文字底层缓冲蒙版 */
+
+  /* 陀螺仪联动反光偏移（由JS动态写入） */
+  --glass-tilt-x: 0deg;
+  --glass-tilt-y: 0deg;
+  --glass-tilt-intensity: 0.06;           /* 姿态反光最大强度 */
+
+  /* 边缘折射形变 */
+  --glass-refraction: 0.5px;
+}
+
+/* --- 深色模式参数自适应 --- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --glass-transmittance: 0.42;
+    --glass-fresnel: 0.14;
+    --glass-saturation: 130%;
+    --glass-highlight-opacity: 0.10;       /* 深色模式下调反光亮度 */
+    --glass-base-tint: rgba(20, 30, 35, 0.35); /* 深色底衬蒙版 */
+    --glass-tilt-intensity: 0.035;
+  }
+}
+
+/* --- 液态玻璃卡片基底 --- */
 .glass-card {
   position: relative;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.55) 0%,
-    rgba(255, 255, 255, 0.35) 50%,
-    rgba(245, 250, 247, 0.45) 100%
+    rgba(255, 255, 255, 0.52) 0%,
+    rgba(255, 255, 255, 0.32) 50%,
+    rgba(245, 250, 247, 0.42) 100%
   );
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(var(--glass-roughness)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-roughness)) saturate(var(--glass-saturation));
+  border: 1px solid rgba(255, 255, 255, 0.55);
   box-shadow:
-    0 4px 24px -6px rgba(45, 95, 93, 0.12),
-    0 1px 2px -1px rgba(255, 255, 255, 0.5),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.6);
+    0 4px 24px -6px rgba(45, 95, 93, 0.10),
+    0 1px 2px -1px rgba(255, 255, 255, 0.4),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.5);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.3s ease;
 }
 
-/* 悬浮态：轻微上浮 + 增强阴影（纵深层次感） */
-.glass-card.glass-hoverable:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 8px 32px -4px rgba(45, 95, 93, 0.16),
-    0 2px 4px -1px rgba(255, 255, 255, 0.5),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.7);
-  border-color: rgba(255, 255, 255, 0.75);
-}
-
-/* 高亮玻璃卡片：更亮、更通透（用于强调区域） */
-.glass-card-highlight {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.65) 0%,
-    rgba(255, 255, 255, 0.45) 50%,
-    rgba(240, 248, 244, 0.55) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.75);
-  box-shadow:
-    0 6px 28px -4px rgba(45, 95, 93, 0.14),
-    0 1px 2px -1px rgba(255, 255, 255, 0.6),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.7);
-}
-
-/* 动画进行中：禁用 backdrop-filter 避免逐帧重绘掉帧抖动 */
-.glass-card.glass-animating {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-/* 边缘折射高光：顶部 + 左侧渐变光带 */
+/* 文字底层缓冲蒙版：在玻璃基底上叠一层半透蒙版，提升文字可读性 */
 .glass-card::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.9) 0%,
-    rgba(255, 255, 255, 0.1) 30%,
-    transparent 50%,
-    rgba(255, 255, 255, 0.05) 70%,
-    rgba(255, 255, 255, 0.4) 100%
-  );
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
+  background: var(--glass-base-tint);
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
 }
 
-/* 水滴反光：左上角柔和光斑 */
+/* 顶部边缘漫反射高光：限定在顶部8%高度范围内 */
 .glass-card::after {
   content: "";
   position: absolute;
   top: 0;
   left: 0;
-  width: 60%;
-  height: 40%;
+  right: 0;
+  height: var(--glass-highlight-height);
   border-radius: inherit;
-  background: radial-gradient(
-    ellipse at top left,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 0.15) 40%,
-    transparent 70%
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, var(--glass-highlight-opacity)) 0%,
+    rgba(255, 255, 255, calc(var(--glass-highlight-opacity) * 0.4)) 50%,
+    transparent 100%
   );
+  filter: blur(var(--glass-highlight-blur));
   pointer-events: none;
-  z-index: 0;
+  z-index: 2;
 }
 
-/* 流动反光动画：微弱的光带周期性扫过 */
+@media (prefers-color-scheme: dark) {
+  .glass-card {
+    background: linear-gradient(
+      135deg,
+      rgba(40, 50, 55, 0.48) 0%,
+      rgba(35, 45, 50, 0.38) 50%,
+      rgba(30, 40, 45, 0.45) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 4px 24px -6px rgba(0, 0, 0, 0.3),
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
+  }
+  .glass-card::after {
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, var(--glass-highlight-opacity)) 0%,
+      rgba(255, 255, 255, calc(var(--glass-highlight-opacity) * 0.3)) 50%,
+      transparent 100%
+    );
+  }
+}
+
+/* 悬浮态 */
+.glass-card.glass-hoverable:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 32px -4px rgba(45, 95, 93, 0.14),
+    0 2px 4px -1px rgba(255, 255, 255, 0.4),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+/* 高亮玻璃卡片 */
+.glass-card-highlight {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.62) 0%,
+    rgba(255, 255, 255, 0.42) 50%,
+    rgba(240, 248, 244, 0.52) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 6px 28px -4px rgba(45, 95, 93, 0.12),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* 动画进行中：禁用 backdrop-filter 避免掉帧 */
+.glass-card.glass-animating {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* --- 漫反射动画：低强度光带缓慢扫过顶部8%区域 --- */
 @keyframes glass-shimmer {
-  0%, 100% { opacity: 0.4; transform: translateX(-30%) translateY(0) rotate(8deg); }
-  50% { opacity: 0.7; transform: translateX(30%) translateY(5%) rotate(8deg); }
+  0%, 100% {
+    opacity: 0.3;
+    transform: translateX(-20%) translateY(0);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateX(20%) translateY(1%);
+  }
 }
 
 /* 水滴呼吸动效 */
 @keyframes droplet-breathe {
-  0%, 100% { opacity: 0.35; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.08); }
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.06); }
 }
 
-/* 液态玻璃内部装饰光斑（需手动添加 .glass-orb 子元素） */
+/* 装饰光斑（手动添加 .glass-orb 子元素） */
 .glass-orb {
   position: absolute;
   border-radius: 50%;
   filter: blur(24px);
   pointer-events: none;
   z-index: 0;
+  opacity: 0.25;
   animation: droplet-breathe 6s ease-in-out infinite;
 }
 
-/* 流动反光带（需手动添加 .glass-shimmer 子元素） */
+/* 流动反光带：限定在顶部8%区域，低强度漫反射 */
 .glass-shimmer {
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--glass-highlight-height);
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+}
+.glass-shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -30%;
+  width: 160%;
+  height: 100%;
   background: linear-gradient(
     115deg,
-    transparent 35%,
-    rgba(255, 255, 255, 0.18) 48%,
-    rgba(255, 255, 255, 0.28) 50%,
-    rgba(255, 255, 255, 0.18) 52%,
-    transparent 65%
+    transparent 30%,
+    rgba(255, 255, 255, calc(var(--glass-highlight-opacity) * 0.8)) 45%,
+    rgba(255, 255, 255, var(--glass-highlight-opacity)) 50%,
+    rgba(255, 255, 255, calc(var(--glass-highlight-opacity) * 0.8)) 55%,
+    transparent 70%
   );
-  pointer-events: none;
-  z-index: 1;
-  animation: glass-shimmer 8s ease-in-out infinite;
+  filter: blur(var(--glass-highlight-blur));
+  animation: glass-shimmer 10s ease-in-out infinite;
 }
 
-/* 液态玻璃按钮：更强的按压反馈 */
+/* --- 液态玻璃按钮 --- */
 .glass-btn {
   position: relative;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 0.25) 100%
+    rgba(255, 255, 255, 0.48) 0%,
+    rgba(255, 255, 255, 0.22) 100%
   );
-  backdrop-filter: blur(12px) saturate(150%);
-  -webkit-backdrop-filter: blur(12px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
   box-shadow:
-    0 2px 8px -2px rgba(45, 95, 93, 0.1),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.5);
+    0 2px 8px -2px rgba(45, 95, 93, 0.08),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.4);
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* 按钮顶部反光：限定8%高度 */
 .glass-btn::before {
   content: "";
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 50%;
+  right: 0;
+  height: var(--glass-highlight-height);
   background: linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.35) 0%,
+    rgba(255, 255, 255, calc(var(--glass-highlight-opacity) * 0.7)) 0%,
     transparent 100%
   );
+  filter: blur(4px);
   pointer-events: none;
+  z-index: 2;
 }
 
-/* 小型玻璃块（指标方块、徽章等） */
+/* --- 小型玻璃块（指标方块、徽章等）--- */
 .glass-tile {
+  position: relative;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.55) 0%,
-    rgba(255, 255, 255, 0.3) 100%
+    rgba(255, 255, 255, 0.52) 0%,
+    rgba(255, 255, 255, 0.28) 100%
   );
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(var(--glass-roughness-tile)) saturate(135%);
+  -webkit-backdrop-filter: blur(var(--glass-roughness-tile)) saturate(135%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
   box-shadow:
-    0 2px 8px -2px rgba(45, 95, 93, 0.08),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.5);
+    0 2px 8px -2px rgba(45, 95, 93, 0.06),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-/* 顶部 / 底部导航栏液态玻璃 */
+/* 小块顶部反光：限定8% */
+.glass-tile::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--glass-highlight-height);
+  border-radius: inherit;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, calc(var(--glass-highlight-opacity) * 0.6)) 0%,
+    transparent 100%
+  );
+  filter: blur(3px);
+  pointer-events: none;
+  z-index: 2;
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass-tile {
+    background: linear-gradient(
+      135deg,
+      rgba(40, 50, 55, 0.45) 0%,
+      rgba(35, 45, 50, 0.3) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .glass-btn {
+    background: linear-gradient(
+      135deg,
+      rgba(45, 55, 60, 0.45) 0%,
+      rgba(40, 50, 55, 0.25) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* --- 导航栏液态玻璃 --- */
 .glass-bar {
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.6) 0%,
-    rgba(255, 255, 255, 0.4) 100%
+    rgba(255, 255, 255, 0.58) 0%,
+    rgba(255, 255, 255, 0.38) 100%
   );
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(var(--glass-roughness-bar)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-roughness-bar)) saturate(var(--glass-saturation));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
 }
 
-/* 底部导航栏液态玻璃（渐变方向 + border-top） */
+/* 底部导航栏 */
 .glass-bar-bottom {
   background: linear-gradient(
     0deg,
-    rgba(255, 255, 255, 0.6) 0%,
-    rgba(255, 255, 255, 0.4) 100%
+    rgba(255, 255, 255, 0.58) 0%,
+    rgba(255, 255, 255, 0.38) 100%
   );
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-top: 1px solid rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(var(--glass-roughness-bar)) saturate(var(--glass-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-roughness-bar)) saturate(var(--glass-saturation));
+  border-top: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass-bar,
+  .glass-bar-bottom {
+    background: linear-gradient(
+      180deg,
+      rgba(25, 35, 40, 0.6) 0%,
+      rgba(20, 30, 35, 0.5) 100%
+    );
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  .glass-bar-bottom {
+    background: linear-gradient(
+      0deg,
+      rgba(25, 35, 40, 0.6) 0%,
+      rgba(20, 30, 35, 0.5) 100%
+    );
+  }
+}
+
+/* --- 陀螺仪联动反光层（通过CSS变量驱动）--- */
+.glass-tilt-highlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--glass-highlight-height);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+  background: radial-gradient(
+    ellipse at
+      calc(50% + var(--glass-tilt-x) * 200%)
+      calc(50% + var(--glass-tilt-y) * 200%),
+    rgba(255, 255, 255, var(--glass-tilt-intensity)) 0%,
+    transparent 60%
+  );
+  filter: blur(var(--glass-highlight-blur));
+  transition: background 0.15s ease-out;
 }
 
 /* ===== 性能优化工具类 ===== */
@@ -327,36 +481,6 @@ input[type="number"] {
 .content-auto {
   content-visibility: auto;
   contain-intrinsic-size: 0 200px;
-}
-
-/* ============================================================
-   液态玻璃材质统一参数（PBR 风格的 CSS 变量化管理）
-   - 透光率 transmittance：决定基底可见度
-   - 粗糙度 roughness：决定磨砂模糊强度
-   - 折射率 ior：决定边缘折射偏移程度
-   - 菲涅尔强度 fresnel：决定边缘高光亮度
-   统一在此调参，全应用 glass-* 控件自动跟随。
-   ============================================================ */
-:root {
-  --glass-transmittance: 0.55;        /* 基底透光率 */
-  --glass-roughness: 20px;            /* 磨砂模糊半径 */
-  --glass-roughness-tile: 10px;       /* 小块控件磨砂模糊半径 */
-  --glass-roughness-bar: 24px;        /* 导航栏磨砂模糊半径 */
-  --glass-ior: 1.33;                  /* 水的折射率，控制折射形变 */
-  --glass-fresnel: 0.35;              /* 菲涅尔边缘高光强度 */
-  --glass-saturation: 180%;           /* 饱和度提升 */
-}
-
-/* 增强 glass-card：菲涅尔边缘高光亮度跟随参数 */
-.glass-card::before {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, calc(0.9 * var(--glass-fresnel) / 0.35)) 0%,
-    rgba(255, 255, 255, 0.1) 30%,
-    transparent 50%,
-    rgba(255, 255, 255, 0.05) 70%,
-    rgba(255, 255, 255, calc(0.4 * var(--glass-fresnel) / 0.35)) 100%
-  );
 }
 
 /* ============================================================
