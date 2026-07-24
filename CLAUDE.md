@@ -29,6 +29,12 @@
 1. **代码检查**：运行 `npm run build` 检查 TypeScript 编译是否通过，修复所有编译错误
 2. **构建 APK**：必须构建 Debug 和 Release 两个版本的 APK，并上传到 GitHub Release
 3. **推送到 GitHub**：构建成功后，执行 git commit + push 到远程仓库
+4. **创建 GitHub Release**：**必须执行此步骤，否则用户在发行版页面看不到任何更新！**
+   - 使用 `gh release create vX.Y.Z` 创建 Release
+   - 上传 `app-debug.apk` 和 `app-release.apk` 两个 APK 作为 Release Assets
+   - 编写更新日志作为 Release Notes（区分新增功能、交互优化、缺陷修复）
+   - 添加 `--latest` 标记为最新版本
+   - APP 内置「检查更新」功能通过 GitHub API 读取 Release 信息，不创建 Release 则无法获取更新
 
 ### 完整构建流程（手动步骤，避免 build-apk.sh 自动递增版本号）
 
@@ -72,14 +78,21 @@ git add -A
 git commit -m "chore: 构建vX.Y.Z正式版Debug+Release双APK"
 git push origin $(git branch --show-current)
 
-# 7. 创建 GitHub Release（上传两个 APK）
+# 7. 创建 GitHub Release（上传两个 APK）——必须执行，否则用户看不到更新！
 gh release create vX.Y.Z \
   --repo Jakeopsjj/Intelligent-drinking-water-management \
   --target $(git branch --show-current) \
-  --title "vX.Y.Z Debug + Release APK" \
-  --notes "更新内容描述" \
+  --title "vX.Y.Z - 版本标题" \
+  --notes "更新内容描述（区分新增功能/交互优化/缺陷修复）" \
+  --latest \
   releases/app-debug.apk releases/app-release.apk
+
+# 8. 验证 Release 创建成功
+gh release view vX.Y.Z
+gh release list --limit 3
 ```
+
+> **重要提醒**：只推送代码到分支 ≠ 发布更新！用户和 APP 内置「检查更新」功能都通过 GitHub Release 获取更新信息。必须创建 Release 并上传 APK 才算完成交付。
 
 ---
 
@@ -326,7 +339,77 @@ import { getTodayKey } from '@/utils/date';
 
 ---
 
+### 10. 只推送代码未创建 GitHub Release，用户看不到更新 ⚠️
+
+**错误现象**：
+- 已执行 `git commit` + `git push` 推送代码到远程分支
+- APK 已构建成功
+- 但用户在 GitHub 仓库「Releases」发行版页面看不到任何新版本
+- APP 内置「检查更新」功能无法获取到新版本信息
+
+**根因**：**代码推送到分支 ≠ 发布更新**。GitHub 的代码分支推送和 Release 发行版发布是两个独立操作。APP 内置的 `fetchLatestRelease()` 通过 GitHub API `/releases/latest` 端点获取更新信息，该端点只返回已创建的 Release，与分支上的代码提交无关。
+
+**解决**：在代码推送后，必须使用 `gh release create` 创建 GitHub Release 并上传 APK：
+```bash
+gh release create vX.Y.Z \
+  --target $(git branch --show-current) \
+  --title "vX.Y.Z - 版本标题" \
+  --notes "更新内容描述" \
+  --latest \
+  app-debug.apk app-release.apk
+```
+
+**验证**：创建后执行 `gh release view vX.Y.Z` 确认 Release 存在且 APK 已上传为 Assets。
+
+**预防**：强制规则 1 已更新，创建 GitHub Release 为必须步骤，不可跳过。
+
+---
+
+### 11. 版本号递增遗漏导致同一版本号重复发布
+
+**错误现象**：
+- 完成代码修改后直接构建，未递增版本号
+- 导致新构建的 APK 与上一个 Release 版本号相同
+- 用户通过「检查更新」看不到新版本（版本号相同，`compareVersions` 返回 0）
+
+**根因**：每次代码修改后必须递增版本号，否则 GitHub Release 新版本号与旧版本号相同，APP 内 `compareVersions(release.version, currentVersion)` 返回 0，判定为「已是最新版本」。
+
+**解决**：
+1. 查询 Git 最新版本号：`git log --oneline | grep -oE "v?[0-9]+\.[0-9]+\.[0-9]+"`
+2. 递增版本号（patch/minor/major）
+3. 使用 `npm run check-version:fix` 同步三处版本号
+4. 构建并创建新版本 Release
+
+**预防**：每次代码修改后，第一步就是递增版本号，确保版本号唯一可追溯。
+
+---
+
 ## 版本变更记录
+
+### v2.20.0 (2026-07-24)
+
+**新增功能：**
+- 版本更新日志系统：APP 内置「检查更新」功能完整更新日志展示，支持本地 changelog 降级方案
+- 透析数据统计分析模块：自动核算每日摄水量与剩余饮水限额，透析前后体重差值，趋势曲线图
+- 透析专项日志系统：透析信息录入，不适症状登记，历史记录长期保存
+- 健康指标智能预警：体重涨幅超标、摄水量超限、血压异常预警
+- 饮食百科透析评估：钾/磷含量评估，透析人群食用建议
+- 本地数据自动备份与恢复：定期自动备份，手动备份，备份管理
+
+**交互优化：**
+- 饮食百科图文加载容错逻辑优化
+- 设置页面新增备份管理区域
+- 版本号递增机制规范化
+
+**缺陷修复：**
+- 修复版本号打包不一致问题，新增版本号校验机制
+- 修复检查更新网络失败时弹窗空白，新增本地日志降级
+- 修复透析日志页面日期格式化函数参数类型错误
+
+**规则完善：**
+- 强制规则 1 新增第 4 步：创建 GitHub Release 为必须步骤
+- 新增错误记录 #10：只推送代码未创建 Release 导致用户看不到更新
+- 新增错误记录 #11：版本号递增遗漏导致同一版本号重复发布
 
 ### v2.19.0 (2026-07-24)
 
