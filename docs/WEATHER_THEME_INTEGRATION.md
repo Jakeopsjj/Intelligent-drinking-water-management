@@ -207,7 +207,7 @@ public class MainActivity extends BridgeActivity {
 按 CLAUDE.md 强制规则 1 执行：
 
 ```bash
-# 1. 递增版本号（已递增到 2.24.0）
+# 1. 递增版本号（已递增到 2.24.1）
 npm run check-version:fix
 
 # 2. 构建 Web 资源
@@ -220,6 +220,8 @@ npx cap sync android
 # (见 CLAUDE.md 完整构建流程)
 
 # 5. 构建 Debug + Release APK
+#    【可选】启用 Pexels 在线模式：export PEXELS_API_KEY="你的Key"
+#    未设置环境变量时，APP 自动降级到离线模式
 cd android && $GRADLE assembleDebug assembleRelease --no-daemon
 
 # 6. 复制到 releases/
@@ -230,8 +232,29 @@ cp app/build/outputs/apk/release/app-release.apk ../releases/
 git add -A && git commit -m "feat: ..." && git push
 
 # 8. 创建 GitHub Release（必须！）
-gh release create v2.24.0 --latest releases/app-debug.apk releases/app-release.apk
+gh release create v2.24.1 --latest releases/app-debug.apk releases/app-release.apk
 ```
+
+### 启用 Pexels 在线模式（可选）
+
+Pexels API Key 通过环境变量注入，不硬编码到源码：
+
+```bash
+# 申请免费 Key：https://www.pexels.com/api/（每月 200 次/小时）
+
+# 构建时设置环境变量
+export PEXELS_API_KEY="你的Pexels_API_Key"
+cd /workspace && npm run build && npx cap sync android
+cd android && $GRADLE assembleDebug assembleRelease --no-daemon
+```
+
+**工作原理**：
+- `build.gradle` 中 `buildConfigField` 从 `System.getenv('PEXELS_API_KEY')` 读取
+- `WeatherThemeActivity.java` 通过 `BuildConfig.PEXELS_API_KEY` 访问
+- Activity 启动时通过 JSBridge `setPexelsKey()` 注入到网页
+- 网页 `fetchPexelsImage()` 检测到 Key 非空时调用 Pexels API，否则走离线模式
+
+**未设置 Key 时**：APP 自动降级到离线模式，使用 `assets/weather_theme/offline/` 目录下的本地风景图（需提前用批量下载脚本下载，见 OFFLINE_ASSETS_LIST.md）。
 
 ## 八、验证清单
 

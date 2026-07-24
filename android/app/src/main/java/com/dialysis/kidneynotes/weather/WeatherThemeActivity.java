@@ -1,5 +1,7 @@
 package com.dialysis.kidneynotes.weather;
 
+import com.dialysis.kidneynotes.BuildConfig;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -55,8 +57,8 @@ public class WeatherThemeActivity extends Activity {
     private WebView webView;
     private LocationHelper locationHelper;
 
-    /** Pexels API Key —— 从 BuildConfig 或 SharedPreferences 读取，这里给默认值 */
-    private String pexelsApiKey = "";
+    /** Pexels API Key —— 从 BuildConfig 读取（构建时通过环境变量 PEXELS_API_KEY 注入） */
+    private String pexelsApiKey = BuildConfig.PEXELS_API_KEY;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override

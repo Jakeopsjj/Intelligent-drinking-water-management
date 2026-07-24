@@ -3,18 +3,30 @@ apply plugin: 'com.android.application'
 android {
     namespace = "com.dialysis.kidneynotes"
     compileSdk = rootProject.ext.compileSdkVersion
+
+    // 启用 BuildConfig（AGP 8.x 默认关闭，需手动开启）
+    // 用于注入 Pexels API Key 等敏感配置，避免硬编码到源码
+    buildFeatures {
+        buildConfig true
+    }
+
     defaultConfig {
         applicationId "com.dialysis.kidneynotes"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 327
-        versionName "2.24.0"
+        versionCode 328
+        versionName "2.24.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#L61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
+
+        // Pexels API Key 注入（通过环境变量，避免硬编码到源码）
+        // 构建命令：export PEXELS_API_KEY="你的Key" && npm run build:apk
+        // 未设置环境变量时为空字符串，APP 自动降级到离线模式（见 WeatherThemeActivity）
+        buildConfigField "String", "PEXELS_API_KEY", "\"${System.getenv('PEXELS_API_KEY') ?: ''}\""
     }
 
     // 签名配置：从 gradle.properties 读取敏感信息，未配置时回退到 debug 签名
