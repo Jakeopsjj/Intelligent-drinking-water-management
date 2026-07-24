@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>WeatherTheme</title>
+<style>
+  /* ============================================================
+     全局主题样式 —— 纯背景 + 粒子，无任何 HUD 文字
+     ============================================================ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: none;
+  }
+  /* 底层风景图：absolute 全屏，cover 适配竖屏 */
+  #bg-image {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: 1;
+    background: linear-gradient(180deg, #2d5f5d 0%, #466b4c 50%, #7a9b7e 100%);
+    transition: opacity 1.2s ease-in-out;
+    will-change: opacity;
+  }
+  /* 兜底渐变（图片加载失败时显示） */
+  #bg-fallback {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(180deg, #1a3a5c 0%, #2d5f5d 50%, #466b4c 100%);
+    transition: background 1.5s ease;
+  }
+  /* Canvas 粒子层：透明叠加在图片上层，不拦截事件 */
+  #particle-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
+  /* 闪电全屏闪光层（雷暴） */
+  #lightning-flash {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    background: transparent;
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+  /* 夜晚色调蒙版（增强夜景氛围） */
+  #night-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    background: linear-gradient(180deg, rgba(10, 20, 50, 0) 0%, rgba(10, 20, 50, 0) 100%);
+    pointer-events: none;
+    transition: background 1.5s ease;
+  }
+  /* 状态指示（仅调试用，正式版隐藏） */
+  #debug-info {
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: 8px;
+    z-index: 10;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: none; /* 调试时改为 block */
+    pointer-events: none;
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+  <!-- 兜底渐变（最底层） -->
+  <div id="bg-fallback"></div>
+  <!-- 底层风景图 -->
+  <img id="bg-image" alt="" />
+  <!-- 夜晚色调蒙版 -->
+  <div id="night-overlay"></div>
+  <!-- Canvas 粒子层 -->
+  <canvas id="particle-canvas"></canvas>
+  <!-- 闪电闪光层 -->
+  <div id="lightning-flash"></div>
+  <!-- 调试信息 -->
+  <div id="debug-info">初始化中...</div>
+
+<script>
+/* ============================================================
+ * 动态天气背景主题 - WallpaperWeather 复刻版
+ *
+ * 架构：
+ *   底层 <img> 风景图 (Pexels 在线 / 离线本地资源)
+ *   + Canvas 粒子层 (云/雨/雪/雾/星光/闪电)
+ *   + 夜晚色调蒙版
+ *
+ * 数据源：
+ *   - Open-Meteo API (天气编码 + 日出日落)
+ *   - Pexels API (4K 横版风景图，在线模式)
+ *   - 本地离线资源 (offline/ 目录)
+ *
+ * 与安卓通信：
+ *   - window.WeatherBridge.setLocation(lat, lng)  安卓注入定位
+ *   - window.WeatherBridge.setPexelsKey(key)      安卓注入 Pexels Key
+ *   - window.WeatherTheme.updateLocation()        网页侧调用
+ * ============================================================ */
+(function() {
+  'use strict';
+
+  /* ---------- 配置 ---------- */
+  const CONFIG = {
+    // 天气数据缓存 30 分钟
+    weatherCacheTTL: 30 * 60 * 1000,
+    // 图片缓存 6 小时（同天气+时段不重复请求）
+    imageCacheTTL: 6 * 60 * 60 * 1000,
+    // 默认粒子数量（低端设备自动降级）
+    defaultParticleCount: 'auto', // auto = 根据 deviceMemory 动态调整
+    // Pexels API（可被安卓注入覆盖）
+    pexelsApiKey: '',
+    // 离线模式开关（无网络或 Pexels 配额耗尽时自动启用）
+    offlineMode: false,
+    // 调试模式
+    debug: false,
+  };
+
+  /* ---------- 天气-关键词映射表（静态图 + 视频） ---------- */
+  // WMO Weather Code → 天气类型 + 时段 → 素材关键词
+  const WEATHER_KEYWORD_MAP = {
+    // 静态图关键词（用于 Pexels Photo API）
+    static: {
+      'clear-dawn':      { en: 'sunrise mountain landscape', zh: '日出 山景' },
+      'clear-day':       { en: 'clear blue sky landscape', zh: '晴天 蓝天 风景' },
+      'clear-dusk':      { en: 'sunset golden hour landscape', zh: '日落 黄昏 风景' },
+      'clear-night':     { en: 'starry night sky landscape', zh: '星空 夜景' },
+      'cloudy-dawn':     { en: 'cloudy sunrise landscape', zh: '多云 日出' },
+      'cloudy-day':      { en: 'partly cloudy sky landscape', zh: '多云 风景' },
+      'cloudy-dusk':     { en: 'cloudy sunset landscape', zh: '多云 日落' },
+      'cloudy-night':    { en: 'cloudy night sky landscape', zh: '多云 夜景' },
+      'overcast-dawn':   { en: 'overcast sky morning landscape', zh: '阴天 早晨' },
+      'overcast-day':    { en: 'overcast sky landscape', zh: '阴天 风景' },
+      'overcast-dusk':   { en: 'overcast sunset landscape', zh: '阴天 黄昏' },
+      'overcast-night':  { en: 'overcast night landscape', zh: '阴天 夜景' },
+      'fog-dawn':        { en: 'foggy morning forest landscape', zh: '雾 早晨 森林' },
+      'fog-day':         { en: 'foggy landscape mountains', zh: '雾 风景 山' },
+      'fog-dusk':        { en: 'foggy sunset landscape', zh: '雾 黄昏' },
+      'fog-night':       { en: 'foggy night landscape', zh: '雾 夜景' },
+      'drizzle-dawn':    { en: 'light rain morning landscape', zh: '小雨 早晨' },
+      'drizzle-day':     { en: 'light rain landscape', zh: '小雨 风景' },
+      'drizzle-dusk':    { en: 'light rain sunset landscape', zh: '小雨 日落' },
+      'drizzle-night':   { en: 'light rain night landscape', zh: '小雨 夜景' },
+      'rain-dawn':       { en: 'rainy morning landscape', zh: '雨 早晨' },
+      'rain-day':        { en: 'rainy day landscape', zh: '雨 风景' },
+      'rain-dusk':       { en: 'rainy sunset landscape', zh: '雨 日落' },
+      'rain-night':      { en: 'rainy night street landscape', zh: '雨 夜景' },
+      'heavy-rain-dawn': { en: 'heavy rain storm landscape', zh: '大雨 暴雨' },
+      'heavy-rain-day':  { en: 'heavy rain storm landscape', zh: '大雨 暴雨' },
+      'heavy-rain-dusk': { en: 'heavy rain storm sunset', zh: '大雨 暴雨 日落' },
+      'heavy-rain-night':{ en: 'heavy rain night storm', zh: '大雨 夜景' },
+      'snow-dawn':       { en: 'snowy morning landscape', zh: '雪 早晨' },
+      'snow-day':        { en: 'snowy landscape mountains', zh: '雪 风景' },
+      'snow-dusk':       { en: 'snowy sunset landscape', zh: '雪 日落' },
+      'snow-night':      { en: 'snowy night landscape', zh: '雪 夜景' },
+      'thunderstorm-dawn':   { en: 'thunderstorm lightning landscape', zh: '雷雨 闪电' },
+      'thunderstorm-day':    { en: 'thunderstorm lightning landscape', zh: '雷雨 闪电' },
+      'thunderstorm-dusk':   { en: 'thunderstorm sunset lightning', zh: '雷雨 日落' },
+      'thunderstorm-night':  { en: 'thunderstorm night lightning', zh: '雷雨 夜景' },
+    },
+    // 循环视频关键词（用于 Pexels Video API，更适合动态背景）
+    video: {
+      'clear-dawn':      { en: 'sunrise time lapse', zh: '日出 延时' },
+      'clear-day':       { en: 'blue sky clouds time lapse', zh: '蓝天 云 延时' },
+      'clear-dusk':      { en: 'sunset time lapse', zh: '日落 延时' },
+      'clear-night':     { en: 'starry night sky time lapse', zh: '星空 延时' },
+      'cloudy-day':      { en: 'clouds moving time lapse', zh: '云 流动 延时' },
+      'cloudy-night':    { en: 'night clouds time lapse', zh: '夜晚 云 延时' },
+      'rain-day':        { en: 'rain falling video', zh: '下雨 视频' },
+      'rain-night':      { en: 'rain night window video', zh: '雨夜 窗户' },
+      'heavy-rain-day':  { en: 'heavy rain storm video', zh: '暴雨 视频' },
+      'snow-day':        { en: 'snow falling video', zh: '雪 延时' },
+      'snow-night':      { en: 'snow night video', zh: '雪夜 视频' },
+      'fog-day':         { en: 'foggy forest video', zh: '雾 森林 视频' },
+      'thunderstorm-day':{ en: 'thunderstorm lightning video', zh: '雷雨 闪电 视频' },
+      'thunderstorm-night':{ en: 'thunderstorm night video', zh: '雷雨 夜景' },
+    }
+  };
+
+  /* ---------- WMO Weather Code 映射 ---------- */
+  const WMO_CODE_MAP = {
+    0:  'clear',
+    1:  'clear',
+    2:  'cloudy',
+    3:  'overcast',
+    45: 'fog',
+    48: 'fog',
+    51: 'drizzle',
+    53: 'drizzle',
+    55: 'drizzle',
+    56: 'drizzle',
+    57: 'drizzle',
+    61: 'rain',
+    63: 'rain',
+    65: 'heavy-rain',
+    66: 'rain',
+    67: 'heavy-rain',
+    71: 'snow',
+    73: 'snow',
+    75: 'snow',
+    77: 'snow',
+    80: 'rain',
+    81: 'rain',
+    82: 'heavy-rain',
+    85: 'snow',
+    86: 'snow',
+    95: 'thunderstorm',
+    96: 'thunderstorm',
+    99: 'thunderstorm',
+  };
+
+  /* ---------- 时段划分 ---------- */
+  // 基于日出日落时间动态计算
+  // dawn:    日出前 30 分钟 ~ 日出后 1 小时
+  // day:     日出后 1 小时 ~ 日落前 1 小时
+  // dusk:    日落前 1 小时 ~ 日落后 30 分钟
+  // night:   日落后 30 分钟 ~ 次日日出前 30 分钟
+  function getTimePeriod(sunrise, sunset, now) {
+    if (!sunrise || !sunset) {
+      // 无日出日落数据时，用固定时段
+      const h = new Date(now).getHours();
+      if (h >= 5 && h < 8) return 'dawn';
+      if (h >= 8 && h < 17) return 'day';
+      if (h >= 17 && h < 20) return 'dusk';
+      return 'night';
+    }
+    const sr = new Date(sunrise).getTime();
+    const ss = new Date(sunset).getTime();
+    const t = now;
+    const dawnStart = sr - 30 * 60 * 1000;
+    const dawnEnd = sr + 60 * 60 * 1000;
+    const duskStart = ss - 60 * 60 * 1000;
+    const duskEnd = ss + 30 * 60 * 1000;
+    if (t >= dawnStart && t < dawnEnd) return 'dawn';
+    if (t >= dawnEnd && t < duskStart) return 'day';
+    if (t >= duskStart && t < duskEnd) return 'dusk';
+    return 'night';
+  }
+
+  /* ---------- 离线模式：本地资源路径映射 ---------- */
+  // 离线素材命名规则：offline/{weatherType}-{period}.jpg
+  // 例：offline/clear-day.jpg, offline/rain-night.jpg
+  function getOfflineImagePath(weatherType, period) {
+    return `offline/${weatherType}-${period}.jpg`;
+  }
+
+  /* ---------- 本地缓存（localStorage） ---------- */
+  const Cache = {
+    get(key, ttl) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (Date.now() - data.cachedAt > ttl) return null;
+        return data.value;
+      } catch { return null; }
+    },
+    set(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify({ value, cachedAt: Date.now() }));
+      } catch {}
+    }
+  };
+
+  /* ---------- 状态 ---------- */
+  const State = {
+    location: null,           // { latitude, longitude }
+    weather: null,            // { type, code, temperature, isDay }
+    sunrise: null,
+    sunset: null,
+    period: 'day',
+    weatherKey: 'clear-day',  // 当前 weatherType-period
+    particleCount: 80,        // 粒子数量（自动调整）
+    refreshTimer: null,
+  };
+
+  /* ---------- DOM ---------- */
+  const $bgImage = document.getElementById('bg-image');
+  const $bgFallback = document.getElementById('bg-fallback');
+  const $nightOverlay = document.getElementById('night-overlay');
+  const $lightning = document.getElementById('lightning-flash');
+  const $debug = document.getElementById('debug-info');
+  const $canvas = document.getElementById('particle-canvas');
+  const ctx = $canvas.getContext('2d');
+
+  /* ---------- 调试输出 ---------- */
+  function debug(msg) {
+    if (CONFIG.debug) {
+      $debug.style.display = 'block';
+      $debug.textContent = msg;
+      console.log('[WeatherTheme]', msg);
+    }
+  }
+
+  /* ---------- 设备性能检测 ---------- */
+  function detectPerformance() {
+    const memory = navigator.deviceMemory || 4;
+    const cores = navigator.hardwareConcurrency || 4;
+    if (memory <= 2 || cores <= 2) {
+      State.particleCount = 30;  // 低配设备
+    } else if (memory <= 4 || cores <= 4) {
+      State.particleCount = 60;  // 中配
+    } else {
+      State.particleCount = 100; // 高配
+    }
+    debug(`性能: ${cores}核/${memory}GB → 粒子${State.particleCount}`);
+  }
+
+  /* ---------- Canvas 尺寸适配 ---------- */
+  function resizeCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    $canvas.width = window.innerWidth * dpr;
+    $canvas.height = window.innerHeight * dpr;
+    $canvas.style.width = window.innerWidth + 'px';
+    $canvas.style.height = window.innerHeight + 'px';
+    ctx.scale(dpr, dpr);
+  }
+
+  /* ---------- 天气数据获取（Open-Meteo） ---------- */
+  async function fetchWeather(lat, lng) {
+    const cacheKey = `weather_${lat.toFixed(2)}_${lng.toFixed(2)}`;
+    const cached = Cache.get(cacheKey, CONFIG.weatherCacheTTL);
+    if (cached) {
+      debug('天气数据(缓存): ' + cached.type);
+      return cached;
+    }
+    try {
+      const params = new URLSearchParams({
+        latitude: lat.toString(),
+        longitude: lng.toString(),
+        current: 'weather_code,temperature_2m,is_day',
+        daily: 'sunrise,sunset',
+        timezone: 'auto',
+      });
+      const resp = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+      const code = data.current?.weather_code ?? 0;
+      const type = WMO_CODE_MAP[code] || 'cloudy';
+      const weather = {
+        type,
+        code,
+        temperature: Math.round(data.current?.temperature_2m ?? 20),
+        isDay: data.current?.is_day === 1,
+      };
+      State.sunrise = data.daily?.sunrise?.[0] || null;
+      State.sunset = data.daily?.sunset?.[0] || null;
+      Cache.set(cacheKey, weather);
+      debug(`天气: ${type} (${code}) ${weather.temperature}°C`);
+      return weather;
+    } catch (e) {
+      debug('天气获取失败: ' + e.message);
+      return null;
+    }
+  }
+
+  /* ---------- Pexels 图片获取 ---------- */
+  async function fetchPexelsImage(keyword) {
+    if (CONFIG.offlineMode || !CONFIG.pexelsApiKey) {
+      return getOfflineImagePath(State.weather.type, State.period);
+    }
+    const cacheKey = `pexels_${keyword}`;
+    const cached = Cache.get(cacheKey, CONFIG.imageCacheTTL);
+    if (cached) {
+      debug('图片(缓存): ' + keyword);
+      return cached;
+    }
+    try {
+      const resp = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(keyword)}&orientation=landscape&size=large&per_page=1`, {
+        headers: { 'Authorization': CONFIG.pexelsApiKey }
+      });
+      if (resp.status === 429) {
+        debug('Pexels 配额耗尽，切换离线模式');
+        CONFIG.offlineMode = true;
+        return getOfflineImagePath(State.weather.type, State.period);
+      }
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+      const url = data.photos?.[0]?.src?.landscape || data.photos?.[0]?.src?.large;
+      if (!url) throw new Error('无图片结果');
+      Cache.set(cacheKey, url);
+      debug('图片(Pexels): ' + keyword);
+      return url;
+    } catch (e) {
+      debug('Pexels 失败: ' + e.message + '，使用离线');
+      return getOfflineImagePath(State.weather.type, State.period);
+    }
+  }
+
+  /* ---------- 加载背景图 ---------- */
+  async function loadBackground(weatherType, period) {
+    const key = `${weatherType}-${period}`;
+    State.weatherKey = key;
+    const keywordObj = WEATHER_KEYWORD_MAP.static[key] || WEATHER_KEYWORD_MAP.static['clear-day'];
+    const imgUrl = await fetchPexelsImage(keywordObj.en);
+
+    // 预加载图片，加载完成后淡入
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    return new Promise((resolve) => {
+      let resolved = false;
+      const finish = (success) => {
+        if (resolved) return;
+        resolved = true;
+        if (success) {
+          $bgImage.style.opacity = '0';
+          $bgImage.src = img.src;
+          $bgImage.onload = () => {
+            $bgImage.style.opacity = '1';
+            resolve(true);
+          };
+          // 5 秒后仍未加载，用兜底
+          setTimeout(() => {
+            if (!$bgImage.complete) {
+              debug('图片加载超时，使用兜底渐变');
+              showFallback(weatherType, period);
+              resolve(false);
+            }
+          }, 5000);
+        } else {
+          showFallback(weatherType, period);
+          resolve(false);
+        }
+      };
+      img.onload = () => finish(true);
+      img.onerror = () => finish(false);
+      img.src = imgUrl;
+    });
+  }
+
+  /* ---------- 兜底渐变（图片加载失败） ---------- */
+  function showFallback(weatherType, period) {
+    const gradients = {
+      'clear-dawn':      'linear-gradient(180deg, #ff9a76 0%, #ffd1a3 50%, #ffe5b4 100%)',
+      'clear-day':       'linear-gradient(180deg, #4a90d9 0%, #87ceeb 50%, #b0e0e6 100%)',
+      'clear-dusk':      'linear-gradient(180deg, #ff6b6b 0%, #c44569 50%, #6c5b7b 100%)',
+      'clear-night':     'linear-gradient(180deg, #0a0e27 0%, #1a1a4e 50%, #2d2d6e 100%)',
+      'cloudy-day':      'linear-gradient(180deg, #8e9eab 0%, #b8c6db 50%, #dee2e6 100%)',
+      'overcast-day':    'linear-gradient(180deg, #606c88 0%, #3f4c6b 100%)',
+      'rain-day':        'linear-gradient(180deg, #3a4a5c 0%, #5a6c7d 50%, #7a8c9d 100%)',
+      'heavy-rain-day':  'linear-gradient(180deg, #1f2d3d 0%, #2c3e50 50%, #34495e 100%)',
+      'snow-day':        'linear-gradient(180deg, #c8d6e5 0%, #dfe6e9 50%, #f5f6fa 100%)',
+      'fog-day':         'linear-gradient(180deg, #b2bec3 0%, #dfe6e9 50%, #f1f2f6 100%)',
+      'thunderstorm-day':'linear-gradient(180deg, #1e272e 0%, #2d3436 50%, #636e72 100%)',
+    };
+    const defaultGrad = 'linear-gradient(180deg, #2d5f5d 0%, #466b4c 50%, #7a9b7e 100%)';
+    $bgFallback.style.background = gradients[State.weatherKey] || defaultGrad;
+    $bgImage.style.opacity = '0';
+  }
+
+  /* ---------- 夜晚色调蒙版 ---------- */
+  function updateNightOverlay(period, weatherType) {
+    const isNight = period === 'night';
+    const isDusk = period === 'dusk';
+    if (isNight) {
+      $nightOverlay.style.background = 'linear-gradient(180deg, rgba(10,20,50,0.35) 0%, rgba(15,25,60,0.25) 100%)';
+    } else if (isDusk) {
+      $nightOverlay.style.background = 'linear-gradient(180deg, rgba(255,100,50,0.08) 0%, rgba(50,30,80,0.12) 100%)';
+    } else {
+      $nightOverlay.style.background = 'transparent';
+    }
+  }
+
+  /* ============================================================
+   * Canvas 粒子系统
+   * ============================================================ */
+  const Particles = {
+    list: [],
+    type: 'clear',  // 当前粒子类型
+    lastFrame: 0,
+    fps: 60,
+    frameInterval: 1000 / 60,
+    lightningTimer: 0,
+    lightningActive: false,
+
+    init(weatherType) {
+      this.type = weatherType;
+      this.list = [];
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      const count = State.particleCount;
+
+      switch (weatherType) {
+        case 'clear':
+          // 晴天白天无粒子；夜晚生成星光
+          if (State.period === 'night') this.createStars(count);
+          break;
+        case 'cloudy':
+        case 'overcast':
+          this.createClouds(weatherType === 'overcast' ? 5 : 4);
+          break;
+        case 'fog':
+          this.createFogBands(6);
+          break;
+        case 'drizzle':
+          this.createRain(Math.floor(count * 0.5), 1, 6);
+          break;
+        case 'rain':
+          this.createRain(count, 1.5, 12);
+          break;
+        case 'heavy-rain':
+          this.createRain(Math.floor(count * 1.5), 2.5, 18);
+          break;
+        case 'snow':
+          this.createSnow(count);
+          break;
+        case 'thunderstorm':
+          this.createRain(Math.floor(count * 1.2), 2.5, 18);
+          this.lightningTimer = 0;
+          break;
+      }
+      debug(`粒子: ${this.type} × ${this.list.length}`);
+    },
+
+    // 雨滴
+    createRain(count, speedScale, length) {
+      const W = window.innerWidth;
+      for (let i = 0; i < count; i++) {
+        this.list.push({
+          kind: 'rain',
+          x: Math.random() * W,
+          y: Math.random() * window.innerHeight - 100,
+          vx: -1 - Math.random() * 2,
+          vy: 8 * speedScale + Math.random() * 4 * speedScale,
+          len: length + Math.random() * 6,
+          opacity: 0.3 + Math.random() * 0.4,
+          color: `rgba(180, 210, 230, ${0.3 + Math.random() * 0.4})`,
+        });
+      }
+    },
+
+    // 雪花
+    createSnow(count) {
+      const W = window.innerWidth;
+      for (let i = 0; i < count; i++) {
+        this.list.push({
+          kind: 'snow',
+          x: Math.random() * W,
+          y: Math.random() * window.innerHeight - 50,
+          vx: -0.5 + Math.random(),
+          vy: 0.8 + Math.random() * 1.5,
+          r: 2 + Math.random() * 4,
+          opacity: 0.6 + Math.random() * 0.4,
+          drift: Math.random() * Math.PI * 2,
+          driftSpeed: 0.01 + Math.random() * 0.02,
+        });
+      }
+    },
+
+    // 云朵
+    createClouds(count) {
+      const W = window.innerWidth;
+      for (let i = 0; i < count; i++) {
+        this.list.push({
+          kind: 'cloud',
+          x: Math.random() * W,
+          y: 30 + Math.random() * window.innerHeight * 0.4,
+          vx: 0.2 + Math.random() * 0.3,
+          w: 200 + Math.random() * 200,
+          h: 60 + Math.random() * 40,
+          opacity: 0.15 + Math.random() * 0.25,
+        });
+      }
+    },
+
+    // 雾带
+    createFogBands(count) {
+      const H = window.innerHeight;
+      for (let i = 0; i < count; i++) {
+        this.list.push({
+          kind: 'fog',
+          x: -window.innerWidth,
+          y: (i / count) * H + Math.random() * 40,
+          vx: 0.3 + Math.random() * 0.4,
+          w: window.innerWidth * 1.5,
+          h: 80 + Math.random() * 40,
+          opacity: 0.2 + Math.random() * 0.2,
+        });
+      }
+    },
+
+    // 星光
+    createStars(count) {
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      for (let i = 0; i < count; i++) {
+        this.list.push({
+          kind: 'star',
+          x: Math.random() * W,
+          y: Math.random() * H * 0.7,
+          r: 0.5 + Math.random() * 1.5,
+          opacity: 0.3 + Math.random() * 0.7,
+          twinkle: Math.random() * Math.PI * 2,
+          twinkleSpeed: 0.02 + Math.random() * 0.04,
+        });
+      }
+    },
+
+    // 触发闪电
+    triggerLightning() {
+      this.lightningActive = true;
+      $lightning.style.background = 'rgba(255, 255, 255, 0.6)';
+      setTimeout(() => {
+        $lightning.style.background = 'rgba(255, 255, 255, 0.3)';
+        setTimeout(() => {
+          $lightning.style.background = 'rgba(255, 255, 255, 0.5)';
+          setTimeout(() => {
+            $lightning.style.background = 'transparent';
+            this.lightningActive = false;
+          }, 80);
+        }, 60);
+      }, 100);
+    },
+
+    // 更新粒子
+    update(dt) {
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      for (const p of this.list) {
+        p.x += p.vx;
+        p.y += p.vy || 0;
+        if (p.kind === 'snow') {
+          p.drift += p.driftSpeed;
+          p.x += Math.sin(p.drift) * 0.5;
+          if (p.y > H) { p.y = -10; p.x = Math.random() * W; }
+          if (p.x < -10) p.x = W + 10;
+          if (p.x > W + 10) p.x = -10;
+        } else if (p.kind === 'rain') {
+          if (p.y > H) { p.y = -20; p.x = Math.random() * W; }
+        } else if (p.kind === 'cloud' || p.kind === 'fog') {
+          if (p.x > W + p.w) p.x = -p.w;
+        } else if (p.kind === 'star') {
+          p.twinkle += p.twinkleSpeed;
+        }
+      }
+      // 雷暴随机闪电
+      if (this.type === 'thunderstorm' && !this.lightningActive) {
+        this.lightningTimer += dt;
+        if (this.lightningTimer > 5000 + Math.random() * 8000) {
+          this.triggerLightning();
+          this.lightningTimer = 0;
+        }
+      }
+    },
+
+    // 绘制粒子
+    draw() {
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      ctx.clearRect(0, 0, W, H);
+      for (const p of this.list) {
+        if (p.kind === 'rain') {
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x + p.vx, p.y + p.len);
+          ctx.stroke();
+        } else if (p.kind === 'snow') {
+          ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (p.kind === 'cloud') {
+          const grad = ctx.createRadialGradient(p.x + p.w/2, p.y + p.h/2, 0, p.x + p.w/2, p.y + p.h/2, p.w/2);
+          grad.addColorStop(0, `rgba(255, 255, 255, ${p.opacity})`);
+          grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.ellipse(p.x + p.w/2, p.y + p.h/2, p.w/2, p.h/2, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (p.kind === 'fog') {
+          const grad = ctx.createLinearGradient(p.x, p.y, p.x + p.w, p.y);
+          grad.addColorStop(0, 'rgba(220, 230, 240, 0)');
+          grad.addColorStop(0.5, `rgba(220, 230, 240, ${p.opacity})`);
+          grad.addColorStop(1, 'rgba(220, 230, 240, 0)');
+          ctx.fillStyle = grad;
+          ctx.fillRect(p.x, p.y, p.w, p.h);
+        } else if (p.kind === 'star') {
+          const alpha = p.opacity * (0.5 + 0.5 * Math.sin(p.twinkle));
+          ctx.fillStyle = `rgba(255, 255, 240, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    },
+  };
+
+  /* ---------- 动画循环（自适应帧率） ---------- */
+  function animate(timestamp) {
+    const dt = timestamp - Particles.lastFrame;
+    if (dt >= Particles.frameInterval) {
+      Particles.lastFrame = timestamp - (dt % Particles.frameInterval);
+      Particles.update(dt);
+      Particles.draw();
+    }
+    requestAnimationFrame(animate);
+  }
+
+  /* ---------- 主流程：更新天气主题 ---------- */
+  async function updateTheme() {
+    if (!State.location) {
+      debug('等待定位...');
+      return;
+    }
+    const { latitude, longitude } = State.location;
+    const weather = await fetchWeather(latitude, longitude);
+    if (!weather) {
+      // 天气获取失败，使用默认晴天兜底
+      State.weather = { type: 'clear', code: 0, temperature: 20, isDay: true };
+      State.period = getTimePeriod(null, null, Date.now());
+    } else {
+      State.weather = weather;
+      State.period = getTimePeriod(State.sunrise, State.sunset, Date.now());
+    }
+    const key = `${State.weather.type}-${State.period}`;
+    debug(`主题: ${key}`);
+    await loadBackground(State.weather.type, State.period);
+    updateNightOverlay(State.period, State.weather.type);
+    Particles.init(State.weather.type);
+  }
+
+  /* ---------- 定时刷新（30 分钟） ---------- */
+  function startAutoRefresh() {
+    if (State.refreshTimer) clearInterval(State.refreshTimer);
+    State.refreshTimer = setInterval(updateTheme, CONFIG.weatherCacheTTL);
+    // 页面可见时刷新
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') updateTheme();
+    });
+  }
+
+  /* ---------- 暴露给安卓 JSBridge 的接口 ---------- */
+  window.WeatherTheme = {
+    // 安卓注入定位
+    setLocation(lat, lng) {
+      State.location = { latitude: lat, longitude: lng };
+      debug(`定位注入: ${lat.toFixed(3)}, ${lng.toFixed(3)}`);
+      updateTheme();
+      startAutoRefresh();
+    },
+    // 安卓注入 Pexels Key
+    setPexelsKey(key) {
+      CONFIG.pexelsApiKey = key;
+      debug('Pexels Key 已注入');
+    },
+    // 强制刷新
+    refresh() {
+      updateTheme();
+    },
+    // 设置离线模式
+    setOfflineMode(enabled) {
+      CONFIG.offlineMode = !!enabled;
+      debug('离线模式: ' + (enabled ? '开启' : '关闭'));
+      updateTheme();
+    },
+    // 设置粒子数量
+    setParticleCount(count) {
+      State.particleCount = parseInt(count) || 80;
+      Particles.init(State.weather.type);
+    },
+    // 设置调试模式
+    setDebug(enabled) {
+      CONFIG.debug = !!enabled;
+      $debug.style.display = enabled ? 'block' : 'none';
+    },
+  };
+
+  /* ---------- 网页侧自主定位（安卓未注入时降级） ---------- */
+  async function fallbackGeolocation() {
+    // 1. 浏览器 Geolocation
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          window.WeatherTheme.setLocation(pos.coords.latitude, pos.coords.longitude);
+        },
+        () => {
+          // 2. IP 定位降级
+          ipLocationFallback();
+        },
+        { timeout: 5000, maximumAge: 60000 }
+      );
+    } else {
+      ipLocationFallback();
+    }
+  }
+
+  async function ipLocationFallback() {
+    try {
+      const resp = await fetch('https://ipapi.co/json/');
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.latitude && data.longitude) {
+          window.WeatherTheme.setLocation(data.latitude, data.longitude);
+          return;
+        }
+      }
+    } catch {}
+    // 3. 完全无定位，使用默认位置（北京）+ 兜底主题
+    debug('定位失败，使用默认主题');
+    State.weather = { type: 'clear', code: 0, temperature: 20, isDay: true };
+    State.period = getTimePeriod(null, null, Date.now());
+    loadBackground('clear', State.period);
+    Particles.init('clear');
+  }
+
+  /* ---------- 初始化 ---------- */
+  function init() {
+    detectPerformance();
+    resizeCanvas();
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      Particles.init(State.weather?.type || 'clear');
+    });
+    requestAnimationFrame(animate);
+
+    // 等待安卓注入定位（2 秒后无注入则自主定位）
+    setTimeout(() => {
+      if (!State.location) {
+        debug('未收到安卓定位，自主定位');
+        fallbackGeolocation();
+      }
+    }, 2000);
+
+    debug('WeatherTheme 已启动');
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
