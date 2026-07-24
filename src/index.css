@@ -901,3 +901,100 @@ input[type="number"] {
     background: rgba(255, 255, 255, 0.65);
   }
 }
+
+/* ============================================================
+   字体颜色自适应（基于天气背景亮度）
+   由 WeatherThemeBackground 监听 iframe postMessage 设置
+   documentElement[data-bg-theme="light"|"dark"]
+   天气背景亮度优先于系统 prefers-color-scheme
+   ============================================================ */
+
+/* 暗色天气背景（夜晚/清晨/傍晚/暴雨/雷暴）：浅色文字 + 深色玻璃底衬 */
+[data-bg-theme="dark"] {
+  --glass-base-tint: rgba(15, 22, 28, 0.45);
+}
+
+[data-bg-theme="dark"] body {
+  color: #f0f4f2;
+}
+
+[data-bg-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+[data-bg-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* 暗色背景下玻璃卡片切换为深色半透明底（浅色文字在深色底上可读） */
+[data-bg-theme="dark"] .glass-card {
+  background: linear-gradient(
+    135deg,
+    rgba(35, 45, 50, 0.52) 0%,
+    rgba(30, 40, 45, 0.42) 50%,
+    rgba(25, 35, 40, 0.48) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 4px 24px -6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+[data-bg-theme="dark"] .glass-card-highlight {
+  background: linear-gradient(
+    135deg,
+    rgba(40, 52, 58, 0.6) 0%,
+    rgba(35, 46, 52, 0.5) 50%,
+    rgba(30, 42, 48, 0.55) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+[data-bg-theme="dark"] .glass-tile {
+  background: linear-gradient(
+    135deg,
+    rgba(35, 45, 50, 0.5) 0%,
+    rgba(30, 40, 45, 0.35) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+[data-bg-theme="dark"] .glass-btn {
+  background: linear-gradient(
+    135deg,
+    rgba(40, 52, 58, 0.5) 0%,
+    rgba(35, 46, 52, 0.3) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+[data-bg-theme="dark"] .glass-bar {
+  background: linear-gradient(
+    180deg,
+    rgba(25, 35, 40, 0.62) 0%,
+    rgba(20, 30, 35, 0.52) 100%
+  );
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-bg-theme="dark"] .glass-bar-bottom {
+  background: linear-gradient(
+    0deg,
+    rgba(25, 35, 40, 0.62) 0%,
+    rgba(20, 30, 35, 0.52) 100%
+  );
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 暗色背景下渐变文字切换为浅色渐变 */
+[data-bg-theme="dark"] .text-gradient {
+  background: linear-gradient(135deg, #e8f5f2 0%, #b8d4cc 50%, #9bbf9a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 亮色天气背景（晴天/多云/阴天白天等）：保持默认深色文字 */
+[data-bg-theme="light"] body {
+  color: #234a48;
+}
